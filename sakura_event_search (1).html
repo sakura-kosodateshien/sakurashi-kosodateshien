@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>子育て支援センター イベント検索</title>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3PVH1LLJFM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3PVH1LLJFM');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FDFAF6;--surface:#fff;--s2:#F5F0E8;--border:#E8E0D0;
+  --text:#2C2416;--muted:#7A6E60;--light:#B0A090;
+  --accent:#D4673A;--al:#FAEEE7;--ad:#A84E28;
+  --green:#4A7C5E;--blue:#3A6EA8;--bl:#E8F0FA;
+  --ylw:#C8960A;--yl:#FEF7E0;
+  --admin:#5B3FA8;--admin-l:#EFEBFA;
+  --red:#A32D2D;--red-l:#FCEBEB;
+  --rsm:6px;--rmd:10px;--rlg:16px;
+  --s1:0 1px 3px rgba(44,36,22,.06);
+  --s2x:0 4px 16px rgba(44,36,22,.10);
+  --s3:0 8px 32px rgba(44,36,22,.18);
+}
+body{font-family:'Noto Sans JP',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.widget{max-width:720px;margin:0 auto;padding:1.25rem 1rem 2.5rem}
+.hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:1.25rem}
+.hdr-icon{width:42px;height:42px;flex-shrink:0;background:var(--accent);border-radius:var(--rmd);display:flex;align-items:center;justify-content:center;font-size:20px}
+.hdr h1{font-size:17px;font-weight:700;line-height:1.3}
+.hdr p{font-size:12px;color:var(--muted);margin-top:2px}
+.srch{position:relative;margin-bottom:.875rem}
+.srch-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--light);pointer-events:none}
+.srch input{width:100%;padding:9px 12px 9px 35px;border:1.5px solid var(--border);border-radius:var(--rmd);font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s}
+.srch input:focus{border-color:var(--accent)}
+.srch input::placeholder{color:var(--light)}
+.fpanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:1rem 1.125rem;margin-bottom:1rem;box-shadow:var(--s1)}
+.fg{margin-bottom:.875rem}.fg:last-child{margin-bottom:0}
+.flabel{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--light);margin-bottom:7px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:12px;padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);cursor:pointer;background:var(--surface);color:var(--muted);user-select:none;white-space:nowrap;transition:all .15s;font-family:inherit}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.ca{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.chip.cd{background:var(--green);border-color:var(--green);color:#fff;font-weight:600}
+.sbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.scnt{font-size:12px;color:var(--muted)}.scnt strong{color:var(--accent);font-weight:700}
+.clr{font-size:12px;color:var(--light);cursor:pointer;background:none;border:none;font-family:inherit;text-decoration:underline}
+.clr:hover{color:var(--accent)}
+.results{display:flex;flex-direction:column;gap:7px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:.875rem 1rem;box-shadow:var(--s1);display:flex;gap:12px;align-items:flex-start;transition:box-shadow .15s,transform .15s}
+.card:hover{box-shadow:var(--s2x);transform:translateY(-1px)}
+.dco{flex-shrink:0;width:40px;text-align:center;padding-top:2px}
+.dday{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:700;color:var(--accent);line-height:1}
+.dwday{font-size:10px;color:var(--light);margin-top:2px}
+.dvdr{width:1px;background:var(--border);align-self:stretch;flex-shrink:0}
+.cbody{flex:1;min-width:0}
+.ctitle{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.4}
+.tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tag{font-size:11px;padding:2px 7px;border-radius:var(--rsm);font-weight:500;white-space:nowrap}
+.t-area{background:var(--bl);color:var(--blue)}
+.t-ctr{background:var(--al);color:var(--ad);cursor:pointer;transition:background .15s}
+.t-ctr:hover{background:#f5d9cc}
+.t-time{background:var(--yl);color:var(--ylw)}
+.t-note{background:var(--s2);color:var(--muted)}
+.t-edit{background:var(--admin-l);color:var(--admin);cursor:pointer;border:none;font-family:inherit;font-size:11px;font-weight:500;padding:2px 7px;border-radius:var(--rsm)}
+.t-edit:hover{background:#ddd5f5}
+.t-del{background:var(--red-l);color:var(--red);cursor:pointer;border:none;font-family:inherit;font-size:11px;font-weight:500;padding:2px 7px;border-radius:var(--rsm)}
+.t-del:hover{background:#f7c1c1}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--light)}
+.empty .ei{font-size:32px;margin-bottom:.625rem}
+.loading{text-align:center;padding:2rem;color:var(--muted);font-size:13px}
+.fnote{font-size:11px;color:var(--light);text-align:center;margin-top:1.25rem;line-height:1.7}
+.fnote a{color:var(--accent)}
+/* 管理者バー */
+.admin-bar{display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding:.625rem .875rem;background:var(--admin-l);border:1px solid #C5BAF0;border-radius:var(--rmd);font-size:12px;color:var(--admin);flex-wrap:wrap}
+.admin-bar strong{font-weight:700}
+.admin-bar .admin-btns{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.admin-btn{font-size:11px;padding:4px 10px;border-radius:var(--rsm);border:1px solid #C5BAF0;background:#fff;color:var(--admin);cursor:pointer;font-family:inherit;font-weight:500}
+.admin-btn:hover{background:var(--admin-l)}
+.admin-btn.exit{color:var(--muted);border-color:var(--border)}
+.admin-trigger{display:flex;justify-content:flex-end;margin-bottom:.5rem}
+.admin-trigger button{font-size:11px;color:var(--light);background:none;border:none;cursor:pointer;font-family:inherit;padding:2px 0;text-decoration:underline}
+/* モーダル */
+.ov{display:none;position:fixed;inset:0;background:rgba(44,36,22,.5);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:1rem}
+.ov.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--rlg);width:100%;max-width:480px;box-shadow:var(--s3);animation:fadeIn .2s ease;max-height:90vh;overflow-y:auto}
+@keyframes fadeIn{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-hdr{padding:1.125rem 1.25rem .75rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-hdr h3{font-size:15px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;color:var(--light);cursor:pointer;line-height:1;padding:0 2px}
+.modal-body{padding:1rem 1.25rem}
+.field{margin-bottom:.875rem}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rsm);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--admin)}
+.field textarea{height:72px;resize:vertical}
+.field .hint{font-size:10px;color:var(--light);margin-top:3px}
+.modal-footer{padding:.75rem 1.25rem 1.125rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border)}
+.btn-cancel{padding:8px 16px;border-radius:var(--rmd);border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer}
+.btn-save{padding:8px 20px;border-radius:var(--rmd);border:none;background:var(--admin);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.btn-save:hover{opacity:.88}
+.btn-danger{padding:8px 16px;border-radius:var(--rmd);border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+/* 施設モーダル */
+.cov{display:none;position:fixed;inset:0;background:rgba(44,36,22,.5);z-index:9998;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.cov.open{display:flex}
+.cmodal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:500px;box-shadow:var(--s3);animation:sup .22s cubic-bezier(.25,.8,.25,1)}
+@keyframes sup{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.cmhdl{padding:10px 0 2px;display:flex;justify-content:center}
+.cmhdl span{width:34px;height:4px;border-radius:2px;background:var(--border);display:block}
+.cmin{padding:0 1.25rem 1.5rem}
+.cmhdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.875rem}
+.cmname{font-size:17px;font-weight:700;line-height:1.3;flex:1}
+.cmarea{font-size:11px;padding:3px 9px;border-radius:12px;background:var(--bl);color:var(--blue);font-weight:500;white-space:nowrap;margin-left:8px;flex-shrink:0;align-self:flex-start;margin-top:3px}
+.cminfo{background:var(--s2);border-radius:var(--rmd);overflow:hidden;margin-bottom:1rem}
+.cmrow{display:flex;gap:9px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px}
+.cmrow:last-child{border-bottom:none}
+.cmric{font-size:14px;flex-shrink:0;width:16px;text-align:center;margin-top:1px}
+.cmrlb{color:var(--muted);flex-shrink:0;width:52px;font-size:11px;padding-top:1px}
+.cmrval{color:var(--text);line-height:1.5}
+.cmacts{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.abtn{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;border-radius:var(--rmd);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;text-decoration:none;transition:opacity .15s,transform .1s}
+.abtn:active{transform:scale(.97);opacity:.85}
+.atel{background:var(--accent);color:#fff}
+.amap{background:var(--green);color:#fff}
+.aweb{background:var(--s2);color:var(--muted);grid-column:1/-1;font-size:12px;padding:10px 8px}
+.cmclose{text-align:center;margin-top:.625rem}
+.cmclose button{font-size:12px;color:var(--light);cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 14px}
+/* import */
+.import-area{width:100%;height:160px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rsm);font-size:12px;font-family:monospace;color:var(--text);background:var(--s2);outline:none;resize:vertical}
+.import-area:focus{border-color:var(--admin)}
+.import-preview{margin-top:8px;font-size:11px;color:var(--green);min-height:16px}
+.import-err{color:var(--red)}
+.saving{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.widget{padding:1rem .75rem 2rem}.dday{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="hdr">
+    <div class="hdr-icon">🌸</div>
+    <div>
+      <h1>子育て支援センター イベント検索</h1>
+      <p id="subTitle">佐倉市 全8センター</p>
+    </div>
+  </div>
+  <div class="srch">
+    <span class="srch-ic">🔍</span>
+    <input id="kw" type="text" placeholder="キーワード検索（例：マッサージ、試食、相談）" oninput="render()">
+  </div>
+  <div class="fpanel">
+    <div class="fg">
+      <span class="flabel">地区</span>
+      <div class="chips" id="aChips">
+        <span class="chip ca" data-v="all" onclick="setA(this)">すべて</span>
+        <span class="chip" data-v="佐倉" onclick="setA(this)">佐倉</span>
+        <span class="chip" data-v="臼井" onclick="setA(this)">臼井</span>
+        <span class="chip" data-v="志津" onclick="setA(this)">志津</span>
+      </div>
+    </div>
+    <div class="fg">
+      <span class="flabel">日付</span>
+      <div class="chips" id="dChips"></div>
+    </div>
+  </div>
+  <div class="sbar">
+    <span class="scnt" id="scnt"></span>
+    <button class="clr" onclick="clearAll()">リセット</button>
+  </div>
+  <div class="admin-bar" id="adminBar" style="display:none">
+    <span>🔑 <strong>管理者モード</strong></span>
+    <div class="admin-btns">
+      <button class="admin-btn" onclick="openAdd()">➕ 新規追加</button>
+      <button class="admin-btn" onclick="openImport()">📥 一括インポート</button>
+      <button class="admin-btn exit" onclick="exitAdmin()">終了</button>
+    </div>
+  </div>
+  <div class="admin-trigger" id="adminTrigger">
+    <button onclick="showAdminLogin()">管理者ログイン</button>
+  </div>
+  <div class="results" id="res"><div class="loading">📡 データを読み込み中…</div></div>
+  <p class="fnote">各センターの月次おたよりをもとに作成。詳細は各センターへご確認ください。<br>
+  出典：<a href="https://www.city.sakura.lg.jp/soshiki/kodomohoikuka/210/index.html" target="_blank">千葉県佐倉市 地域子育て支援センター</a></p>
+</div>
+
+<!-- ログインモーダル -->
+<div class="ov" id="loginOv" onclick="if(event.target===this)closeLogin()">
+  <div class="modal">
+    <div class="modal-hdr"><h3>🔑 管理者ログイン</h3><button class="modal-close" onclick="closeLogin()">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>パスワード</label>
+        <input type="password" id="pwInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="hint" id="pwErr" style="color:#E24B4A;display:none">パスワードが違います</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeLogin()">キャンセル</button>
+      <button class="btn-save" onclick="doLogin()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- 追加・編集モーダル -->
+<div class="ov" id="editOv" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-hdr"><h3 id="editTitle">✏️ イベントを編集</h3><button class="modal-close" onclick="closeEdit()">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>センター名</label>
+        <select id="eCenter">
+          <option value="佐倉市子育て交流センター">佐倉市子育て交流センター（佐倉）</option>
+          <option value="子育て愛らんど">子育て愛らんど（佐倉）</option>
+          <option value="ひのきっこ">ひのきっこ（佐倉）</option>
+          <option value="ノア">ノア（臼井）</option>
+          <option value="SansSouci広場">SansSouci広場（臼井）</option>
+          <option value="ユーカリベビー">ユーカリベビー（志津）</option>
+          <option value="ハローベビー">ハローベビー（志津）</option>
+          <option value="ひつじ">ひつじ（志津）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>日付</label>
+        <input type="date" id="eDate">
+      </div>
+      <div class="field">
+        <label>イベント名</label>
+        <input type="text" id="eTitle2" placeholder="例：ベビーマッサージ">
+      </div>
+      <div class="field">
+        <label>時間</label>
+        <input type="text" id="eTime" placeholder="例：10:00〜11:00">
+      </div>
+      <div class="field">
+        <label>備考・補足</label>
+        <textarea id="eNote" placeholder="例：要予約・定員10組・6か月〜1歳半対象"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" id="editFooter">
+      <button class="btn-cancel" onclick="closeEdit()">キャンセル</button>
+      <button class="btn-save" id="saveBtn" onclick="saveEdit()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 一括インポートモーダル -->
+<div class="ov" id="importOv" onclick="if(event.target===this)closeImport()">
+  <div class="modal">
+    <div class="modal-hdr"><h3>📥 一括インポート</h3><button class="modal-close" onclick="closeImport()">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>JSONデータを貼り付け</label>
+        <textarea class="import-area" id="importJson" placeholder='[
+  {"c":"ひのきっこ","d":"2026-03-09","t":"プラパン工房","tm":"10:00〜11:00","n":"要予約・各2組"},
+  {"c":"ひのきっこ","d":"2026-03-18","t":"リラックスヨガ","tm":"11:00〜11:30","n":"要予約・先着4組"}
+]' oninput="previewImport()"></textarea>
+        <div class="import-preview" id="importPreview"></div>
+        <div class="hint">c=センター名 d=日付(YYYY-MM-DD) t=イベント名 tm=時間 n=備考</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeImport()">キャンセル</button>
+      <button class="btn-save" id="importBtn" onclick="doImport()">📥 インポート実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="ov" id="delOv" onclick="if(event.target===this)closeDel()">
+  <div class="modal">
+    <div class="modal-hdr"><h3>🗑 削除の確認</h3><button class="modal-close" onclick="closeDel()">×</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text)" id="delMsg"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDel()">キャンセル</button>
+      <button class="btn-danger" onclick="confirmDel()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 施設モーダル -->
+<div class="cov" id="cov" onclick="if(event.target===this)closeCm()">
+  <div class="cmodal">
+    <div class="cmhdl"><span></span></div>
+    <div class="cmin">
+      <div class="cmhdr"><div class="cmname" id="mN"></div><span class="cmarea" id="mA"></span></div>
+      <div class="cminfo" id="mI"></div>
+      <div class="cmacts" id="mActs"></div>
+      <div class="cmclose"><button onclick="closeCm()">閉じる</button></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09",
+  measurementId: "G-3PVH1LLJFM"
+});
+const db = getFirestore(app);
+const analytics = getAnalytics(app);
+
+const ADMIN_PW = "sakura2026";
+const WD = ["日","月","火","水","木","金","土"];
+const CENTER_AREA = {
+  "佐倉市子育て交流センター":"佐倉","子育て愛らんど":"佐倉","ひのきっこ":"佐倉",
+  "ノア":"臼井","SansSouci広場":"臼井",
+  "ユーカリベビー":"志津","ハローベビー":"志津","ひつじ":"志津"
+};
+const CENTERS = {
+  "佐倉市子育て交流センター":{area:"佐倉",addr:"佐倉市臼井田2714 夢咲くら館内",tel:"043-488-5880",hrs:"火〜日 9:00〜17:00",web:"https://www.city.sakura.lg.jp/soshiki/kosodatekoryu/index.html",map:"https://maps.google.com/?q=千葉県佐倉市臼井田2714+夢咲くら館"},
+  "子育て愛らんど":{area:"佐倉",addr:"佐倉市本町142-1 生活クラブ風の村保育園佐倉東",tel:"043-481-0225",hrs:"月〜金 9:30〜12:30/13:00〜15:00",web:"https://kazenomura.jp/",map:"https://maps.google.com/?q=千葉県佐倉市本町142-1"},
+  "ひのきっこ":{area:"佐倉",addr:"佐倉市寺崎北2-13-1 陽の木さくら保育園",tel:"043-312-8535",hrs:"月〜金 9:00〜14:00",web:"https://hinokisakura.com/support_center-1",map:"https://maps.google.com/?q=千葉県佐倉市寺崎北2-13-1"},
+  "ノア":{area:"臼井",addr:"佐倉市吉見184-2 吉見光の子モンテッソーリ子どもの家",tel:"043-312-2939",hrs:"月〜金 9:00〜14:00",web:"https://www.yoshimi-hikarinoko.ed.jp/noah/about",map:"https://maps.google.com/?q=千葉県佐倉市吉見184-2"},
+  "SansSouci広場":{area:"臼井",addr:"佐倉市王子台3-12-14 ジュネス長岡1階",tel:"043-312-2330",hrs:"9:00〜12:30/14:00〜16:00（週2日）",web:"http://sanssouci-hiroba.com/",map:"https://maps.google.com/?q=千葉県佐倉市王子台3-12-14"},
+  "ユーカリベビー":{area:"志津",addr:"佐倉市ユーカリが丘4-1 ウエストタワー2階",tel:"043-464-0030",hrs:"月・水〜土 10:00〜15:00（祝日除く）",web:"https://kosodate.y-m-m.co.jp/westdailykids/",map:"https://maps.google.com/?q=千葉県佐倉市ユーカリが丘4-1"},
+  "ハローベビー":{area:"志津",addr:"佐倉市ユーカリが丘4-8-6 ユーカリが丘駅前ビル1階",tel:"043-312-2768",hrs:"月〜金 9:00〜14:00",web:"https://kosodate.y-m-m.co.jp/yukarihellokids/",map:"https://maps.google.com/?q=千葉県佐倉市ユーカリが丘4-8-6"},
+  "ひつじ":{area:"志津",addr:"佐倉市上座1219-1 モンテッソーリ光の子",tel:"043-461-1372",hrs:"月〜金 9:30〜15:00",web:"https://www.hikarinoko.ed.jp/hitsuji/",map:"https://maps.google.com/?q=千葉県佐倉市上座1219-1"}
+};
+
+let allEvents = [], aA="all", aD="all", isAdmin=false, editingId=null, deletingId=null;
+
+// Firestoreリアルタイム監視
+const evRef = collection(db, "events");
+onSnapshot(query(evRef, orderBy("d")), snap => {
+  allEvents = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  buildDateChips();
+  updateSubTitle();
+  render();
+});
+
+function buildDateChips() {
+  const days = [...new Set(allEvents.map(e => e.d ? e.d.slice(-2) : null).filter(Boolean))].sort();
+  const dc = document.getElementById("dChips");
+  dc.innerHTML = "";
+  const a0 = document.createElement("span");
+  a0.className="chip cd"; a0.textContent="すべて"; a0.dataset.v="all";
+  a0.onclick=()=>setD(a0); dc.appendChild(a0);
+  days.forEach(dd => {
+    const c = document.createElement("span"); c.className="chip";
+    const n=parseInt(dd), w=WD[new Date(2026,2,n).getDay()];
+    c.textContent=`${n}日(${w})`; c.dataset.v=dd;
+    c.onclick=()=>setD(c); dc.appendChild(c);
+  });
+}
+
+function updateSubTitle() {
+  const months = [...new Set(allEvents.map(e => e.d ? e.d.slice(0,7) : null).filter(Boolean))];
+  const label = months.length === 1
+    ? `佐倉市 全8センター・${months[0].replace("-","年")}月`
+    : `佐倉市 全8センター`;
+  document.getElementById("subTitle").textContent = label;
+}
+
+window.setA = function(el) {
+  document.querySelectorAll("#aChips .chip").forEach(c=>c.classList.remove("ca"));
+  el.classList.add("ca"); aA=el.dataset.v; render();
+};
+window.setD = function(el) {
+  document.querySelectorAll("#dChips .chip").forEach(c=>c.classList.remove("cd"));
+  el.classList.add("cd"); aD=el.dataset.v; render();
+};
+window.clearAll = function() {
+  document.getElementById("kw").value="";
+  setA(document.querySelector("#aChips .chip"));
+  const dc0 = document.querySelector("#dChips .chip");
+  if(dc0) setD(dc0);
+};
+
+function render() {
+  const kw = document.getElementById("kw").value.trim().toLowerCase();
+  const f = allEvents.filter(e => {
+    const area = CENTER_AREA[e.c] || "";
+    const ao = aA==="all" || area===aA;
+    const dо = aD==="all" || (e.d && e.d.slice(-2)===aD);
+    const ko = !kw || (e.t||"").toLowerCase().includes(kw) || (e.c||"").toLowerCase().includes(kw) || ((e.n||"").toLowerCase().includes(kw));
+    return ao && dо && ko;
+  });
+  document.getElementById("scnt").innerHTML = `<strong>${f.length}</strong> 件のイベント`;
+  const res = document.getElementById("res");
+  if (!f.length) { res.innerHTML=`<div class="empty"><div class="ei">🌱</div><p>該当するイベントが見つかりませんでした</p></div>`; return; }
+  res.innerHTML = f.map(e => {
+    const dStr = e.d || "";
+    const n = dStr ? parseInt(dStr.slice(-2)) : 0;
+    const w = dStr ? WD[new Date(dStr).getDay()] : "";
+    const cn = (e.c||"").replace(/'/g,"\\'");
+    const area = CENTER_AREA[e.c] || "";
+    return `<div class="card">
+      <div class="dco"><div class="dday">${n||"?"}</div><div class="dwday">${w?w+"曜":""}</div></div>
+      <div class="dvdr"></div>
+      <div class="cbody">
+        <div class="ctitle">${e.t||""}</div>
+        <div class="tags">
+          ${area?`<span class="tag t-area">${area}</span>`:""}
+          <span class="tag t-ctr" onclick="openCm('${cn}')">📍 ${e.c||""}</span>
+          ${e.tm?`<span class="tag t-time">🕐 ${e.tm}</span>`:""}
+          ${e.n?`<span class="tag t-note">${e.n}</span>`:""}
+          ${isAdmin?`<button class="t-edit" onclick="openEdit('${e.id}')">✏️</button><button class="t-del" onclick="openDel('${e.id}')">🗑</button>`:""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// 管理者ログイン
+window.showAdminLogin = function() {
+  document.getElementById("pwInput").value="";
+  document.getElementById("pwErr").style.display="none";
+  document.getElementById("loginOv").classList.add("open");
+  setTimeout(()=>document.getElementById("pwInput").focus(),100);
+};
+window.closeLogin = function() { document.getElementById("loginOv").classList.remove("open"); };
+window.doLogin = function() {
+  if (document.getElementById("pwInput").value===ADMIN_PW) {
+    isAdmin=true;
+    document.getElementById("loginOv").classList.remove("open");
+    document.getElementById("adminBar").style.display="flex";
+    document.getElementById("adminTrigger").style.display="none";
+    render();
+  } else {
+    document.getElementById("pwErr").style.display="block";
+    document.getElementById("pwInput").value="";
+    document.getElementById("pwInput").focus();
+  }
+};
+window.exitAdmin = function() {
+  isAdmin=false;
+  document.getElementById("adminBar").style.display="none";
+  document.getElementById("adminTrigger").style.display="flex";
+  render();
+};
+
+// 新規追加
+window.openAdd = function() {
+  editingId = null;
+  document.getElementById("editTitle").textContent = "➕ イベントを追加";
+  document.getElementById("eCenter").value = "ひのきっこ";
+  document.getElementById("eDate").value = "";
+  document.getElementById("eTitle2").value = "";
+  document.getElementById("eTime").value = "";
+  document.getElementById("eNote").value = "";
+  document.getElementById("editFooter").innerHTML = `
+    <button class="btn-cancel" onclick="closeEdit()">キャンセル</button>
+    <button class="btn-save" id="saveBtn" onclick="saveEdit()">➕ 追加</button>
+  `;
+  document.getElementById("editOv").classList.add("open");
+};
+
+// 編集
+window.openEdit = function(id) {
+  const ev = allEvents.find(e=>e.id===id); if(!ev) return;
+  editingId = id;
+  document.getElementById("editTitle").textContent = "✏️ イベントを編集";
+  document.getElementById("eCenter").value = ev.c||"";
+  document.getElementById("eDate").value = ev.d||"";
+  document.getElementById("eTitle2").value = ev.t||"";
+  document.getElementById("eTime").value = ev.tm||"";
+  document.getElementById("eNote").value = ev.n||"";
+  document.getElementById("editFooter").innerHTML = `
+    <button class="btn-cancel" onclick="closeEdit()">キャンセル</button>
+    <button class="btn-save" id="saveBtn" onclick="saveEdit()">💾 保存</button>
+  `;
+  document.getElementById("editOv").classList.add("open");
+};
+window.closeEdit = function() { document.getElementById("editOv").classList.remove("open"); editingId=null; };
+
+window.saveEdit = async function() {
+  const btn = document.getElementById("saveBtn");
+  btn.innerHTML='<span class="saving"></span>保存中…'; btn.disabled=true;
+  const data = {
+    c: document.getElementById("eCenter").value,
+    d: document.getElementById("eDate").value,
+    t: document.getElementById("eTitle2").value.trim(),
+    tm: document.getElementById("eTime").value.trim()||null,
+    n: document.getElementById("eNote").value.trim()||null,
+  };
+  try {
+    if (editingId) {
+      await setDoc(doc(db,"events",editingId), data);
+    } else {
+      await addDoc(collection(db,"events"), data);
+    }
+    closeEdit();
+  } catch(e) { alert("保存に失敗しました: "+e.message); }
+  btn.innerHTML = editingId ? '💾 保存' : '➕ 追加';
+  btn.disabled=false;
+};
+
+// 削除
+window.openDel = function(id) {
+  const ev = allEvents.find(e=>e.id===id); if(!ev) return;
+  deletingId = id;
+  document.getElementById("delMsg").textContent = `「${ev.t}」（${ev.d}・${ev.c}）を削除しますか？この操作は元に戻せません。`;
+  document.getElementById("delOv").classList.add("open");
+};
+window.closeDel = function() { document.getElementById("delOv").classList.remove("open"); deletingId=null; };
+window.confirmDel = async function() {
+  if (!deletingId) return;
+  try {
+    await deleteDoc(doc(db,"events",deletingId));
+    closeDel();
+  } catch(e) { alert("削除に失敗しました: "+e.message); }
+};
+
+// 一括インポート
+window.openImport = function() {
+  document.getElementById("importJson").value="";
+  document.getElementById("importPreview").textContent="";
+  document.getElementById("importOv").classList.add("open");
+};
+window.closeImport = function() { document.getElementById("importOv").classList.remove("open"); };
+window.previewImport = function() {
+  const val = document.getElementById("importJson").value.trim();
+  const prev = document.getElementById("importPreview");
+  if (!val) { prev.textContent=""; return; }
+  try {
+    const data = JSON.parse(val);
+    if (!Array.isArray(data)) throw new Error("配列で入力してください");
+    prev.className="import-preview";
+    prev.textContent = `✅ ${data.length}件のイベントを検出`;
+  } catch(e) {
+    prev.className="import-preview import-err";
+    prev.textContent = "❌ JSONの形式が正しくありません: "+e.message;
+  }
+};
+window.doImport = async function() {
+  const btn = document.getElementById("importBtn");
+  const val = document.getElementById("importJson").value.trim();
+  let data;
+  try {
+    data = JSON.parse(val);
+    if (!Array.isArray(data)) throw new Error("配列で入力してください");
+  } catch(e) { alert("JSONエラー: "+e.message); return; }
+  btn.innerHTML='<span class="saving"></span>登録中…'; btn.disabled=true;
+  let ok=0, ng=0;
+  for (const item of data) {
+    try {
+      await addDoc(collection(db,"events"), {
+        c: item.c||"", d: item.d||"", t: item.t||"",
+        tm: item.tm||null, n: item.n||null
+      });
+      ok++;
+    } catch(e) { ng++; }
+  }
+  alert(`完了：${ok}件登録${ng?`、${ng}件失敗`:""}`);
+  closeImport();
+  btn.innerHTML='📥 インポート実行'; btn.disabled=false;
+};
+
+// 施設モーダル
+window.openCm = function(name) {
+  const c=CENTERS[name]; if(!c) return;
+  document.getElementById("mN").textContent=name;
+  document.getElementById("mA").textContent=c.area+"地区";
+  document.getElementById("mI").innerHTML=`
+    <div class="cmrow"><span class="cmric">📍</span><span class="cmrlb">住所</span><span class="cmrval">${c.addr}</span></div>
+    <div class="cmrow"><span class="cmric">📞</span><span class="cmrlb">電話番号</span><span class="cmrval">${c.tel}</span></div>
+    <div class="cmrow"><span class="cmric">🕐</span><span class="cmrlb">開所時間</span><span class="cmrval">${c.hrs}</span></div>
+  `;
+  document.getElementById("mActs").innerHTML=`
+    <a class="abtn atel" href="tel:${c.tel}">📞 電話する</a>
+    <a class="abtn amap" href="${c.map}" target="_blank">🗺 地図を見る</a>
+    <a class="abtn aweb" href="${c.web}" target="_blank">🌐 公式サイトを見る</a>
+  `;
+  document.getElementById("cov").classList.add("open");
+  logEvent(analytics,'view_center',{center:name});
+};
+window.closeCm = function() { document.getElementById("cov").classList.remove("open"); };
+</script>
+</body>
+</html>
