@@ -117,7 +117,7 @@ header .staff-badge{font-size:.68rem;background:var(--warm);color:#fff;padding:2
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, query, where, onSnapshot, addDoc, getDocs, Timestamp }
+import { getFirestore, collection, query, where, onSnapshot, getDocs, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -133,15 +133,7 @@ const db  = getFirestore(app);
 
 const PH=28;
 const HOURS=[9,10,11,12,13,14];
-// 今週の月曜日を自動計算
-const BASE=(()=>{
-  const d=new Date();
-  const day=d.getDay();
-  const diff=day===0?-6:1-day;
-  d.setDate(d.getDate()+diff);
-  d.setHours(0,0,0,0);
-  return d;
-})();
+const BASE=new Date(2026,3,6); // 4/6固定（4月第1週月曜）
 let weekOffset=0;
 let viewMode='all';
 let selectedProg=null;
