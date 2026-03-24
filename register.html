@@ -4,52 +4,80 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>利用者登録 | 陽の木さくら子育て支援センター</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ── Firebase 設定（hinokisakura.com と同じプロジェクト） ──────────────
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
     authDomain: "sakurashi-kosodateshien.firebaseapp.com",
     projectId: "sakurashi-kosodateshien",
-    storageBucket: "sakurashi-kosodateshien.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId: "365529893548",
+    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
   };
 
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
-  // ── ユニークID生成 ──────────────────────────────────────────────────
-  function generateUID() {
+  const LIFF_ID = '2009587361-BBVXkOWi';
+  let lineUserId = '';
+
+  async function initLiff(){
+    try{
+      await liff.init({ liffId: LIFF_ID });
+      if(liff.isLoggedIn()){
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId;
+
+        // すでに登録済みか確認
+        const { getDocs, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+        const snap = await getDocs(query(
+          collection(db,'users'),
+          where('lineUserId','==',lineUserId)
+        ));
+        if(!snap.empty){
+          // 登録済み → そのままQR表示
+          const user = snap.docs[0].data();
+          showQR(user.uid, user.name, true);
+          return;
+        }
+      } else {
+        const p = new URLSearchParams(location.search);
+        lineUserId = p.get('lineUserId') || '';
+        if(!lineUserId && liff.isInClient()) liff.login();
+      }
+    }catch(e){
+      console.warn('LIFF初期化エラー:', e.message);
+      const p = new URLSearchParams(location.search);
+      lineUserId = p.get('lineUserId') || '';
+    }
+  }
+
+  function generateUID(){
     return 'U' + Date.now().toString(36).toUpperCase()
            + Math.random().toString(36).substring(2,6).toUpperCase();
   }
 
-  // ── 登録処理 ────────────────────────────────────────────────────────
-  window.submitRegistration = async function() {
+  window.submitRegistration = async function(){
     const name     = document.getElementById('name').value.trim();
     const kana     = document.getElementById('kana').value.trim();
     const childDob = document.getElementById('childDob').value;
     const tel      = document.getElementById('tel').value.trim();
     const lang     = document.getElementById('lang').value;
 
-    if (!name || !childDob || !tel) {
+    if(!name || !childDob || !tel){
       alert('※ 必須項目をすべて入力してください。');
       return;
     }
 
     const btn = document.getElementById('submitBtn');
-    btn.disabled   = true;
+    btn.disabled = true;
     btn.textContent = '登録中…';
 
-    // LIFFページから渡されたLINE User IDを取得
-    const params     = new URLSearchParams(location.search);
-    const lineUserId = params.get('lineUserId') || '';
-
-    const uid = generateUID();
+    const uid  = generateUID();
     const data = {
       uid, name, kana, childDob, tel, lang,
       lineUserId,
@@ -57,38 +85,53 @@
       active: true
     };
 
-    try {
-      await setDoc(doc(db, 'users', uid), data);
-      showQR(uid, name);
-    } catch(e) {
+    try{
+      await setDoc(doc(db,'users',uid), data);
+      showQR(uid, name, false);
+    }catch(e){
       console.error(e);
-      alert('登録に失敗しました。通信状況を確認してください。\n' + e.message);
-      btn.disabled   = false;
+      alert('登録に失敗しました。\n' + e.message);
+      btn.disabled = false;
       btn.textContent = '登録してQRコードを受け取る';
     }
   };
 
-  function showQR(uid, name) {
+  function showQR(uid, name, alreadyRegistered){
     document.getElementById('formSection').style.display = 'none';
     const sec = document.getElementById('qrSection');
     sec.style.display = 'flex';
     document.getElementById('qrName').textContent = name + ' さん';
     document.getElementById('qrUID').textContent  = 'ID: ' + uid;
 
-    // QRコード生成（チェックインURLを埋め込む）
+    const welcomeEl = document.getElementById('qrWelcome');
+    if(welcomeEl) welcomeEl.textContent = alreadyRegistered ? 'すでに登録済みです' : '登録が完了しました！';
+
     const checkinURL = location.origin
       + location.pathname.replace('register.html','checkin.html')
       + '?uid=' + uid;
     document.getElementById('qrcode').innerHTML = '';
-    new QRCode(document.getElementById('qrcode'), {
-      text:          checkinURL,
-      width:         220,
-      height:        220,
-      colorDark:     '#1a3a2a',
-      colorLight:    '#ffffff',
-      correctLevel:  QRCode.CorrectLevel.H
+    new QRCode(document.getElementById('qrcode'),{
+      text: checkinURL, width:220, height:220,
+      colorDark:'#1a3a2a', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
     });
+
+    // LINEアプリ内なら登録完了をトークに送信
+    try{
+      if(liff.isInClient() && !alreadyRegistered){
+        liff.sendMessages([{
+          type:'text',
+          text:`✅ 会員登録が完了しました！\n\n👤 ${name} さん\n🆔 ${uid}\n\nリッチメニュー「会員QR」からQRコードを表示してチェックインできます🌿`
+        }]);
+      }
+    }catch(e){ console.warn('LINE送信:', e.message); }
   }
+
+  initLiff();
+
+
+  // ページ読み込み時にLIFF初期化
+  initLiff();
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
@@ -295,7 +338,7 @@
   <!-- QR表示 -->
   <div id="qrSection">
     <div class="qr-badge">
-      <div class="welcome">登録が完了しました！</div>
+      <div class="welcome" id="qrWelcome">登録が完了しました！</div>
       <div class="name" id="qrName"></div>
       <div class="uid"  id="qrUID"></div>
     </div>
