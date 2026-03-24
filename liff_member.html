@@ -466,70 +466,47 @@ window.execLink = async function(){
 async function main(){
   try{
     const LIFF_ID='2009587361-BBVXkOWi';
-
-    // ステップ1: LIFF初期化
-    document.getElementById('errMsg').textContent='ステップ1: LIFF初期化中…';
-    show('stateError'); hide('stateLoading');
-
     await liff.init({ liffId:LIFF_ID });
 
-    // ステップ2: ログイン確認
-    document.getElementById('errMsg').textContent='ステップ2: ログイン確認中… isLoggedIn='+liff.isLoggedIn();
-
     if(liff.isLoggedIn()){
-      // ステップ3: プロフィール取得
-      document.getElementById('errMsg').textContent='ステップ3: プロフィール取得中…';
-      const profile=await liff.getProfile();
-      const lineUserId=profile.userId;
-      currentLineUserId=lineUserId;
+      const profile  = await liff.getProfile();
+      const lineUserId = profile.userId;
+      currentLineUserId = lineUserId;
 
-      // ステップ4: Firestore検索
-      document.getElementById('errMsg').textContent='ステップ4: DB検索中… userId='+lineUserId.slice(0,8)+'…';
-
-      const snap=await getDocs(query(
+      // ① lineUserIdで検索
+      const snap1 = await getDocs(query(
         collection(db,'users'),
         where('lineUserId','==',lineUserId)
       ));
 
-      // ステップ5: 結果確認
-      document.getElementById('errMsg').textContent='ステップ5: 検索完了 件数='+snap.size;
-
-      if(!snap.empty){
-        hide('stateError');
-        hide('stateLoading');
-        showMember(snap.docs[0].data());
+      if(!snap1.empty){
+        // 登録済み → QR表示
+        showMember(snap1.docs[0].data());
         return;
       }
 
-      // 未登録
-      hide('stateError');
+      // ② 見つからない場合 → 未登録画面（電話番号で紐づけ or 新規登録）
       hide('stateLoading');
       show('cardUnreg');
-      document.querySelector('#cardUnreg .btn').href=
+      document.querySelector('#cardUnreg .btn').href =
         `https://liff.line.me/2009587361-fY64rJtv`;
 
     } else {
-      const params=new URLSearchParams(location.search);
-      const testUid=params.get('uid');
+      const params  = new URLSearchParams(location.search);
+      const testUid = params.get('uid');
       if(testUid){
-        const snap=await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
-        if(!snap.empty){
-          hide('stateError'); hide('stateLoading');
-          showMember(snap.docs[0].data());
-        } else {
-          hide('stateError'); hide('stateLoading');
-          show('cardUnreg');
-        }
+        const snap = await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
+        if(!snap.empty){ showMember(snap.docs[0].data()); }
+        else{ hide('stateLoading'); show('cardUnreg'); }
       } else {
-        document.getElementById('errMsg').textContent='LINEログインへ誘導します…';
-        setTimeout(()=>liff.login(), 1500);
+        liff.login();
       }
     }
   }catch(e){
     console.error('エラー:', e);
     hide('stateLoading');
-    document.getElementById('errMsg').textContent=
-      '❌ エラー詳細:\n' + e.message + '\n\ncode: ' + (e.code||'なし');
+    document.getElementById('errMsg').textContent =
+      '❌ ' + e.message + (e.code ? '\ncode: '+e.code : '');
     show('stateError');
   }
 }
