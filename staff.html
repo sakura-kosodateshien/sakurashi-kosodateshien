@@ -4,22 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>予約管理 | スタッフ画面</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--green:#2d6a4f;--mint:#74c69d;--warm:#f9a03f;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2}
 body{font-family:'Noto Sans JP',sans-serif;background:#f4f6f4;min-height:100vh;color:var(--text)}
-header{background:var(--green);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
-header a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.82rem}
-header h1{color:#fff;font-size:.95rem;font-weight:700;flex:1;text-align:center}
+header{background:#dccfe6;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+header a{color:rgba(60,40,80,.75);text-decoration:none;font-size:.82rem}
+header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:center}
 .staff-badge{font-size:.68rem;background:var(--warm);color:#fff;padding:2px 8px;border-radius:20px;font-weight:700}
-.admin-link{font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:20px;text-decoration:none;font-weight:700}
 .toolbar{background:#fff;border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .week-nav{display:flex;align-items:center;gap:6px}
 .week-nav button{background:none;border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:.8rem;cursor:pointer}
-.week-label{font-size:.88rem;font-weight:700;min-width:140px;text-align:center}
+.week-label{font-size:.88rem;font-weight:700;min-width:110px;text-align:center}
 .view-sel{margin-left:auto;display:flex;gap:4px}
 .view-btn{font-size:.72rem;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--muted)}
-.view-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+.view-btn.active{background:#dccfe6;color:#fff;border-color:var(--green)}
 .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--border)}
 .sc{padding:7px 8px;background:#f8faf8;border-radius:8px}
 .sc .sl{font-size:.65rem;color:var(--muted)}
@@ -27,19 +27,22 @@ header h1{color:#fff;font-size:.95rem;font-weight:700;flex:1;text-align:center}
 .gantt-wrap{overflow-x:auto;padding:10px 12px}
 .gantt{display:grid;grid-template-columns:44px repeat(5,1fr);background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:380px}
 .gh{padding:7px 3px;text-align:center;background:#f0faf4;border-right:.5px solid var(--border);border-bottom:1px solid var(--border);font-size:.72rem;color:var(--muted)}
-.gd{font-size:.9rem;font-weight:700;color:var(--text)}
+.gh .gd{font-size:.9rem;font-weight:700;color:var(--text)}
+.gh .gn{font-size:.68rem}
 .tc{font-size:.65rem;color:var(--muted);padding:2px 3px;text-align:right;background:#f8faf8;border-right:.5px solid var(--border)}
 .dc{position:relative;border-right:.5px solid var(--border)}
 .dc:last-child{border-right:none}
 .hline{position:absolute;left:0;right:0;height:.5px;background:var(--border)}
-.blk{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:.63rem;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.3}
+.blk{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:.65rem;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.3;transition:filter .1s}
+.blk:hover{filter:brightness(.92);z-index:5}
 .bs{background:#C0DD97;color:#27500A;border:.5px solid #639922}
-.bt{background:#B5D4F4;color:#0C447C;border:.5px solid #378ADD}
+.bt{background:#B5D4F4;color:#0C447C;border:.5px solid #378ADD;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.3) 3px,rgba(255,255,255,.3) 4px)}
 .bf{background:#F7C1C1;color:#791F1F;border:.5px solid #E24B4A}
 .bc{background:#e0e0e0;color:#757575;border:.5px solid #9e9e9e}
 .legend{display:flex;gap:10px;padding:6px 12px;flex-wrap:wrap}
 .li{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted)}
 .ld{width:9px;height:9px;border-radius:2px}
+/* パネル */
 .panel-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:flex-end}
 .panel-bg.open{display:flex}
 .panel{background:#fff;border-radius:18px 18px 0 0;padding:18px 16px 36px;width:100%;max-width:520px;margin:0 auto;max-height:75vh;overflow-y:auto}
@@ -50,154 +53,155 @@ header h1{color:#fff;font-size:.95rem;font-weight:700;flex:1;text-align:center}
 .bk-num{width:20px;height:20px;border-radius:50%;background:#f0faf4;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--green);flex-shrink:0}
 .bk-name{font-weight:500}
 .bk-info{font-size:.72rem;color:var(--muted)}
-.avail-info{background:#f0faf4;border-radius:8px;padding:8px 10px;font-size:.78rem;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
+.bk-stat{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:700}
+.s-ok{background:#e8f5e9;color:#2e7d32}
+.avail-info{background:#f0faf4;border-radius:8px;padding:8px 10px;font-size:.78rem;margin-bottom:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.add-btn{width:100%;padding:11px;border:1.5px dashed var(--mint);border-radius:10px;background:#fff;color:var(--green);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px}
 </style>
 </head>
 <body>
 <header>
   <a href="index.html">← 戻る</a>
   <h1>🗂️ 予約管理</h1>
-  <a href="admin.html" class="admin-link">📊 管理</a>
+  <a href="admin.html" style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:20px;text-decoration:none;font-weight:700">📊 管理</a>
   <span class="staff-badge">STAFF</span>
 </header>
+
 <div class="toolbar">
   <div class="week-nav">
-    <button id="prevBtn">◀</button>
+    <button onclick="changeWeek(-1)">◀</button>
     <span class="week-label" id="wlabel">読み込み中…</span>
-    <button id="nextBtn">▶</button>
+    <button onclick="changeWeek(1)">▶</button>
   </div>
   <div class="view-sel">
-    <button class="view-btn active" id="vAll">全て</button>
-    <button class="view-btn" id="vS">支援P</button>
-    <button class="view-btn" id="vT">託児</button>
+    <button class="view-btn active" onclick="setView('all',this)">全て</button>
+    <button class="view-btn" onclick="setView('s',this)">支援P</button>
+    <button class="view-btn" onclick="setView('t',this)">託児</button>
   </div>
 </div>
+
 <div class="summary" id="summary">
   <div class="sc"><div class="sl">支援P予約</div><div class="sv" id="sSbk">-</div></div>
   <div class="sc"><div class="sl">託児予約</div><div class="sv" id="sTbk">-</div></div>
   <div class="sc"><div class="sl">満員枠</div><div class="sv" id="sFull" style="color:#c62828">-</div></div>
   <div class="sc"><div class="sl">空き枠</div><div class="sv" id="sAvail" style="color:var(--green)">-</div></div>
 </div>
-<div class="gantt-wrap"><div class="gantt" id="gantt"></div></div>
+
+<div class="gantt-wrap">
+  <div class="gantt" id="gantt"></div>
+</div>
 <div class="legend">
   <div class="li"><div class="ld" style="background:#C0DD97;border:.5px solid #639922"></div>支援プログラム</div>
   <div class="li"><div class="ld" style="background:#B5D4F4;border:.5px solid #378ADD"></div>託児</div>
   <div class="li"><div class="ld" style="background:#F7C1C1;border:.5px solid #E24B4A"></div>満員</div>
 </div>
+
 <div class="panel-bg" id="panelBg">
   <div class="panel">
     <div class="panel-head">
-      <div><h2 id="pTitle"></h2><div id="pTime" style="font-size:.78rem;color:var(--muted)"></div></div>
-      <button class="panel-close" id="panelClose">✕</button>
+      <div>
+        <h2 id="pTitle"></h2>
+        <div id="pTime" style="font-size:.78rem;color:var(--muted)"></div>
+      </div>
+      <button class="panel-close" onclick="closePanel()">✕</button>
     </div>
     <div class="avail-info" id="pAvail"></div>
     <div id="pList"></div>
+    <button class="add-btn" onclick="openAddModal()">＋ 電話予約を追加</button>
   </div>
 </div>
 
 <script>
-// ── プログラムマスタ ──────────────────────────────────────────────────
-const ALL_PROGS = [
+// ── プログラムマスタ ───────────────────────────────────────────────
+const PH=28, HOURS=[9,10,11,12,13,14], DAYS_JP=["月","火","水","木","金"];
+const BASE=new Date(2026,3,6);
+let weekOffset=0, viewMode='all', liveBookings=[], selectedProg=null, unsubFn=null;
+
+const ALL_PROGS=[
   {id:"w1-lunch-mon", name:"ランチひろば",    emoji:"🍱",type:"s",date:"2026-04-06",day:0,sh:12,sm:0,eh:14,em:0,cap:4},
   {id:"w1-eigo-tue",  name:"英語 7か月〜1才",emoji:"📚",type:"s",date:"2026-04-07",day:1,sh:10,sm:0,eh:12,em:0,cap:6},
   {id:"w1-lunch-wed", name:"ランチひろば",    emoji:"🍱",type:"s",date:"2026-04-08",day:2,sh:12,sm:0,eh:14,em:0,cap:4},
   {id:"w1-chiku-thu", name:"知育 7か月〜1才",emoji:"📚",type:"s",date:"2026-04-09",day:3,sh:10,sm:0,eh:12,em:0,cap:6},
   {id:"w1-oyatsu-thu",name:"おやつ",         emoji:"🍰",type:"s",date:"2026-04-09",day:3,sh:14,sm:0,eh:14,em:30,cap:99},
-  {id:"w1-niwa-fri",  name:"園庭遊び",       emoji:"🌳",type:"s",date:"2026-04-10",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
+  {id:"w1-niwa-fri",  name:"園庭遊び",        emoji:"🌳",type:"s",date:"2026-04-10",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
   {id:"w1-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-07",day:1,sh:9,sm:30,eh:11,em:30,cap:2},
   {id:"w1-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-08",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
   {id:"w1-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-09",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w1-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-10",day:4,sh:10,sm:30,eh:12,em:30,cap:2},
   {id:"w2-massage-mon",name:"ベビーマッサージ",emoji:"👐",type:"s",date:"2026-04-13",day:0,sh:9,sm:30,eh:10,em:0,cap:3},
-  {id:"w2-hattatsu-mon",name:"発達相談",     emoji:"💬",type:"s",date:"2026-04-13",day:0,sh:11,sm:0,eh:12,em:0,cap:99},
+  {id:"w2-hattatsu-mon",name:"発達相談",      emoji:"💬",type:"s",date:"2026-04-13",day:0,sh:11,sm:0,eh:12,em:0,cap:99},
   {id:"w2-eigo-tue",  name:"英語 1才〜3才",  emoji:"📚",type:"s",date:"2026-04-14",day:1,sh:10,sm:0,eh:12,em:0,cap:6},
-  {id:"w2-pulapan-wed",name:"プラパン工房",  emoji:"🎨",type:"s",date:"2026-04-15",day:2,sh:10,sm:0,eh:11,em:0,cap:2},
+  {id:"w2-pulapan-wed",name:"プラパン工房",   emoji:"🎨",type:"s",date:"2026-04-15",day:2,sh:10,sm:0,eh:11,em:0,cap:2},
   {id:"w2-chiku-thu", name:"知育 1才〜3才",  emoji:"📚",type:"s",date:"2026-04-16",day:3,sh:10,sm:0,eh:12,em:0,cap:6},
-  {id:"w2-tanjou-fri",name:"お誕生日会",     emoji:"🎂",type:"s",date:"2026-04-17",day:4,sh:9,sm:30,eh:11,em:0,cap:99},
+  {id:"w2-tanjou-fri",name:"お誕生日会",      emoji:"🎂",type:"s",date:"2026-04-17",day:4,sh:9,sm:30,eh:11,em:0,cap:99},
   {id:"w2-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-13",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
   {id:"w2-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-14",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w2-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-15",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
   {id:"w2-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-16",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w2-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-17",day:4,sh:10,sm:0,eh:12,em:0,cap:2},
-  {id:"w3-photo-mon",  name:"ベビーフォト",  emoji:"📸",type:"s",date:"2026-04-20",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
-  {id:"w3-lunch-tue",  name:"ランチひろば",  emoji:"🍱",type:"s",date:"2026-04-21",day:1,sh:12,sm:0,eh:14,em:0,cap:4},
-  {id:"w3-yoga-wed",   name:"リラックスヨガ",emoji:"🧘",type:"s",date:"2026-04-22",day:2,sh:11,sm:0,eh:11,em:30,cap:4},
-  {id:"w3-lunch-thu",  name:"ランチひろば",  emoji:"🍱",type:"s",date:"2026-04-23",day:3,sh:12,sm:0,eh:14,em:0,cap:4},
-  {id:"w3-niwa-fri",   name:"園庭遊び",     emoji:"🌳",type:"s",date:"2026-04-24",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
+  {id:"w3-photo-mon",  name:"ベビーフォト",   emoji:"📸",type:"s",date:"2026-04-20",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
+  {id:"w3-lunch-tue",  name:"ランチひろば",   emoji:"🍱",type:"s",date:"2026-04-21",day:1,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w3-yoga-wed",   name:"リラックスヨガ", emoji:"🧘",type:"s",date:"2026-04-22",day:2,sh:11,sm:0,eh:11,em:30,cap:4},
+  {id:"w3-lunch-thu",  name:"ランチひろば",   emoji:"🍱",type:"s",date:"2026-04-23",day:3,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w3-niwa-fri",   name:"園庭遊び",       emoji:"🌳",type:"s",date:"2026-04-24",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
   {id:"w3-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-20",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
   {id:"w3-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-21",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w3-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-22",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
   {id:"w3-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-23",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w3-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-24",day:4,sh:10,sm:0,eh:12,em:0,cap:2},
-  {id:"w4-photo-mon",   name:"ベビーフォト",  emoji:"📸",type:"s",date:"2026-04-27",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
+  {id:"w4-photo-mon",  name:"ベビーフォト",   emoji:"📸",type:"s",date:"2026-04-27",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
   {id:"w4-hattatsu-mon",name:"発達相談",      emoji:"💬",type:"s",date:"2026-04-27",day:0,sh:11,sm:0,eh:12,em:0,cap:99},
-  {id:"w4-oyatsu-mon",  name:"おやつ",        emoji:"🍰",type:"s",date:"2026-04-27",day:0,sh:14,sm:0,eh:14,em:30,cap:99},
-  {id:"w4-massage-tue", name:"ベビーマッサージ",emoji:"👐",type:"s",date:"2026-04-28",day:1,sh:9,sm:30,eh:10,em:0,cap:3},
+  {id:"w4-oyatsu-mon", name:"おやつ",         emoji:"🍰",type:"s",date:"2026-04-27",day:0,sh:14,sm:0,eh:14,em:30,cap:99},
+  {id:"w4-massage-tue",name:"ベビーマッサージ",emoji:"👐",type:"s",date:"2026-04-28",day:1,sh:9,sm:30,eh:10,em:0,cap:3},
   {id:"w4-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-27",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
   {id:"w4-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-28",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
   {id:"w4-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-30",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
 ];
 
-const PH=28, HOURS=[9,10,11,12,13,14];
-const BASE=new Date(2026,3,6);
-const DAYS_JP=["月","火","水","木","金"];
-let weekOffset=0, viewMode='all', liveBookings=[], selectedProg=null;
-
-function fmt(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
-function dkey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-
 function getWeekDates(){
-  var d=new Date(BASE); d.setDate(BASE.getDate()+weekOffset*7);
-  return [0,1,2,3,4].map(function(i){ var x=new Date(d); x.setDate(d.getDate()+i); return x; });
+  const d=new Date(BASE); d.setDate(BASE.getDate()+weekOffset*7);
+  return Array.from({length:5},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return x; });
 }
+function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
 
-function getBookings(prog){
-  return liveBookings.filter(function(b){
-    return b.date===prog.date && b.status!=='cancelled' &&
-      (b.progId===prog.id || (b.progName||'').indexOf(prog.name.split(' ')[0])>=0 || prog.name.indexOf(b.progName||'')>=0);
-  });
-}
+function changeWeek(d){ weekOffset+=d; initFirebase(); }
+function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+
+function getBks(prog){ return liveBookings.filter(b=>b.date===prog.date&&b.status!=='cancelled'&&(b.progId===prog.id||b.progName===prog.name||(b.progName||'').includes(prog.name.split(' ')[0]))); }
 
 function render(){
-  var dates=getWeekDates();
+  const dates=getWeekDates();
+  const dks=dates.map(d=>dateKey(d));
   document.getElementById('wlabel').textContent=fmt(dates[0])+'〜'+fmt(dates[4]);
-  var dateKeys=dates.map(dkey);
-  var weekProgs=ALL_PROGS.filter(function(p){ return dateKeys.indexOf(p.date)>=0; });
-  var progs=weekProgs.filter(function(p){
-    return viewMode==='all'||(viewMode==='s'&&p.type==='s')||(viewMode==='t'&&p.type==='t');
-  });
-  var totalH=HOURS.length*PH;
-  var sbk=0,tbk=0,full=0,avail=0;
-  weekProgs.forEach(function(p){
-    var cnt=getBookings(p).length;
-    if(p.type==='s') sbk+=cnt;
-    if(p.type==='t') tbk+=cnt;
-    if(p.cap<99){ if(cnt>=p.cap) full++; else avail++; }
-  });
-  document.getElementById('sSbk').textContent=sbk;
-  document.getElementById('sTbk').textContent=tbk;
+  const wps=ALL_PROGS.filter(p=>dks.includes(p.date));
+  const progs=wps.filter(p=>viewMode==='all'||(viewMode==='s'&&p.type==='s')||(viewMode==='t'&&p.type==='t'));
+  let sbk=0,tbk=0,full=0,avail=0;
+  wps.forEach(p=>{ const c=getBks(p).length; if(p.type==='s')sbk+=c; else tbk+=c; if(p.cap<99){if(c>=p.cap)full++;else avail++;} });
+  document.getElementById('sSbk').textContent=sbk+'組';
+  document.getElementById('sTbk').textContent=tbk+'名';
   document.getElementById('sFull').textContent=full;
   document.getElementById('sAvail').textContent=avail;
-
-  var g='<div></div>';
-  dates.forEach(function(d,i){ g+='<div class="gh"><div class="gd">'+DAYS_JP[i]+'</div><div class="gn" style="font-size:.68rem">'+fmt(d)+'</div></div>'; });
-  g+='<div style="display:flex;flex-direction:column">';
-  HOURS.forEach(function(h){ g+='<div class="tc" style="height:'+PH+'px">'+h+':00</div>'; });
+  const totalH=HOURS.length*PH;
+  let g='<div></div>';
+  dates.forEach((d,i)=>{ g+=`<div class="gh"><div class="gd">${DAYS_JP[i]}</div><div class="gn">${fmt(d)}</div></div>`; });
+  g+=`<div style="display:flex;flex-direction:column">`;
+  HOURS.forEach(h=>{ g+=`<div class="tc" style="height:${PH}px">${h}:00</div>`; });
   g+='</div>';
-  for(var di=0;di<5;di++){
-    var dp=progs.filter(function(p){ return p.day===di; });
-    g+='<div class="dc" style="height:'+totalH+'px;position:relative">';
-    HOURS.forEach(function(_,hi){ if(hi>0) g+='<div class="hline" style="top:'+(hi*PH)+'px"></div>'; });
-    dp.forEach(function(p){
-      var top=((p.sh-9)+(p.sm/60))*PH;
-      var ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
-      var cnt=getBookings(p).length;
-      var isFull=cnt>=p.cap&&p.cap<99;
-      var cls=p.cancelled?'blk bc':isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
-      g+='<div class="'+cls+'" style="top:'+top+'px;height:'+ht+'px" onclick="openPanel(\''+p.id+'\')">';
-      g+='<div>'+p.name+'</div>';
-      g+='<div style="font-size:.58rem;opacity:.85">'+(p.cap<99?cnt+'/'+p.cap+'組':cnt+'名')+'</div>';
-      g+='</div>';
+  for(let d=0;d<5;d++){
+    const dp=progs.filter(p=>p.day===d);
+    g+=`<div class="dc" style="height:${totalH}px;position:relative">`;
+    HOURS.forEach((_,i)=>{ if(i>0) g+=`<div class="hline" style="top:${i*PH}px"></div>`; });
+    dp.forEach(p=>{
+      const top=((p.sh-9)+(p.sm/60))*PH;
+      const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
+      const bks=getBks(p); const cnt=bks.length;
+      const isFull=cnt>=p.cap&&p.cap<99;
+      const cls=p.cancelled?'blk bc':isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
+      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
+        <div style="font-size:.63rem">${p.name}</div>
+        <div style="font-size:.58rem;opacity:.85">${p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
+      </div>`;
     });
     g+='</div>';
   }
@@ -205,67 +209,67 @@ function render(){
 }
 
 function openPanel(id){
-  var p=ALL_PROGS.find(function(x){ return x.id===id; });
-  if(!p) return;
+  const p=ALL_PROGS.find(x=>x.id===id); if(!p) return;
   selectedProg=p;
-  var bks=getBookings(p);
+  const bks=getBks(p); const cnt=bks.length;
   document.getElementById('pTitle').textContent=p.emoji+' '+p.name;
   document.getElementById('pTime').textContent=p.date.slice(5).replace('-','/')+'　'+p.sh+':'+String(p.sm).padStart(2,'0')+'〜'+p.eh+':'+String(p.em).padStart(2,'0');
-  var avStr='定員 '+(p.cap<99?p.cap+'組':'制限なし')+' | 予約 '+bks.length+(p.type==='t'?'名':'組');
-  if(p.cap<99) avStr+=' | 残り '+(p.cap-bks.length)+(p.type==='t'?'名':'組');
-  document.getElementById('pAvail').textContent=avStr;
-  var list='';
+  document.getElementById('pAvail').innerHTML=
+    `<span>定員 ${p.cap<99?p.cap+'組':'制限なし'}</span>
+     <span>予約 <strong>${cnt}${p.type==='t'?'名':'組'}</strong></span>
+     ${p.cap<99?`<span>残り <strong style="color:${cnt>=p.cap?'#c62828':'var(--green)'}">${p.cap-cnt}${p.type==='t'?'名':'組'}</strong></span>`:''}`;
+  let list='';
   if(!bks.length){ list='<div style="font-size:.82rem;color:var(--muted);padding:8px 0">予約はまだありません</div>'; }
-  else {
-    bks.forEach(function(b,i){
-      list+='<div class="bk-row">';
-      list+='<div class="bk-num">'+(i+1)+'</div>';
-      list+='<div style="flex:1"><div class="bk-name">'+(b.name||'')+(b.kana?' ('+b.kana+')':'')+'</div>';
-      list+='<div class="bk-info">'+(b.age||'')+(b.childCount?' / '+b.childCount:'')+(b.tel?' 📱'+b.tel:'')+(b.tochi?'<br>👶 託児:'+(b.tochiTime||'未定'):'')+(b.note?'<br>📝'+b.note:'')+'</div></div>';
-      list+='<span style="font-size:.68rem;padding:2px 7px;border-radius:20px;background:#e8f5e9;color:#2e7d32;font-weight:700">確定</span>';
-      list+='</div>';
-    });
-  }
+  else { bks.forEach((b,i)=>{ list+=`<div class="bk-row"><div class="bk-num">${i+1}</div><div style="flex:1"><div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''}</div><div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''} ${b.note?'📝'+b.note:''}</div></div><span class="bk-stat s-ok">確定</span></div>`; }); }
   document.getElementById('pList').innerHTML=list;
   document.getElementById('panelBg').classList.add('open');
 }
+function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
+function openAddModal(){ alert('電話予約追加機能は準備中です'); }
+document.getElementById('panelBg').addEventListener('click',e=>{ if(e.target===document.getElementById('panelBg')) closePanel(); });
 
-document.getElementById('prevBtn').onclick=function(){ weekOffset--; render(); if(window._unsub) { window._unsub(); subscribeFirebase(); } };
-document.getElementById('nextBtn').onclick=function(){ weekOffset++; render(); if(window._unsub) { window._unsub(); subscribeFirebase(); } };
-document.getElementById('vAll').onclick=function(){ viewMode='all'; document.querySelectorAll('.view-btn').forEach(function(b){b.classList.remove('active');}); this.classList.add('active'); render(); };
-document.getElementById('vS').onclick=function(){ viewMode='s'; document.querySelectorAll('.view-btn').forEach(function(b){b.classList.remove('active');}); this.classList.add('active'); render(); };
-document.getElementById('vT').onclick=function(){ viewMode='t'; document.querySelectorAll('.view-btn').forEach(function(b){b.classList.remove('active');}); this.classList.add('active'); render(); };
-document.getElementById('panelClose').onclick=function(){ document.getElementById('panelBg').classList.remove('open'); };
-document.getElementById('panelBg').onclick=function(e){ if(e.target===this) this.classList.remove('open'); };
-
-// まず描画
-render();
-
-// Firebase接続
-function subscribeFirebase(){
-  var dates=getWeekDates();
-  var d0=dkey(dates[0]), d4=dkey(dates[4]);
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js").then(function(m){
-    var app=m.initializeApp({
-      apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
-      authDomain:"sakurashi-kosodateshien.firebaseapp.com",
-      projectId:"sakurashi-kosodateshien",
-      storageBucket:"sakurashi-kosodateshien.firebasestorage.app",
-      messagingSenderId:"365529893548",
-      appId:"1:365529893548:web:99b2ecc702d1bbdb752d09"
-    }, 'staff-'+Date.now());
-    return import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(function(fs){
-      var db=fs.getFirestore(app);
-      var q=fs.query(fs.collection(db,'bookings'),fs.where('date','>=',d0),fs.where('date','<=',d4));
-      window._unsub=fs.onSnapshot(q,function(snap){
-        liveBookings=snap.docs.map(function(d){ return Object.assign({fbId:d.id},d.data()); });
-        render();
-      },function(err){ console.warn('Firebase error:',err.message); });
-    });
-  }).catch(function(e){ console.warn('Firebase load error:',e.message); });
+// ── Firebase連携（非同期・失敗しても表示は維持）────────────────────
+function initFirebase(){
+  render(); // まず即時描画
+  if(typeof firebase_loaded === 'undefined') return;
+  loadFirebase();
 }
 
-subscribeFirebase();
+function loadFirebase(){
+  if(unsubFn) unsubFn();
+  const dates=getWeekDates();
+  const dks=dates.map(d=>dateKey(d));
+  const q=window._fbQuery(dks[0],dks[4]);
+  if(!q) return;
+  unsubFn=window._fbOnSnapshot(q, snap=>{
+    liveBookings=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    render();
+  }, err=>console.warn('FB error:',err.message));
+}
+
+// 初期描画（Firebaseなしでも動作）
+render();
+</script>
+
+<script type="module">
+// Firebaseを非同期で読み込み
+try{
+  const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+  const {getFirestore,collection,query,where,onSnapshot}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const db=getFirestore(initializeApp({
+    apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    authDomain:"sakurashi-kosodateshien.firebaseapp.com",
+    projectId:"sakurashi-kosodateshien",
+    storageBucket:"sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId:"365529893548",
+    appId:"1:365529893548:web:99b2ecc702d1bbdb752d09"
+  }));
+  window._fbQuery=(d0,d4)=>query(collection(db,'bookings'),where('date','>=',d0),where('date','<=',d4));
+  window._fbOnSnapshot=onSnapshot;
+  window.firebase_loaded=true;
+  // Firebase読み込み完了後にリアルタイム更新開始
+  if(window.loadFirebase) window.loadFirebase();
+}catch(e){ console.warn('Firebase読み込み失敗（オフラインモード）:', e.message); }
 </script>
 </body>
 </html>
