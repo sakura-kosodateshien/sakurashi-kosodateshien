@@ -471,42 +471,36 @@ async function main(){
     if(liff.isLoggedIn()){
       const profile=await liff.getProfile();
       const lineUserId=profile.userId;
-      currentLineUserId=lineUserId; // グローバルに保存
+      currentLineUserId=lineUserId;
 
       // デバッグ：LINE User IDを画面に一時表示
       const params0=new URLSearchParams(location.search);
       if(params0.get('debug')==='1'){
         hide('stateLoading');
         document.getElementById('errMsg').textContent=
-          'あなたのLINE User ID:\n'+lineUserId+'\n\nこのIDをFirestoreのusersドキュメントのlineUserIdフィールドに設定してください。';
+          'あなたのLINE User ID:\n'+lineUserId;
         show('stateError');
         return;
       }
 
-      // lineUserIdで検索
+      // ① lineUserIdで検索
       let snap=await getDocs(query(
         collection(db,'users'),
         where('lineUserId','==',lineUserId)
       ));
 
-      // 見つからない場合はuidでも検索（旧登録データ対応）
-      if(snap.empty){
-        const params=new URLSearchParams(location.search);
-        const testUid=params.get('uid');
-        if(testUid){
-          snap=await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
-        }
+      if(!snap.empty){
+        // 登録済み → QR表示
+        showMember(snap.docs[0].data());
+        return;
       }
 
-      if(snap.empty){
-        hide('stateLoading');
-        show('cardUnreg');
-        // 会員登録LIFFへ誘導
-        document.querySelector('#cardUnreg .btn').href=
-          `https://liff.line.me/2009587361-fY64rJtv`;
-      } else {
-        showMember(snap.docs[0].data());
-      }
+      // ② 見つからない場合 → 電話番号入力で紐づけ or 新規登録を促す
+      hide('stateLoading');
+      show('cardUnreg');
+      document.querySelector('#cardUnreg .btn').href=
+        `https://liff.line.me/2009587361-fY64rJtv`;
+
     } else {
       // LINEログイン未済
       const params=new URLSearchParams(location.search);
