@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>プログラム予約 | ひのきっこ</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -203,6 +204,27 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
+
+const LIFF_ID = '2009587361-BBVXkOWi';
+let liffReady = false;
+(async()=>{
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    liffReady = liff.isInClient();
+  }catch(e){ console.warn('LIFF初期化:', e.message); }
+})();
+
+// LINE トークに予約確認メッセージを送信
+async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraLabel){
+  if(!liffReady) return;
+  try{
+    const msg = [
+      { type:'text',
+        text:`✅ 予約が完了しました\n\n📋 ${progName}\n📅 ${dateLabel}　${time}${hasExtra?'\n📅 '+extraLabel+'（2枠目）':''}\n👤 ${name}\n\nご来場をお待ちしています🌿\n陽の木さくら保育園 子育て支援センター` }
+    ];
+    await liff.sendMessages(msg);
+  }catch(e){ console.warn('LINE送信エラー:', e.message); }
+}
 
 function toDateKey(dateStr) {
   const m = dateStr.match(/(\d+)\/(\d+)/);
@@ -536,6 +558,12 @@ async function submitBooking(){
 
     document.getElementById('formView').style.display   = 'none';
     document.getElementById('successView').style.display = 'block';
+
+    // LINEトークに自動送信
+    const extraSel3  = document.getElementById('tochiExtraSelect');
+    const hasExtra3  = p.id==='tochi' && extraSel3 && extraSel3.selectedIndex > 0;
+    const extraLabel = hasExtra3 ? extraSel3.options[extraSel3.selectedIndex].text : '';
+    await sendLineMessage(p.name, s.date, s.time, name, hasExtra3, extraLabel);
 
   } catch(e) {
     console.error('予約保存エラー:', e);
