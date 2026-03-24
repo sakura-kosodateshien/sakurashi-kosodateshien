@@ -6,7 +6,7 @@
 <title>管理ダッシュボード | 子育て支援センター</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp }
+  import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, Timestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -29,6 +29,7 @@
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainScreen').style.display  = 'block';
       loadData();
+      loadChanges();
     } else {
       document.getElementById('loginErr').textContent = 'パスワードが違います';
     }
@@ -164,11 +165,162 @@
     URL.revokeObjectURL(url);
   };
 
+  // ── 変更管理 ──────────────────────────────────────────────────────
+
+  // 4月プログラム一覧（変更対象選択用）
+  const PROG_LIST = [
+    {id:"w1-lunch-mon",  label:"4/6（月）ランチひろば"},
+    {id:"w1-eigo-tue",   label:"4/7（火）英語 7か月〜1才"},
+    {id:"w1-lunch-wed",  label:"4/8（水）ランチひろば"},
+    {id:"w1-chiku-thu",  label:"4/9（木）知育 7か月〜1才"},
+    {id:"w1-oyatsu-thu", label:"4/9（木）おやつ"},
+    {id:"w1-niwa-fri",   label:"4/10（金）園庭遊び"},
+    {id:"w2-massage-mon",label:"4/13（月）ベビーマッサージ"},
+    {id:"w2-hattatsu-mon",label:"4/13（月）発達相談"},
+    {id:"w2-eigo-tue",   label:"4/14（火）英語 1才〜3才"},
+    {id:"w2-pulapan-wed",label:"4/15（水）プラパン工房"},
+    {id:"w2-chiku-thu",  label:"4/16（木）知育 1才〜3才"},
+    {id:"w2-tanjou-fri", label:"4/17（金）お誕生日会"},
+    {id:"w3-photo-mon",  label:"4/20（月）ベビーフォト"},
+    {id:"w3-lunch-tue",  label:"4/21（火）ランチひろば"},
+    {id:"w3-yoga-wed",   label:"4/22（水）リラックスヨガ"},
+    {id:"w3-lunch-thu",  label:"4/23（木）ランチひろば"},
+    {id:"w3-niwa-fri",   label:"4/24（金）園庭遊び"},
+    {id:"w4-photo-mon",  label:"4/27（月）ベビーフォト"},
+    {id:"w4-hattatsu-mon",label:"4/27（月）発達相談"},
+    {id:"w4-oyatsu-mon", label:"4/27（月）おやつ"},
+    {id:"w4-massage-tue",label:"4/28（火）ベビーマッサージ"},
+  ];
+
+  // 変更タイプに応じた追加入力欄の切り替え
+  window.onChangeType = function(){
+    const t = document.getElementById('chgType').value;
+    document.getElementById('chgTimeRow').style.display = t==='time' ? 'flex' : 'none';
+    document.getElementById('chgCapRow').style.display  = t==='cap'  ? 'flex' : 'none';
+    document.getElementById('chgAddRow').style.display  = t==='add'  ? 'block': 'none';
+  };
+
+  // 変更を登録
+  window.saveChange = async function(){
+    const targetId = document.getElementById('chgTarget').value;
+    const type     = document.getElementById('chgType').value;
+    const note     = document.getElementById('chgNote').value.trim();
+
+    if(!targetId){ alert('対象プログラムを選択してください'); return; }
+    if(!type)    { alert('変更種別を選択してください'); return; }
+
+    const data = {
+      targetId,
+      targetLabel: PROG_LIST.find(p=>p.id===targetId)?.label || targetId,
+      type, note,
+      createdAt: Timestamp.now()
+    };
+
+    if(type==='time'){
+      data.newTime = document.getElementById('chgNewTime').value.trim();
+      if(!data.newTime){ alert('新しい時間を入力してください'); return; }
+    }
+    if(type==='cap'){
+      data.newCap = parseInt(document.getElementById('chgNewCap').value);
+      if(isNaN(data.newCap)){ alert('新しい定員を入力してください'); return; }
+    }
+    if(type==='add'){
+      data.newSlot = {
+        date: document.getElementById('chgAddDate').value,
+        time: document.getElementById('chgAddTime').value,
+      };
+      if(!data.newSlot.date||!data.newSlot.time){ alert('追加日程を入力してください'); return; }
+    }
+
+    const btn = document.getElementById('chgSaveBtn');
+    btn.disabled=true; btn.textContent='登録中…';
+    try{
+      await addDoc(collection(db,'changes'), data);
+      alert('登録しました。予約画面・管理画面に即反映されます。');
+      document.getElementById('chgForm').reset();
+      onChangeType();
+      loadChanges();
+    }catch(e){
+      alert('登録に失敗しました: '+e.message);
+    }finally{
+      btn.disabled=false; btn.textContent='変更を登録する';
+    }
+  };
+
+  // 変更一覧を読み込む
+  async function loadChanges(){
+    try{
+      const snap = await getDocs(collection(db,'changes'));
+      const changes = snap.docs.map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+      if(!changes.length){
+        document.getElementById('chgList').innerHTML=
+          '<div style="color:var(--muted);font-size:.85rem;padding:12px 0">登録された変更はありません</div>';
+        return;
+      }
+
+      const typeLabel = {cancel:'⚠️ 中止', time:'🔔 時間変更', cap:'👥 定員変更', add:'🆕 追加'};
+      const typeBadge = {cancel:'badge-cancel', time:'badge-change', cap:'badge-cap', add:'badge-add'};
+
+      document.getElementById('chgList').innerHTML = changes.map(c=>`
+        <div class="chg-card">
+          <div class="chg-head">
+            <span class="chg-badge ${typeBadge[c.type]||''}">${typeLabel[c.type]||c.type}</span>
+            <span class="chg-prog">${c.targetLabel||c.targetId}</span>
+            <button class="chg-del" onclick="deleteChange('${c.id}')">削除</button>
+          </div>
+          ${c.newTime ? `<div class="chg-detail">新しい時間：${c.newTime}</div>` : ''}
+          ${c.newCap  ? `<div class="chg-detail">新しい定員：${c.newCap}組</div>` : ''}
+          ${c.newSlot ? `<div class="chg-detail">追加日程：${c.newSlot.date}　${c.newSlot.time}</div>` : ''}
+          ${c.note    ? `<div class="chg-detail">📝 ${c.note}</div>` : ''}
+          <div class="chg-notify" id="notify-${c.id}">
+            <button class="btn-notify" onclick="showNotifyText('${c.id}')">📢 通知文を生成</button>
+          </div>
+          <div class="notify-text" id="notifyText-${c.id}" style="display:none"></div>
+        </div>`).join('');
+    }catch(e){
+      document.getElementById('chgList').innerHTML=
+        '<div style="color:#c0392b;font-size:.85rem">読み込みエラー: '+e.message+'</div>';
+    }
+  }
+
+  // 変更削除
+  window.deleteChange = async function(id){
+    if(!confirm('この変更を削除しますか？\n削除すると予約画面・管理画面の表示も元に戻ります。')) return;
+    try{
+      await deleteDoc(doc(db,'changes',id));
+      loadChanges();
+    }catch(e){ alert('削除に失敗しました: '+e.message); }
+  };
+
+  // 通知文生成
+  window.showNotifyText = function(id){
+    const el = document.getElementById('notifyText-'+id);
+    const card = el.closest('.chg-card');
+    const badge = card.querySelector('.chg-badge').textContent;
+    const prog  = card.querySelector('.chg-prog').textContent;
+    const detail= [...card.querySelectorAll('.chg-detail')].map(d=>d.textContent).join('\n');
+
+    const text = `【お知らせ】プログラム変更のご連絡\n\n${prog} に変更があります。\n\n${badge}\n${detail}\n\nご不便をおかけして申し訳ございません。\nご不明な点はお電話（043-310-5757）またはLINEにてお問い合わせください。\n\nひのきっこ子育て支援センター`;
+
+    el.style.display = el.style.display==='none' ? 'block' : 'none';
+    el.textContent = text;
+  };
+
   // ── 初期値セット ────────────────────────────────────────────────
   window.addEventListener('load', () => {
     const now = new Date();
     document.getElementById('selYear').value  = now.getFullYear();
     document.getElementById('selMonth').value = now.getMonth() + 1;
+
+    // プログラム選択肢を生成
+    const sel = document.getElementById('chgTarget');
+    PROG_LIST.forEach(p=>{
+      const o = document.createElement('option');
+      o.value=p.id; o.textContent=p.label;
+      sel.appendChild(o);
+    });
   });
 </script>
 <style>
@@ -232,8 +384,45 @@
   .login-card input:focus { border-color: var(--mint); }
   .err { color: #c0392b; font-size: .82rem; margin-bottom: 8px; }
 
-  /* メイン */
-  #mainScreen { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+  /* タブ */
+  .main-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border)}
+  .main-tab{padding:10px 20px;font-size:.88rem;font-weight:700;font-family:inherit;
+    background:none;border:none;border-bottom:3px solid transparent;
+    color:var(--muted);cursor:pointer;margin-bottom:-2px;transition:all .15s}
+  .main-tab.active{color:var(--green);border-bottom-color:var(--green)}
+  .main-panel{display:none}
+  .main-panel.active{display:block}
+
+  /* 変更管理 */
+  .chg-form-card{background:#fff;border-radius:12px;padding:18px 20px;
+    box-shadow:var(--shadow);margin-bottom:20px}
+  .chg-form-card h3{font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:14px}
+  .form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .form-row label{font-size:.78rem;font-weight:700;color:var(--muted);min-width:80px}
+  .form-row select,.form-row input,.form-row textarea{
+    flex:1;padding:9px 12px;border:1.5px solid var(--border);
+    border-radius:8px;font-size:.88rem;font-family:inherit;outline:none}
+  .form-row select:focus,.form-row input:focus{border-color:var(--mint)}
+  .chg-list-card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:var(--shadow)}
+  .chg-list-card h3{font-size:.95rem;font-weight:700;margin-bottom:14px}
+  .chg-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .chg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .chg-prog{flex:1;font-size:.88rem;font-weight:700}
+  .chg-badge{font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .badge-cancel{background:#fce4ec;color:#c62828}
+  .badge-change{background:#fff8e1;color:#e65100}
+  .badge-cap{background:#e8eaf6;color:#3949ab}
+  .badge-add{background:#e8f5e9;color:#2e7d32}
+  .chg-detail{font-size:.82rem;color:var(--muted);margin-bottom:3px}
+  .chg-del{padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;
+    background:#fff;color:#dc2626;font-size:.72rem;cursor:pointer;font-family:inherit}
+  .chg-notify{margin-top:8px}
+  .btn-notify{padding:6px 12px;border-radius:8px;border:1px solid var(--border);
+    background:#fff;font-size:.78rem;font-family:inherit;cursor:pointer;color:var(--green);font-weight:700}
+  .notify-text{margin-top:8px;background:#f0faf4;border-radius:8px;padding:12px;
+    font-size:.8rem;white-space:pre-wrap;line-height:1.7;cursor:pointer;
+    border:1px dashed var(--mint)}
+  .notify-text::after{content:" （タップでコピー）";font-size:.72rem;color:var(--muted)}
 
   /* フィルタバー */
   .filter-bar {
@@ -358,6 +547,15 @@
 <!-- メイン -->
 <div id="mainScreen">
 
+  <!-- タブ -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchMainTab('stats',this)">📊 月次集計</button>
+    <button class="main-tab"        onclick="switchMainTab('change',this)">⚙️ プログラム変更</button>
+  </div>
+
+  <!-- 月次集計パネル -->
+  <div class="main-panel active" id="panelStats">
+
   <!-- フィルタバー -->
   <div class="filter-bar">
     <label>対象年月：</label>
@@ -378,8 +576,6 @@
   <div id="loadingMsg" style="display:none">読み込み中…</div>
 
   <div id="results" style="display:none">
-
-    <!-- サマリー -->
     <div class="summary-grid">
       <div class="s-card total">
         <div class="label">合計来所者</div>
@@ -402,33 +598,102 @@
         <div class="unit">人</div>
       </div>
     </div>
-
-    <!-- 日別テーブル -->
     <div class="table-wrap">
       <div class="table-title">日別集計</div>
       <table>
         <thead>
           <tr>
             <th style="text-align:left">日付</th>
-            <th>支援P</th>
-            <th>託児</th>
-            <th>自由来所</th>
-            <th>計</th>
+            <th>支援P</th><th>託児</th><th>自由来所</th><th>計</th>
           </tr>
         </thead>
         <tbody id="dailyTbody"></tbody>
         <tfoot id="dailyTfoot"></tfoot>
       </table>
     </div>
-
-    <!-- 市報告テキスト -->
     <div class="report-box">
       <h3>📋 市報告用テキスト（コピーして使用）</h3>
       <textarea id="reportText" rows="8" readonly></textarea>
     </div>
-
   </div>
+
+  </div><!-- /panelStats -->
+
+  <!-- プログラム変更パネル -->
+  <div class="main-panel" id="panelChange">
+
+    <!-- 変更登録フォーム -->
+    <div class="chg-form-card">
+      <h3>⚙️ プログラム変更を登録</h3>
+      <form id="chgForm" onsubmit="return false">
+        <div class="form-row">
+          <label>対象</label>
+          <select id="chgTarget"><option value="">選択してください</option></select>
+        </div>
+        <div class="form-row">
+          <label>変更種別</label>
+          <select id="chgType" onchange="onChangeType()">
+            <option value="">選択してください</option>
+            <option value="cancel">⚠️ 中止</option>
+            <option value="time">🔔 時間変更</option>
+            <option value="cap">👥 定員変更</option>
+            <option value="add">🆕 枠を追加</option>
+          </select>
+        </div>
+        <div class="form-row" id="chgTimeRow" style="display:none">
+          <label>新しい時間</label>
+          <input type="text" id="chgNewTime" placeholder="例：13:00〜15:00">
+        </div>
+        <div class="form-row" id="chgCapRow" style="display:none">
+          <label>新しい定員</label>
+          <input type="number" id="chgNewCap" placeholder="例：6" min="1" max="99">
+        </div>
+        <div id="chgAddRow" style="display:none">
+          <div class="form-row">
+            <label>追加日付</label>
+            <input type="text" id="chgAddDate" placeholder="例：4/25（土）">
+          </div>
+          <div class="form-row">
+            <label>追加時間</label>
+            <input type="text" id="chgAddTime" placeholder="例：10:00〜11:00">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>備考・理由</label>
+          <input type="text" id="chgNote" placeholder="例：講師都合により中止、会場設備工事のため時間変更">
+        </div>
+        <button class="btn btn-primary" id="chgSaveBtn" onclick="saveChange()" style="margin-top:4px">変更を登録する</button>
+      </form>
+    </div>
+
+    <!-- 登録済み変更一覧 -->
+    <div class="chg-list-card">
+      <h3>📋 登録済み変更一覧</h3>
+      <div id="chgList"><div style="color:var(--muted);font-size:.85rem">読み込み中…</div></div>
+    </div>
+
+  </div><!-- /panelChange -->
+
 </div>
 
+</div><!-- /mainScreen -->
+
+<script>
+function switchMainTab(tab, el){
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.main-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+}
+
+// 通知文タップでコピー
+document.addEventListener('click', e=>{
+  if(e.target.classList.contains('notify-text')){
+    navigator.clipboard.writeText(e.target.textContent.replace(' （タップでコピー）',''))
+      .then(()=>{ e.target.style.background='#d4edda'; setTimeout(()=>e.target.style.background='',1200); })
+      .catch(()=>{ alert('コピーに失敗しました'); });
+  }
+});
+</script>
 </body>
 </html>
