@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プログラム予約 | ひのきっこ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);min-height:100vh;color:var(--text)}
+header{background:var(--green);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+header a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.85rem}
+header h1{color:#fff;font-size:1rem;font-weight:700;flex:1;text-align:center}
+
+.month-bar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
+.month-bar select{border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:.85rem;font-family:inherit;color:var(--text);background:#fff;outline:none}
+.month-bar .count{margin-left:auto;font-size:.75rem;color:var(--muted)}
+
+main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
+
+.prog-group{margin-bottom:8px;background:#fff;border-radius:14px;border:1px solid var(--border);overflow:hidden}
+.prog-head{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid transparent;transition:background .1s}
+.prog-head:hover{background:var(--light)}
+.prog-head.open{border-bottom-color:var(--border)}
+.prog-emoji{font-size:1.4rem;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prog-meta{flex:1}
+.prog-name{font-size:.95rem;font-weight:700}
+.prog-cap{font-size:.72rem;color:var(--muted);margin-top:2px}
+.prog-avail{font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px}
+.avail-ok{background:#e8f5e9;color:#2e7d32}
+.avail-some{background:#fff8e1;color:#f57f17}
+.avail-full{background:#fce4ec;color:#c62828}
+.chevron{color:var(--muted);transition:transform .2s;font-size:.9rem}
+.chevron.open{transform:rotate(90deg)}
+
+.slots{display:none;padding:8px 14px 12px}
+.slots.open{display:block}
+.slot{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:background .1s;background:#fff}
+.slot:last-child{margin-bottom:0}
+.slot:hover:not(.full){background:var(--light)}
+.slot.full{opacity:.65;cursor:default}
+.slot-left{flex:1}
+.slot-date{font-size:.88rem;font-weight:700}
+.slot-time{font-size:.75rem;color:var(--muted);margin-top:1px}
+.dots{display:flex;gap:3px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot-filled{background:#378ADD}
+.dot-empty{background:#dceee2}
+.dot-full{background:#E24B4A}
+.btn-reserve{font-size:.75rem;padding:5px 12px;border-radius:20px;border:none;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;transition:transform .1s}
+.btn-reserve:active{transform:scale(.96)}
+.btn-ok{background:var(--green);color:#fff}
+.btn-full{background:#f1f1f1;color:#999;cursor:default}
+
+/* モーダル */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-prog-info{background:var(--light);border-radius:10px;padding:10px 12px;margin-bottom:14px;border-left:3px solid var(--mint)}
+.modal-prog-info .mp-name{font-size:.95rem;font-weight:700}
+.modal-prog-info .mp-detail{font-size:.75rem;color:var(--muted);margin-top:3px}
+.modal-prog-info .mp-note{font-size:.75rem;color:var(--muted);margin-top:4px;line-height:1.6}
+.form-row{margin-bottom:11px}
+.form-row label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.form-row label .req{color:#e24b4a;margin-left:2px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:.9rem;font-family:inherit;outline:none;color:var(--text);background:#fff}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--mint)}
+.form-row textarea{resize:vertical;min-height:56px}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px}
+.notice-box{background:#fff8e1;border-radius:8px;padding:9px 11px;font-size:.73rem;color:#5d4037;line-height:1.65;margin-bottom:12px;border:1px solid #ffe082}
+.notice-box strong{color:#e65100}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.btn-cancel{flex:1;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.btn-submit{flex:2;padding:12px;border:none;border-radius:12px;background:var(--green);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
+/* 完了画面 */
+.success-view{display:none;text-align:center;padding:28px 16px 36px}
+.success-view .sv-icon{font-size:2.6rem;margin-bottom:12px}
+.success-view h3{font-size:1rem;font-weight:700;margin-bottom:8px}
+.success-view p{font-size:.82rem;color:var(--muted);line-height:1.75}
+.success-view .sv-detail{background:var(--light);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:.82rem;text-align:left;line-height:1.8}
+.btn-back{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-family:inherit;font-size:.9rem;cursor:pointer;color:var(--muted);margin-top:4px}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2e22;color:#fff;padding:10px 20px;border-radius:20px;font-size:.85rem;opacity:0;transition:all .3s;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← 戻る</a>
+  <h1>🌿 プログラム予約</h1>
+</header>
+
+<div class="month-bar">
+  <span style="font-size:.85rem;font-weight:700">2026年</span>
+  <select id="monthSel" onchange="filterMonth()">
+    <option value="4" selected>4月</option>
+    <option value="5">5月</option>
+  </select>
+  <span class="count" id="countLabel"></span>
+</div>
+
+<main id="main"></main>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <!-- フォーム画面 -->
+    <div id="formView">
+      <div class="modal-prog-info" id="mProgInfo">
+        <div class="mp-name" id="mTitle"></div>
+        <div class="mp-detail" id="mDetail"></div>
+        <div class="mp-note" id="mDesc"></div>
+      </div>
+      <div class="form-row">
+        <label>保護者氏名<span class="req">*</span></label>
+        <input type="text" placeholder="山田 花子" id="fName">
+      </div>
+      <div class="form-row">
+        <label>ふりがな</label>
+        <input type="text" placeholder="やまだ はなこ" id="fKana">
+      </div>
+      <div class="form-row2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>お子さんの月齢<span class="req">*</span></label>
+          <select id="fAge">
+            <option value="">選択してください</option>
+            <option>0〜5ヶ月</option>
+            <option>6〜11ヶ月</option>
+            <option>1才</option>
+            <option>1才6ヶ月〜</option>
+            <option>2才</option>
+            <option>2才6ヶ月〜</option>
+            <option>3才</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>お子さんの人数</label>
+          <select id="fChildCount">
+            <option>1人</option>
+            <option>2人</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>連絡先（携帯番号）<span class="req">*</span></label>
+        <input type="tel" placeholder="090-0000-0000" id="fTel">
+      </div>
+      <div class="form-row" id="tochiRow" style="display:none">
+        <label>託児を利用しますか？</label>
+        <select id="fTochi" onchange="toggleTochiTime()">
+          <option value="no">利用しない</option>
+          <option value="yes">利用する（無料・定員2名）</option>
+        </select>
+      </div>
+      <div class="form-row" id="tochiTimeRow" style="display:none">
+        <label>託児の希望時間</label>
+        <input type="text" placeholder="例：10:00〜11:00" id="fTochiTime">
+      </div>
+      <div class="form-row">
+        <label>備考・アレルギー等</label>
+        <textarea rows="2" placeholder="アレルギーや当日の連絡事項などあればご記入ください" id="fNote"></textarea>
+      </div>
+      <div class="notice-box">
+        <strong>キャンセルについて</strong><br>
+        ご都合が悪くなった場合はお早めにLINEまたはお電話（043-310-5757）でご連絡ください。
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">閉じる</button>
+        <button class="btn-submit" onclick="submitBooking()">予約を送信する</button>
+      </div>
+    </div>
+    <!-- 完了画面 -->
+    <div class="success-view" id="successView">
+      <div class="sv-icon">✅</div>
+      <h3>予約リクエストを送信しました</h3>
+      <div class="sv-detail" id="svDetail"></div>
+      <p>センターより確認のご連絡をいたします。<br>📞 043-310-5757（平日 9:00〜14:00）</p>
+      <button class="btn-back" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 予約リクエストを送信しました</div>
+
+<script>
+const PROGS = [
+  {id:"lunch", name:"ランチひろば", emoji:"🍱", bg:"#e8f5e9",
+   cap:4, capLabel:"各2〜4組",
+   note:"お持参のお弁当を食べながらおしゃべり。離乳食の悩みも相談できます♪",
+   slots:[
+     {date:"4/6（月）", time:"12:00〜14:00", bk:2, full:false},
+     {date:"4/8（水）", time:"12:00〜14:00", bk:4, full:true},
+     {date:"4/21（月）", time:"12:00〜14:00", bk:1, full:false},
+     {date:"4/23（水）", time:"12:00〜14:00", bk:0, full:false},
+   ]},
+  {id:"photo", name:"ベビーフォト", emoji:"📸", bg:"#fce4ec",
+   cap:3, capLabel:"各3組",
+   note:"季節感たっぷりのフォトブースで赤ちゃんの最高の1枚を♪",
+   slots:[
+     {date:"4/20（月）", time:"午前", bk:1, full:false},
+     {date:"4/27（月）", time:"午前", bk:0, full:false},
+   ]},
+  {id:"pulapan", name:"プラパン工房", emoji:"🎨", bg:"#e8eaf6",
+   cap:2, capLabel:"各2組・託児付き",
+   note:"お子さんの足型・手形を残すキーホルダーをプラバンで作成♪",
+   slots:[
+     {date:"4/15（水）", time:"10:00〜11:00", bk:0, full:false},
+   ]},
+  {id:"yoga", name:"リラックスヨガ", emoji:"🧘", bg:"#e0f2f1",
+   cap:4, capLabel:"先着4組・託児付き",
+   note:"子育てママのための保育士付き託児ヨガ。タオル・水分をご持参ください。",
+   slots:[
+     {date:"4/22（水）", time:"11:00〜11:30", bk:3, full:false},
+   ]},
+  {id:"massage", name:"ベビーマッサージ", emoji:"👐", bg:"#fff3e0",
+   cap:3, capLabel:"各3組",
+   note:"満6か月〜3歳対象。オイル不使用なので手ぶらでOK！",
+   slots:[
+     {date:"4/13（月）", time:"9:30〜10:00", bk:2, full:false},
+     {date:"4/28（火）", time:"9:30〜10:00", bk:0, full:false},
+   ]},
+  {id:"eigo", name:"英語・知育", emoji:"📚", bg:"#e8f5e9",
+   cap:6, capLabel:"各6組",
+   note:"英語は7か月〜1才、知育は1才〜3才対象。12:00〜13:00は支援センターで遊べます♪",
+   slots:[
+     {date:"4/7（火）英語", time:"10:00〜12:00", bk:3, full:false},
+     {date:"4/9（木）知育", time:"10:00〜12:00", bk:5, full:false},
+     {date:"4/14（月）英語", time:"10:00〜12:00", bk:2, full:false},
+     {date:"4/16（木）知育", time:"10:00〜12:00", bk:6, full:true},
+   ]},
+  {id:"hattatsu", name:"発達相談", emoji:"💬", bg:"#f3e5f5",
+   cap:99, capLabel:"要予約・作業療法士",
+   note:"発育・歩行・体幹・発達の悩みを作業療法士の先生に相談できます。",
+   slots:[
+     {date:"4/13（月）", time:"11:00〜12:00", bk:0, full:false},
+     {date:"4/27（月）", time:"11:00〜12:00", bk:0, full:false},
+   ]},
+  {id:"tanjou", name:"お誕生日会", emoji:"🎂", bg:"#fff8e1",
+   cap:99, capLabel:"要予約・4月生まれ集まれ！",
+   note:"保育園のお友達と一緒にお祝いしましょう！",
+   slots:[
+     {date:"4/17（金）", time:"9:30〜", bk:0, full:false},
+   ]},
+  {id:"tochi", name:"託児ルーム", emoji:"👶", bg:"#e3f2fd",
+   cap:2, capLabel:"定員2名・月〜金 9:00〜14:00（2時間まで）",
+   note:"満6か月〜3歳未満。費用無料。希望の時間をご記入ください。",
+   slots:[
+     {date:"4/7（火）", time:"希望時間を入力", bk:1, full:false},
+     {date:"4/8（水）", time:"希望時間を入力", bk:2, full:true},
+     {date:"4/9（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/10（金）", time:"希望時間を入力", bk:1, full:false},
+   ]},
+];
+
+let openId = null;
+let selectedSlot = null;
+
+function filterMonth(){ render(); }
+
+function render(){
+  const avail = prog => prog.slots.some(s=>!s.full);
+  let html = '';
+  let okCount = 0;
+  PROGS.forEach(p=>{
+    const hasAvail = avail(p);
+    if(hasAvail) okCount++;
+    const isOpen = openId === p.id;
+    const allFull = p.slots.every(s=>s.full);
+    const someAvail = hasAvail && p.slots.some(s=>s.bk>0);
+    const availClass = allFull ? 'avail-full' : someAvail ? 'avail-some' : 'avail-ok';
+    const availText = allFull ? '満員' : someAvail ? '残りわずか' : '空きあり';
+    html += `<div class="prog-group">
+      <div class="prog-head ${isOpen?'open':''}" onclick="toggleProg('${p.id}')">
+        <div class="prog-emoji" style="background:${p.bg}">${p.emoji}</div>
+        <div class="prog-meta">
+          <div class="prog-name">${p.name}</div>
+          <div class="prog-cap">${p.capLabel}</div>
+        </div>
+        <span class="prog-avail ${availClass}">${availText}</span>
+        <span class="chevron ${isOpen?'open':''}">›</span>
+      </div>
+      <div class="slots ${isOpen?'open':''}">`;
+    p.slots.forEach((s,si)=>{
+      const dots = p.cap < 10 ? Array.from({length:p.cap},(_,i)=>{
+        const cls = s.full ? 'dot-full' : i < s.bk ? 'dot-filled' : 'dot-empty';
+        return `<div class="dot ${cls}"></div>`;
+      }).join('') : '';
+      html += `<div class="slot ${s.full?'full':''}" onclick="${s.full?'':'openModal(\''+p.id+'\','+si+')'}">
+        <div class="slot-left">
+          <div class="slot-date">${s.date}</div>
+          <div class="slot-time">${s.time}</div>
+        </div>
+        ${dots ? `<div class="dots">${dots}</div>` : ''}
+        <button class="${s.full?'btn-reserve btn-full':'btn-reserve btn-ok'}" ${s.full?'disabled':''}>
+          ${s.full ? '満員' : '予約する'}
+        </button>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('countLabel').textContent = `${okCount}件 空きあり`;
+}
+
+function toggleProg(id){
+  openId = openId === id ? null : id;
+  render();
+}
+
+// 託児付きプログラムのID
+const TOCHI_PROGS = ['pulapan','yoga','tochi'];
+
+function openModal(progId, slotIdx){
+  const p = PROGS.find(x=>x.id===progId);
+  const s = p.slots[slotIdx];
+  selectedSlot = {prog:p, slot:s};
+
+  document.getElementById('mTitle').textContent = `${p.emoji} ${p.name}`;
+  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　定員${p.cap<10?p.cap+'組':'制限なし'}`;
+  document.getElementById('mDesc').textContent = p.note;
+
+  // 託児行の表示切り替え
+  const hasTochi = TOCHI_PROGS.includes(p.id);
+  document.getElementById('tochiRow').style.display = hasTochi ? 'block' : 'none';
+  document.getElementById('tochiTimeRow').style.display = 'none';
+  document.getElementById('fTochi').value = 'no';
+
+  // フォームリセット
+  ['fName','fKana','fTel','fNote','fTochiTime'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fAge').value='';
+  document.getElementById('fChildCount').value='1人';
+
+  // フォーム表示・完了画面非表示
+  document.getElementById('formView').style.display='block';
+  document.getElementById('successView').style.display='none';
+
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('open');
+}
+
+function toggleTochiTime(){
+  const v = document.getElementById('fTochi').value;
+  document.getElementById('tochiTimeRow').style.display = v==='yes' ? 'block' : 'none';
+}
+
+function submitBooking(){
+  const name = document.getElementById('fName').value.trim();
+  const age  = document.getElementById('fAge').value;
+  const tel  = document.getElementById('fTel').value.trim();
+  if(!name){ alert('保護者氏名を入力してください'); return; }
+  if(!age){  alert('お子さんの月齢を選択してください'); return; }
+  if(!tel){  alert('連絡先を入力してください'); return; }
+
+  const p = selectedSlot.prog;
+  const s = selectedSlot.slot;
+  const tochi = document.getElementById('fTochi').value==='yes';
+  const tochiTime = document.getElementById('fTochiTime').value;
+
+  document.getElementById('svDetail').innerHTML =
+    `<div>📋 <strong>${p.emoji} ${p.name}</strong></div>
+     <div>📅 ${s.date}　${s.time}</div>
+     <div>👤 ${name}（${age}）</div>
+     <div>📱 ${tel}</div>
+     ${tochi?`<div>👶 託児利用：${tochiTime||'時間未定'}</div>`:''}`;
+
+  document.getElementById('formView').style.display='none';
+  document.getElementById('successView').style.display='block';
+  // ← Firebase addDoc をここに追加予定
+}
+
+document.getElementById('modalBg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modalBg')) closeModal();
+});
+
+render();
+</script>
+</body>
+</html>

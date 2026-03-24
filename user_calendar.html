@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>週カレンダー | ひのきっこ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);min-height:100vh;color:var(--text)}
+header{background:var(--green);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+header a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.85rem}
+header h1{color:#fff;font-size:1rem;font-weight:700;flex:1;text-align:center}
+
+.week-nav{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
+.week-nav button{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.85rem;cursor:pointer;color:var(--text)}
+.week-label{flex:1;text-align:center;font-size:.9rem;font-weight:700}
+
+.cal-wrap{overflow-x:auto;background:#fff;border-bottom:1px solid var(--border)}
+.cal-grid{display:grid;grid-template-columns:40px repeat(5,1fr);min-width:340px}
+.ch{padding:7px 2px;text-align:center;background:var(--light);font-size:.75rem;border-right:0.5px solid var(--border);border-bottom:1px solid var(--border)}
+.ch .dow{font-size:.9rem;font-weight:700}
+.ch .dt{font-size:.68rem;color:var(--muted)}
+.ch.today .dow{color:var(--green)}
+.ch.today{background:#e8f5ef}
+.time-col{font-size:.65rem;color:var(--muted);padding:2px 3px;text-align:right;background:var(--light);border-right:0.5px solid var(--border)}
+.day-col{position:relative;border-right:0.5px solid var(--border)}
+.day-col:last-child{border-right:none}
+.hr{position:absolute;left:0;right:0;height:.5px;background:var(--border)}
+.blk{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:.65rem;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.3;transition:filter .1s}
+.blk:hover{filter:brightness(.93)}
+.blk-s{background:#C0DD97;color:#27500A;border:0.5px solid #639922}
+.blk-t{background:#B5D4F4;color:#0C447C;border:0.5px solid #378ADD}
+.blk-f{background:#F7C1C1;color:#791F1F;border:0.5px solid #E24B4A}
+.blk-y{background:#FFE082;color:#5d4037;border:0.5px solid #FFB300}
+
+.legend{display:flex;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted)}
+.ld{width:9px;height:9px;border-radius:2px}
+
+main{padding:12px 14px 60px;max-width:480px;margin:0 auto}
+.day-list h3{font-size:.78rem;font-weight:700;color:var(--muted);margin:14px 0 6px;letter-spacing:.08em}
+.mini-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .1s}
+.mini-card:hover{background:var(--light)}
+.mini-card .em{font-size:1.2rem}
+.mini-card .info{flex:1}
+.mini-card .pname{font-size:.88rem;font-weight:700}
+.mini-card .ptime{font-size:.72rem;color:var(--muted)}
+.mini-card .tag{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:700}
+.tag-ok{background:#e8f5e9;color:#2e7d32}
+.tag-full{background:#fce4ec;color:#c62828}
+.tag-few{background:#fff8e1;color:#f57f17}
+
+/* sheet */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end}
+.sheet-bg.open{display:flex}
+.sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:480px;margin:0 auto}
+.sheet h2{font-size:1rem;font-weight:700;margin-bottom:4px}
+.sheet p{font-size:.82rem;color:var(--muted);line-height:1.65;margin-bottom:14px}
+.sheet-info{background:var(--light);border-radius:8px;padding:10px 12px;font-size:.8rem;margin-bottom:14px}
+.sheet-info div{margin-bottom:3px}
+.sheet-info div:last-child{margin-bottom:0}
+.sheet-info span{color:var(--muted);margin-right:6px}
+.btn-book{width:100%;padding:13px;border:none;border-radius:12px;background:var(--green);color:#fff;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer}
+.btn-close{width:100%;padding:11px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--muted);font-size:.88rem;font-family:inherit;cursor:pointer;margin-top:8px}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2e22;color:#fff;padding:10px 20px;border-radius:20px;font-size:.85rem;opacity:0;transition:all .3s;z-index:300;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← 戻る</a>
+  <h1>📅 週カレンダー</h1>
+</header>
+
+<div class="week-nav">
+  <button onclick="changeWeek(-1)">◀</button>
+  <span class="week-label" id="wlabel"></span>
+  <button onclick="changeWeek(1)">▶</button>
+</div>
+
+<div class="cal-wrap">
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+<div class="legend">
+  <div class="li"><div class="ld" style="background:#C0DD97;border:.5px solid #639922"></div>支援P</div>
+  <div class="li"><div class="ld" style="background:#B5D4F4;border:.5px solid #378ADD"></div>託児</div>
+  <div class="li"><div class="ld" style="background:#FFE082;border:.5px solid #FFB300"></div>自由遊び</div>
+  <div class="li"><div class="ld" style="background:#F7C1C1;border:.5px solid #E24B4A"></div>満員</div>
+</div>
+
+<main>
+  <div id="dayList"></div>
+</main>
+
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet">
+    <h2 id="sTitle"></h2>
+    <div class="sheet-info" id="sInfo"></div>
+    <p id="sNote"></p>
+    <button class="btn-book" id="sBtn" onclick="handleBook()">この日程で予約する</button>
+    <button class="btn-close" onclick="closeSheet()">閉じる</button>
+  </div>
+</div>
+<div class="toast" id="toast">✅ 予約リクエストを送信しました</div>
+
+<script>
+const PH = 28;
+const HOURS = [9,10,11,12,13,14];
+const BASE = new Date(2026,3,6); // April 6
+
+const WEEK_PROGS = [
+  // week 1 (offset 0)
+  {week:0,name:"ランチひろば",emoji:"🍱",type:"s",day:0,sh:12,sm:0,eh:14,em:0,cap:4,bk:2,note:"お弁当持参で仲良くランチ。"},
+  {week:0,name:"英語",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:0,cap:6,bk:3,note:"7か月〜1才対象。"},
+  {week:0,name:"ランチひろば",emoji:"🍱",type:"s",day:2,sh:12,sm:0,eh:14,em:0,cap:4,bk:4,note:"お弁当持参で仲良くランチ。"},
+  {week:0,name:"知育",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:0,cap:6,bk:2,note:"1才〜3才対象。"},
+  {week:0,name:"園庭遊び",emoji:"🌳",type:"s",day:4,sh:9,sm:0,eh:11,em:0,cap:99,bk:0,note:"9:00〜11:00 外遊び。"},
+  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:0,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:1,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:4,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {week:0,name:"託児",emoji:"👶",type:"t",day:0,sh:10,sm:0,eh:12,em:0,cap:2,bk:2,note:"定員2名。"},
+  {week:0,name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:30,eh:11,em:30,cap:2,bk:1,note:"定員2名。"},
+  {week:0,name:"託児",emoji:"👶",type:"t",day:2,sh:11,sm:0,eh:13,em:0,cap:2,bk:2,note:"定員2名。"},
+  {week:0,name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:11,em:30,cap:2,bk:1,note:"定員2名。"},
+  // week 2
+  {week:1,name:"発達相談",emoji:"💬",type:"s",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bk:0,note:"作業療法士による発達相談。"},
+  {week:1,name:"ベビーマッサージ",emoji:"👐",type:"s",day:0,sh:9,sm:30,eh:10,em:0,cap:3,bk:2,note:"満6か月〜3歳。"},
+  {week:1,name:"英語",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:0,cap:6,bk:2,note:"7か月〜1才対象。"},
+  {week:1,name:"プラパン工房",emoji:"🎨",type:"s",day:2,sh:10,sm:0,eh:11,em:0,cap:2,bk:0,note:"足型・手形キーホルダー。託児付き。"},
+  {week:1,name:"知育",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:0,cap:6,bk:6,note:"1才〜3才対象。"},
+  {week:1,name:"お誕生日会",emoji:"🎂",type:"s",day:4,sh:9,sm:30,eh:11,em:0,cap:99,bk:0,note:"4月生まれ集まれ！"},
+];
+
+let weekOffset = 0;
+let selectedProg = null;
+
+function getWeekStart(){
+  const d = new Date(BASE);
+  d.setDate(BASE.getDate() + weekOffset*7);
+  return d;
+}
+function fmt(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+const DAYS_JP=["月","火","水","木","金"];
+
+function changeWeek(d){ weekOffset+=d; render(); }
+
+function render(){
+  const ws = getWeekStart();
+  const dates = Array.from({length:5},(_,i)=>{ const d=new Date(ws); d.setDate(ws.getDate()+i); return d; });
+  document.getElementById('wlabel').textContent = `${fmt(dates[0])}（月）〜 ${fmt(dates[4])}（金）`;
+
+  const progs = WEEK_PROGS.filter(p=>p.week===((weekOffset%2+2)%2));
+  const totalH = HOURS.length * PH;
+
+  let html = '<div></div>'; // time label header spacer
+  dates.forEach((d,i)=>{
+    const today = d.toDateString()===new Date(2026,3,8).toDateString();
+    html+=`<div class="ch ${today?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
+  });
+  // time rows
+  HOURS.forEach(h=>{
+    html+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`;
+    for(let d=0;d<5;d++){
+      html+=`<div class="day-col" style="height:${PH}px"></div>`;
+    }
+  });
+  document.getElementById('calGrid').innerHTML = html;
+
+  // overlay blocks
+  const grid = document.getElementById('calGrid');
+  const cols = grid.children;
+  // cols: 0=spacer, 1-5=headers, then rows of 6 each
+  // build day columns as absolutely positioned overlay
+  const gridRect = grid.getBoundingClientRect();
+
+  // Use a separate overlay approach via position relative on grid
+  // Rebuild as proper grid with position relative day cells
+  let gh = '<div></div>';
+  dates.forEach((d,i)=>{
+    const today = d.toDateString()===new Date(2026,3,8).toDateString();
+    gh+=`<div class="ch ${today?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
+  });
+  gh+=`<div style="display:contents" id="timeBody">`;
+  gh+=`<div style="display:flex;flex-direction:column">`;
+  HOURS.forEach(h=>{ gh+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`; });
+  gh+='</div>';
+  for(let d=0;d<5;d++){
+    const dp = progs.filter(p=>p.day===d);
+    gh+=`<div class="day-col" style="height:${totalH}px;position:relative">`;
+    HOURS.forEach((_,i)=>{ if(i>0) gh+=`<div class="hr" style="top:${i*PH}px"></div>`; });
+    dp.forEach(p=>{
+      const top=((p.sh-9)+(p.sm/60))*PH;
+      const ht=((p.eh-p.sh)+((p.em-p.sm)/60))*PH;
+      const full=p.bk>=p.cap&&p.cap<99;
+      const cls=full?'blk blk-f':p.type==='t'?'blk blk-t':p.type==='y'?'blk blk-y':'blk blk-s';
+      const idx=WEEK_PROGS.indexOf(p);
+      gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openSheet(${idx})">
+        <div>${p.emoji}${p.name}</div>
+        <div style="font-size:.6rem;opacity:.8">${full?'満員':p.cap<99?`残${p.cap-p.bk}組`:'自由'}</div>
+      </div>`;
+    });
+    gh+='</div>';
+  }
+  gh+='</div>';
+  document.getElementById('calGrid').innerHTML=gh;
+
+  // day list below
+  let dl='';
+  const dayNames=['月','火','水','木','金'];
+  for(let d=0;d<5;d++){
+    const dp=progs.filter(p=>p.day===d&&p.type!=='y');
+    if(!dp.length) continue;
+    dl+=`<h3>${fmt(dates[d])}（${dayNames[d]}）</h3>`;
+    dp.forEach(p=>{
+      const full=p.bk>=p.cap&&p.cap<99;
+      const few=p.cap<99&&(p.cap-p.bk)<=1&&!full;
+      const tagC=full?'tag-full':few?'tag-few':'tag-ok';
+      const tagT=full?'満員':few?'残1組':'空きあり';
+      const idx=WEEK_PROGS.indexOf(p);
+      dl+=`<div class="mini-card" onclick="openSheet(${idx})">
+        <div class="em">${p.emoji}</div>
+        <div class="info">
+          <div class="pname">${p.name}</div>
+          <div class="ptime">${p.sh}:${String(p.sm).padStart(2,'0')}〜${p.eh}:${String(p.em).padStart(2,'0')}</div>
+        </div>
+        <span class="tag ${tagC}">${tagT}</span>
+      </div>`;
+    });
+  }
+  document.getElementById('dayList').innerHTML=dl||'<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px">この週のプログラムはありません</p>';
+}
+
+function openSheet(idx){
+  const p=WEEK_PROGS[idx];
+  selectedProg=p;
+  const full=p.bk>=p.cap&&p.cap<99;
+  document.getElementById('sTitle').textContent=`${p.emoji} ${p.name}`;
+  document.getElementById('sInfo').innerHTML=`
+    <div><span>時間</span>${p.sh}:${String(p.sm).padStart(2,'0')}〜${p.eh}:${String(p.em).padStart(2,'0')}</div>
+    <div><span>定員</span>${p.cap<99?p.cap+'組':'予約不要'}</div>
+    ${p.cap<99?`<div><span>残り</span>${full?'満員':p.cap-p.bk+'組'}</div>`:''}`;
+  document.getElementById('sNote').textContent=p.note;
+  const btn=document.getElementById('sBtn');
+  if(p.type==='y'||p.cap>=99){ btn.textContent='予約不要で参加できます'; btn.style.background='var(--muted)'; }
+  else if(full){ btn.textContent='満員のため予約できません'; btn.style.background='#ccc'; }
+  else{ btn.textContent='この日程で予約する'; btn.style.background='var(--green)'; }
+  document.getElementById('sheetBg').classList.add('open');
+}
+
+function handleBook(){
+  if(!selectedProg||selectedProg.type==='y'||selectedProg.cap>=99) { closeSheet(); return; }
+  if(selectedProg.bk>=selectedProg.cap) return;
+  closeSheet();
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function closeSheet(){ document.getElementById('sheetBg').classList.remove('open'); }
+document.getElementById('sheetBg').addEventListener('click',e=>{ if(e.target===document.getElementById('sheetBg')) closeSheet(); });
+
+render();
+</script>
+</body>
+</html>

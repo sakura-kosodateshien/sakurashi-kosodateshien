@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プログラム紹介 | ひのきっこ子育て支援センター</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;
+  --warm:#f9a03f;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;
+  --border:#dceee2;--radius:14px;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+
+/* ヘッダー */
+header{background:var(--green);padding:16px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+header a{color:rgba(255,255,255,.7);text-decoration:none;font-size:.85rem;white-space:nowrap}
+header h1{color:#fff;font-size:1rem;font-weight:700;flex:1;text-align:center}
+
+/* カテゴリタブ */
+.cat-bar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-btn{display:inline-block;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);font-size:.78rem;font-weight:500;cursor:pointer;margin-right:6px;background:#fff;color:var(--muted);font-family:inherit;transition:all .15s}
+.cat-btn.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* プログラムグリッド */
+main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
+.prog-grid{display:flex;flex-direction:column;gap:14px}
+
+/* カード */
+.prog-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:transform .15s}
+.prog-card:hover{transform:translateY(-1px)}
+.card-img{width:100%;height:180px;object-fit:cover;display:block;background:#f0f0f0}
+.card-img.no-img{height:80px;background:linear-gradient(135deg,var(--light),#e8f5ef);display:flex;align-items:center;justify-content:center;font-size:2.4rem}
+.card-body{padding:14px 16px}
+.card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.card-emoji{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.card-title{font-size:1rem;font-weight:700;line-height:1.3}
+.card-sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+.tag-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:500;background:var(--light);color:var(--green)}
+.tag.req{background:#fff8e1;color:#e65100}
+.tag.free{background:#e8f5e9;color:#2e7d32}
+.card-text{font-size:.82rem;line-height:1.75;color:var(--text);margin-bottom:12px}
+
+/* YouTube埋め込み */
+.yt-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:12px;background:#000}
+.yt-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+
+/* 画像ギャラリー */
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px;border-radius:8px;overflow:hidden}
+.gallery img{width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer}
+
+/* 詳細情報テーブル */
+.info-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:12px}
+.info-table tr{border-bottom:1px solid var(--border)}
+.info-table tr:last-child{border-bottom:none}
+.info-table th{padding:7px 8px;color:var(--muted);font-weight:500;text-align:left;width:80px;white-space:nowrap}
+.info-table td{padding:7px 8px;color:var(--text)}
+
+/* 予約ボタン */
+.btn-reserve{display:block;width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;text-decoration:none;transition:background .15s}
+.btn-reserve:hover{background:#235a40}
+.btn-reserve.full{background:#ccc;cursor:default}
+
+/* 管理者ボタン（右下固定） */
+.admin-fab{position:fixed;bottom:20px;right:16px;background:var(--warm);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:1.2rem;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.2);z-index:100;display:none}
+
+/* 管理モーダル */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:600px;max-height:85vh;overflow-y:auto}
+.modal h2{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--green)}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;outline:none;color:var(--text);background:#fff}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--mint)}
+.form-row textarea{min-height:80px;resize:vertical}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.btn-cancel{flex:1;padding:11px;border:1px solid var(--border);border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.btn-save{flex:2;padding:11px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
+.btn-delete{padding:11px 16px;border:1px solid #fca5a5;border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:#dc2626}
+
+/* ローディング */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:.9rem}
+
+/* 空状態 */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .icon{font-size:2.5rem;margin-bottom:10px}
+.empty p{font-size:.85rem;line-height:1.7}
+
+/* ライトボックス */
+.lb-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;align-items:center;justify-content:center}
+.lb-bg.open{display:flex}
+.lb-bg img{max-width:92vw;max-height:88vh;border-radius:8px;object-fit:contain}
+.lb-close{position:absolute;top:16px;right:16px;color:#fff;font-size:1.6rem;cursor:pointer;background:none;border:none;line-height:1}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="../shientop">← 支援センター</a>
+  <h1>🌿 プログラム紹介</h1>
+</header>
+
+<div class="cat-bar" id="catBar">
+  <button class="cat-btn active" onclick="filterCat('all',this)">すべて</button>
+  <button class="cat-btn" onclick="filterCat('reserve',this)">要予約</button>
+  <button class="cat-btn" onclick="filterCat('free',this)">予約不要</button>
+  <button class="cat-btn" onclick="filterCat('tochi',this)">託児付き</button>
+  <button class="cat-btn" onclick="filterCat('baby',this)">ベビー向け</button>
+</div>
+
+<main>
+  <div id="progGrid" class="prog-grid">
+    <div class="loading">読み込み中…</div>
+  </div>
+</main>
+
+<!-- 管理者ボタン -->
+<button class="admin-fab" id="adminFab" onclick="openModal(null)" title="プログラム追加">＋</button>
+
+<!-- 管理モーダル -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">プログラムを追加</h2>
+    <input type="hidden" id="editId">
+    <div class="form-row">
+      <label>プログラム名 *</label>
+      <input type="text" id="fProgName" placeholder="例：プラパン工房">
+    </div>
+    <div class="form-row2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>絵文字アイコン</label>
+        <input type="text" id="fEmoji" placeholder="🎨" maxlength="2">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>カテゴリ</label>
+        <select id="fCat">
+          <option value="reserve">要予約</option>
+          <option value="free">予約不要</option>
+          <option value="tochi">託児付き</option>
+          <option value="baby">ベビー向け</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-row" style="margin-bottom:0">
+        <label>対象年齢</label>
+        <input type="text" id="fAge" placeholder="例：6か月〜3才">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>定員</label>
+        <input type="text" id="fCap" placeholder="例：各3組">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>説明文</label>
+      <textarea id="fText" placeholder="プログラムの内容・持ち物・注意事項など"></textarea>
+    </div>
+    <div class="form-row">
+      <label>メイン画像URL</label>
+      <input type="url" id="fImg" placeholder="https://... または空欄">
+    </div>
+    <div class="form-row">
+      <label>サブ画像URL（複数はカンマ区切り）</label>
+      <input type="url" id="fImgs" placeholder="https://img1.jpg, https://img2.jpg">
+    </div>
+    <div class="form-row">
+      <label>YouTube動画ID</label>
+      <input type="text" id="fYt" placeholder="例：dQw4w9WgXcQ（URLの v= 以降）">
+    </div>
+    <div class="form-row">
+      <label>費用</label>
+      <input type="text" id="fFee" placeholder="例：無料 / 材料費200円">
+    </div>
+    <div class="form-row">
+      <label>持ち物</label>
+      <input type="text" id="fItems" placeholder="例：タオル、水分、着替え">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-delete" id="deleteBtn" style="display:none" onclick="deleteProgram()">削除</button>
+      <button class="btn-save" onclick="saveProgram()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ライトボックス -->
+<div class="lb-bg" id="lb" onclick="document.getElementById('lb').classList.remove('open')">
+  <button class="lb-close">✕</button>
+  <img id="lbImg" src="" alt="">
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+    orderBy, query, Timestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+    projectId: "sakurashi-kosodateshien",
+    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId: "365529893548",
+    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ── サンプルデータ（Firebase未接続時のフォールバック） ──────────────────
+  const SAMPLE = [
+    {
+      id:"sample1", name:"プラパン工房", emoji:"🎨", cat:"tochi",
+      age:"年齢設定なし", cap:"各2組", fee:"無料", items:"なし",
+      text:"お子さんの足型・手形を残すキーホルダーをプラバンで作成♪動物やキャラクターにして名前・日付もデザインして入れてみましょう♪\n\n託児付きのプログラムなので、ゆっくり作業に集中できます。",
+      img:"", imgs:[], youtube:"",
+      order:1, createdAt: new Date()
+    },
+    {
+      id:"sample2", name:"ランチひろば", emoji:"🍱", cat:"reserve",
+      age:"年齢設定なし", cap:"各2〜4組", fee:"無料（お弁当持参）", items:"お弁当・飲み物",
+      text:"2〜4組の仲良し親子で貸し切って、ご持参のお弁当を食べながらお友達とほっとランチ。離乳食や食事の悩みも気軽に相談できます。良食後は14:00までゆっくり過ごせます。",
+      img:"", imgs:[], youtube:"",
+      order:2, createdAt: new Date()
+    },
+    {
+      id:"sample3", name:"ベビーフォト", emoji:"📸", cat:"reserve",
+      age:"年齢設定なし", cap:"各3組", fee:"無料", items:"なし",
+      text:"スマホで簡単！赤ちゃんを可愛く撮るコツ講座＆撮影会。月齢フォト、ハーフバースデイ、毎日の何気ない姿をもっと可愛く残したい！そんなパパ・ママの願いを叶える撮影体験会を開催します。\n\nセンターで用意した季節感たっぷりのフォトブースや可愛い撮影小物をお使いいただけます。",
+      img:"", imgs:[], youtube:"",
+      order:3, createdAt: new Date()
+    },
+    {
+      id:"sample4", name:"リラックスヨガ", emoji:"🧘", cat:"tochi",
+      age:"ママ向け（託児あり）", cap:"先着4組", fee:"無料", items:"タオル・水分（ママ）、オムツ・水分（お子さん）",
+      text:"子育てママのための託児付きヨガ！お子さまは別室で保育士と遊んで過ごします。ヨガの先生がお子様も楽しめるよう盛り上げてくれ、ママもお子様もリラックスして過ごせます。",
+      img:"", imgs:[], youtube:"",
+      order:4, createdAt: new Date()
+    },
+    {
+      id:"sample5", name:"英語・知育", emoji:"📚", cat:"reserve",
+      age:"英語：7か月〜1才 ／ 知育：1才〜3才", cap:"各6組", fee:"無料", items:"なし",
+      text:"英語と知育のリニューアルプログラム！1才児さんはどちらでも選べます。12:00〜13:00は終了後、支援センターで14:00まで遊べる年齢分けを少し変更しリニューアルしました。",
+      img:"", imgs:[], youtube:"",
+      order:5, createdAt: new Date()
+    },
+  ];
+
+  let allProgs = [];
+  let currentCat = 'all';
+  let isAdmin = false;
+
+  // ── 管理者判定（URLパラメータ ?admin=sakura2026） ───────────────────────
+  const params = new URLSearchParams(location.search);
+  if (params.get('admin') === 'sakura2026') {
+    isAdmin = true;
+    document.getElementById('adminFab').style.display = 'flex';
+    document.getElementById('adminFab').style.alignItems = 'center';
+    document.getElementById('adminFab').style.justifyContent = 'center';
+  }
+
+  // ── データ読み込み ────────────────────────────────────────────────────
+  async function loadPrograms() {
+    try {
+      const snap = await getDocs(query(collection(db,'programs'), orderBy('order','asc')));
+      if (snap.empty) {
+        allProgs = SAMPLE;
+      } else {
+        allProgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+    } catch(e) {
+      console.warn('Firebase未接続、サンプルデータを使用:', e.message);
+      allProgs = SAMPLE;
+    }
+    renderProgs();
+  }
+
+  // ── レンダリング ──────────────────────────────────────────────────────
+  function renderProgs() {
+    const filtered = currentCat === 'all'
+      ? allProgs
+      : allProgs.filter(p => p.cat === currentCat);
+
+    const grid = document.getElementById('progGrid');
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="empty"><div class="icon">🌱</div><p>このカテゴリのプログラムはまだありません</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(p => {
+      const catLabel = {reserve:'要予約',free:'予約不要',tochi:'託児付き',baby:'ベビー向け'}[p.cat] || '';
+      const isFree = p.cat === 'free';
+
+      // メイン画像
+      const imgHtml = p.img
+        ? `<img class="card-img" src="${p.img}" alt="${p.name}" onerror="this.style.display='none'">`
+        : `<div class="card-img no-img">${p.emoji||'🌿'}</div>`;
+
+      // YouTube
+      const ytHtml = p.youtube
+        ? `<div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${p.youtube}" allowfullscreen loading="lazy"></iframe></div>`
+        : '';
+
+      // サブ画像ギャラリー
+      const imgs = Array.isArray(p.imgs) ? p.imgs.filter(Boolean) : [];
+      const galleryHtml = imgs.length
+        ? `<div class="gallery">${imgs.map(u=>`<img src="${u}" alt="" onclick="openLb('${u}')" onerror="this.parentElement.removeChild(this)">`).join('')}</div>`
+        : '';
+
+      // 詳細テーブル
+      const rows = [
+        p.age   ? `<tr><th>対象</th><td>${p.age}</td></tr>` : '',
+        p.cap   ? `<tr><th>定員</th><td>${p.cap}</td></tr>` : '',
+        p.fee   ? `<tr><th>費用</th><td>${p.fee}</td></tr>` : '',
+        p.items ? `<tr><th>持ち物</th><td>${p.items}</td></tr>` : '',
+      ].filter(Boolean).join('');
+      const tableHtml = rows ? `<table class="info-table">${rows}</table>` : '';
+
+      // 説明文（改行対応）
+      const textHtml = p.text
+        ? `<div class="card-text">${p.text.replace(/\n/g,'<br>')}</div>`
+        : '';
+
+      // 編集ボタン（管理者のみ）
+      const editHtml = isAdmin
+        ? `<button onclick="openModal('${p.id}')" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-family:inherit;font-size:.78rem;cursor:pointer;color:var(--muted);margin-bottom:8px">✏️ 編集</button>`
+        : '';
+
+      return `<div class="prog-card" data-cat="${p.cat}">
+        ${imgHtml}
+        <div class="card-body">
+          <div class="card-head">
+            <span class="card-emoji">${p.emoji||'🌿'}</span>
+            <div>
+              <div class="card-title">${p.name}</div>
+              <div class="card-sub">${p.age||''}</div>
+            </div>
+          </div>
+          <div class="tag-row">
+            <span class="tag ${isFree?'free':'req'}">${catLabel}</span>
+            ${p.cap?`<span class="tag">${p.cap}</span>`:''}
+            ${p.fee==='無料'?`<span class="tag free">無料</span>`:''}
+          </div>
+          ${ytHtml}
+          ${galleryHtml}
+          ${textHtml}
+          ${tableHtml}
+          ${editHtml}
+          <a href="../shientop#yoyaku" class="btn-reserve">📋 予約・お問い合わせはこちら</a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── カテゴリフィルター ────────────────────────────────────────────────
+  window.filterCat = function(cat, el) {
+    currentCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderProgs();
+  };
+
+  // ── ライトボックス ────────────────────────────────────────────────────
+  window.openLb = function(url) {
+    document.getElementById('lbImg').src = url;
+    document.getElementById('lb').classList.add('open');
+  };
+
+  // ── 管理モーダル ──────────────────────────────────────────────────────
+  window.openModal = function(id) {
+    document.getElementById('editId').value = id || '';
+    document.getElementById('deleteBtn').style.display = id ? 'block' : 'none';
+    document.getElementById('modalTitle').textContent = id ? 'プログラムを編集' : 'プログラムを追加';
+
+    if (id) {
+      const p = allProgs.find(x => x.id === id);
+      if (p) {
+        document.getElementById('fProgName').value = p.name || '';
+        document.getElementById('fEmoji').value    = p.emoji || '';
+        document.getElementById('fCat').value      = p.cat || 'reserve';
+        document.getElementById('fAge').value      = p.age || '';
+        document.getElementById('fCap').value      = p.cap || '';
+        document.getElementById('fText').value     = p.text || '';
+        document.getElementById('fImg').value      = p.img || '';
+        document.getElementById('fImgs').value     = (p.imgs||[]).join(', ');
+        document.getElementById('fYt').value       = p.youtube || '';
+        document.getElementById('fFee').value      = p.fee || '';
+        document.getElementById('fItems').value    = p.items || '';
+      }
+    } else {
+      ['fProgName','fEmoji','fAge','fCap','fText','fImg','fImgs','fYt','fFee','fItems'].forEach(id=>{
+        document.getElementById(id).value='';
+      });
+      document.getElementById('fCat').value = 'reserve';
+    }
+    document.getElementById('modalBg').classList.add('open');
+  };
+
+  window.closeModal = function() {
+    document.getElementById('modalBg').classList.remove('open');
+  };
+
+  window.saveProgram = async function() {
+    const name = document.getElementById('fProgName').value.trim();
+    if (!name) { alert('プログラム名を入力してください'); return; }
+
+    const data = {
+      name,
+      emoji:   document.getElementById('fEmoji').value.trim() || '🌿',
+      cat:     document.getElementById('fCat').value,
+      age:     document.getElementById('fAge').value.trim(),
+      cap:     document.getElementById('fCap').value.trim(),
+      text:    document.getElementById('fText').value.trim(),
+      img:     document.getElementById('fImg').value.trim(),
+      imgs:    document.getElementById('fImgs').value.split(',').map(s=>s.trim()).filter(Boolean),
+      youtube: document.getElementById('fYt').value.trim(),
+      fee:     document.getElementById('fFee').value.trim(),
+      items:   document.getElementById('fItems').value.trim(),
+      updatedAt: Timestamp.now()
+    };
+
+    const editId = document.getElementById('editId').value;
+    try {
+      if (editId && !editId.startsWith('sample')) {
+        await updateDoc(doc(db, 'programs', editId), data);
+        const idx = allProgs.findIndex(p => p.id === editId);
+        if (idx >= 0) allProgs[idx] = { ...allProgs[idx], ...data };
+      } else {
+        data.order     = allProgs.length + 1;
+        data.createdAt = Timestamp.now();
+        const ref = await addDoc(collection(db, 'programs'), data);
+        allProgs.push({ id: ref.id, ...data });
+      }
+    } catch(e) {
+      console.warn('Firebase保存失敗（デモモード）:', e.message);
+      const editId2 = document.getElementById('editId').value;
+      if (editId2) {
+        const idx = allProgs.findIndex(p => p.id === editId2);
+        if (idx >= 0) allProgs[idx] = { ...allProgs[idx], ...data };
+      } else {
+        allProgs.push({ id: 'local_' + Date.now(), ...data, order: allProgs.length + 1 });
+      }
+    }
+    closeModal();
+    renderProgs();
+  };
+
+  window.deleteProgram = async function() {
+    if (!confirm('このプログラムを削除しますか？')) return;
+    const editId = document.getElementById('editId').value;
+    try {
+      await deleteDoc(doc(db, 'programs', editId));
+    } catch(e) { console.warn('削除失敗（デモ）'); }
+    allProgs = allProgs.filter(p => p.id !== editId);
+    closeModal();
+    renderProgs();
+  };
+
+  // モーダル背景クリックで閉じる
+  document.getElementById('modalBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalBg')) closeModal();
+  });
+
+  loadPrograms();
+</script>
+</body>
+</html>

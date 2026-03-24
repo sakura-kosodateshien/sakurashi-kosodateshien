@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チェックイン端末 | 子育て支援センター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, addDoc, updateDoc,
+    collection, query, where, getDocs, Timestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+    projectId: "sakurashi-kosodateshien",
+    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId: "365529893548",
+    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let scanner       = null;
+  let lastScanned   = '';
+  let lastScannedAt = 0;
+  let scanning      = false;
+
+  function todayStr() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function calcMonths(dob) {
+    const d = new Date(dob), t = new Date();
+    return (t.getFullYear() - d.getFullYear()) * 12 + (t.getMonth() - d.getMonth());
+  }
+
+  // ── メイン処理：UID → 会員照合 → 予約照合 → 記録 ────────────────────
+  async function processUID(uid) {
+    showState('loading', '確認中…');
+    try {
+      // ① 会員情報
+      const userSnap = await getDoc(doc(db, 'users', uid));
+      if (!userSnap.exists()) {
+        showState('error', '登録が見つかりません', 'QRコードを確認してください');
+        setTimeout(() => showState('ready'), 3500);
+        return;
+      }
+      const user = userSnap.data();
+
+      // ② 本日の予約を検索
+      const today = todayStr();
+      const bkSnap = await getDocs(query(
+        collection(db, 'bookings'),
+        where('uid',    '==', uid),
+        where('date',   '==', today),
+        where('status', 'in', ['confirmed', 'pending'])
+      ));
+      const bookings = bkSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // ③ 利用区分の決定（スタッフ選択 or 予約内容から自動判定）
+      let visitType = window.currentType || 'free';
+      if (bookings.length > 0) {
+        visitType = bookings[0].progId === 'tochi' ? 'childcare' : 'program';
+      }
+
+      // ④ 来場記録を保存
+      const visitRef = await addDoc(collection(db, 'visits'), {
+        uid,
+        name:       user.name,
+        childDob:   user.childDob,
+        visitType,
+        visitedAt:  Timestamp.now(),
+        date:       today,
+        bookingIds: bookings.map(b => b.id)
+      });
+
+      // ⑤ 予約に checkedIn フラグを付ける
+      for (const bk of bookings) {
+        await updateDoc(doc(db, 'bookings', bk.id), {
+          checkedIn:   true,
+          checkedInAt: Timestamp.now(),
+          visitId:     visitRef.id
+        });
+      }
+
+      // ⑥ 画面表示
+      const months = calcMonths(user.childDob);
+      showState('success', user.name, { months, visitType, bookings,
+        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' }) });
+      setTimeout(() => showState('ready'), 5000);
+
+    } catch(e) {
+      console.error(e);
+      showState('error', 'エラーが発生しました', e.message);
+      setTimeout(() => showState('ready'), 3500);
+    }
+  }
+
+  // ── QRスキャン成功 ────────────────────────────────────────────────────
+  async function onScanSuccess(decodedText) {
+    const now = Date.now();
+    if (decodedText === lastScanned && now - lastScannedAt < 4000) return;
+    lastScanned   = decodedText;
+    lastScannedAt = now;
+    let uid = decodedText;
+    try { const u = new URL(decodedText); uid = u.searchParams.get('uid') || decodedText; } catch(e) {}
+    await processUID(uid);
+  }
+
+  // ── 手動スキャンイベント受け取り ───────────────────────────────────────
+  window.addEventListener('manualScan', e => {
+    lastScanned = ''; // 手動は連続防止をリセット
+    processUID(e.detail);
+  });
+
+  // ── 表示ステート ──────────────────────────────────────────────────────
+  function showState(state, main='', sub='') {
+    const overlay = document.getElementById('overlay');
+    const icon    = document.getElementById('overlayIcon');
+    const mainEl  = document.getElementById('overlayMain');
+    const subEl   = document.getElementById('overlaySub');
+
+    if (state === 'ready') {
+      overlay.className = 'overlay ready';
+      icon.textContent  = '📷';
+      mainEl.textContent = 'QRコードをかざしてください';
+      subEl.innerHTML = '';
+      return;
+    }
+    if (state === 'loading') {
+      overlay.className = 'overlay loading';
+      icon.textContent  = '⏳';
+      mainEl.textContent = main;
+      subEl.innerHTML = '';
+      return;
+    }
+    if (state === 'success') {
+      overlay.className = 'overlay success';
+      icon.textContent  = '✅';
+      mainEl.textContent = 'ようこそ！' + main + ' さん';
+
+      const typeLabel = {
+        program:   '📚 支援プログラム',
+        childcare: '👶 託　児',
+        free:      '🌿 自由来所'
+      }[sub.visitType] || '';
+
+      // 予約ありの場合はプログラム名を強調表示
+      let bkHtml = '';
+      if (sub.bookings && sub.bookings.length > 0) {
+        bkHtml = sub.bookings.map(b =>
+          `<div class="info-row booking-row">
+             ✅ ${b.progName || b.progId}${b.time ? '　' + b.time : ''}
+           </div>`
+        ).join('');
+      } else {
+        bkHtml = `<div class="info-row muted-row">本日の予約なし（自由来所）</div>`;
+      }
+
+      subEl.innerHTML = `
+        <div class="info-row">${typeLabel}　お子さん ${sub.months}ヶ月</div>
+        ${bkHtml}
+        <div class="info-row">来所 ${sub.time}</div>`;
+      return;
+    }
+    if (state === 'error') {
+      overlay.className = 'overlay error';
+      icon.textContent  = '❌';
+      mainEl.textContent = main;
+      subEl.innerHTML = `<div class="info-row">${sub}</div>`;
+    }
+  }
+
+  // ── スキャナー起動 ────────────────────────────────────────────────────
+  window.startScanner = async function() {
+    if (scanning) return;
+    scanning = true;
+    document.getElementById('startBtn').style.display = 'none';
+    scanner = new Html5Qrcode('reader');
+    try {
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        onScanSuccess, () => {}
+      );
+      showState('ready');
+    } catch(e) {
+      alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。');
+      scanning = false;
+      document.getElementById('startBtn').style.display = 'flex';
+    }
+  };
+
+  window.addEventListener('load', () => showState('ready'));
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+  :root{--green:#1a3d2b;--mint:#52b788}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--green);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+  header{text-align:center;padding:12px 16px 6px;color:#fff}
+  header .sub{font-size:.68rem;opacity:.45;letter-spacing:.18em}
+  header h1{font-size:1rem;font-weight:700;margin-top:2px}
+
+  .type-tabs{display:flex;gap:6px;padding:8px 16px 6px;justify-content:center}
+  .type-tab{padding:5px 16px;border-radius:20px;border:1.5px solid rgba(255,255,255,.22);color:rgba(255,255,255,.55);font-size:.78rem;font-family:inherit;background:transparent;cursor:pointer;font-weight:500;transition:all .15s}
+  .type-tab.active{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.5)}
+
+  .reader-wrap{position:relative;flex:1;margin:0 14px 10px;border-radius:18px;overflow:hidden;background:#000}
+  #reader{width:100%!important;height:100%!important}
+  #reader video{object-fit:cover;width:100%;height:100%}
+
+  /* スキャン枠 */
+  .scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;pointer-events:none;z-index:10}
+  .scan-frame::before,.scan-frame::after,.scan-frame>span::before,.scan-frame>span::after{content:'';position:absolute;width:30px;height:30px;border-color:#fff;border-style:solid}
+  .scan-frame::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+  .scan-frame::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+  .scan-frame>span::before{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+  .scan-frame>span::after{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+  @keyframes scanLine{0%{top:10%}50%{top:86%}100%{top:10%}}
+  .scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,var(--mint),transparent);animation:scanLine 2.4s ease-in-out infinite;z-index:11}
+
+  /* オーバーレイ */
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:20;padding:20px;text-align:center;transition:background .25s}
+  .overlay.ready{background:transparent;pointer-events:none}
+  .overlay.loading{background:rgba(0,0,0,.6)}
+  .overlay.success{background:rgba(8,50,25,.94)}
+  .overlay.error{background:rgba(80,10,10,.9)}
+  .ov-icon{font-size:2.6rem}
+  .ov-main{color:#fff;font-size:1.2rem;font-weight:900;line-height:1.3}
+  .ov-sub{width:100%}
+  .info-row{color:rgba(255,255,255,.88);font-size:.85rem;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}
+  .info-row:last-child{border-bottom:none}
+  .booking-row{background:rgba(82,183,136,.25);border-radius:6px;margin:4px 0;font-weight:700;border:none!important;color:#a7f3c4}
+  .muted-row{color:rgba(255,255,255,.55);font-style:italic}
+
+  /* 起動ボタン */
+  #startBtn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.72);color:#fff;z-index:30;cursor:pointer;border:none;border-radius:18px;font-family:inherit}
+  #startBtn .icon{font-size:2.6rem}
+  #startBtn .label{font-size:.95rem;font-weight:700}
+  #startBtn .hint{font-size:.72rem;opacity:.6}
+
+  /* 手動入力 */
+  .manual-wrap{display:flex;gap:8px;padding:0 14px 10px}
+  .manual-wrap input{flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:.82rem;font-family:inherit;outline:none}
+  .manual-wrap input::placeholder{color:rgba(255,255,255,.35)}
+  .manual-wrap button{padding:8px 14px;border-radius:10px;border:none;background:var(--mint);color:#1a3d2b;font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer}
+
+  footer{text-align:center;padding:4px 16px 10px;color:rgba(255,255,255,.3);font-size:.65rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sub">HINOKI SAKURA · STAFF TERMINAL</div>
+  <h1>🌿 チェックイン端末</h1>
+</header>
+
+<div class="type-tabs">
+  <button class="type-tab active" onclick="setType('free',this)">🌿 自由来所</button>
+  <button class="type-tab" onclick="setType('program',this)">📚 支援P</button>
+  <button class="type-tab" onclick="setType('childcare',this)">👶 託児</button>
+</div>
+
+<div class="reader-wrap">
+  <div id="reader"></div>
+  <div class="scan-frame"><span></span></div>
+  <div class="scan-line"></div>
+
+  <div class="overlay ready" id="overlay">
+    <div class="ov-icon" id="overlayIcon">📷</div>
+    <div class="ov-main" id="overlayMain">QRコードをかざしてください</div>
+    <div class="ov-sub"  id="overlaySub"></div>
+  </div>
+
+  <button id="startBtn" onclick="startScanner()">
+    <div class="icon">📷</div>
+    <div class="label">タップしてカメラを起動</div>
+    <div class="hint">カメラへのアクセスを許可してください</div>
+  </button>
+</div>
+
+<div class="manual-wrap">
+  <input type="text" id="manualUid" placeholder="IDを手入力（QR読取不可時）" autocomplete="off">
+  <button onclick="manualCheckin()">入力</button>
+</div>
+
+<footer>受付端末専用　|　陽の木さくら保育園 子育て支援センター</footer>
+
+<script>
+  window.currentType = 'free';
+
+  function setType(type, el) {
+    window.currentType = type;
+    document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function manualCheckin() {
+    const uid = document.getElementById('manualUid').value.trim();
+    if (!uid) return;
+    window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
+    document.getElementById('manualUid').value = '';
+  }
+</script>
+</body>
+</html>

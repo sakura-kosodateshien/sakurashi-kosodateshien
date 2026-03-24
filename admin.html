@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理ダッシュボード | 子育て支援センター</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+    projectId: "sakurashi-kosodateshien",
+    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId: "365529893548",
+    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  const PASS = 'sakura2026';
+
+  // ── ログイン ────────────────────────────────────────────────────────
+  window.doLogin = function() {
+    if (document.getElementById('passInput').value === PASS) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display  = 'block';
+      loadData();
+    } else {
+      document.getElementById('loginErr').textContent = 'パスワードが違います';
+    }
+  };
+
+  // ── データ読み込み ────────────────────────────────────────────────
+  async function loadData() {
+    const year  = parseInt(document.getElementById('selYear').value);
+    const month = parseInt(document.getElementById('selMonth').value);
+
+    const start = new Date(year, month - 1, 1);
+    const end   = new Date(year, month, 1);
+
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('results').style.display    = 'none';
+
+    try {
+      const q = query(
+        collection(db, 'visits'),
+        where('visitedAt', '>=', Timestamp.fromDate(start)),
+        where('visitedAt', '<',  Timestamp.fromDate(end)),
+        orderBy('visitedAt', 'asc')
+      );
+      const snap = await getDocs(q);
+      const visits = snap.docs.map(d => d.data());
+      renderResults(visits, year, month);
+    } catch(e) {
+      alert('データの取得に失敗しました: ' + e.message);
+    }
+
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('results').style.display    = 'block';
+  }
+  window.loadData = loadData;
+
+  // ── 集計・描画 ────────────────────────────────────────────────────
+  function renderResults(visits, year, month) {
+    // 集計
+    const counts = { free: 0, program: 0, childcare: 0 };
+    const byDate  = {};
+
+    visits.forEach(v => {
+      counts[v.visitType] = (counts[v.visitType] || 0) + 1;
+      const d = v.date || v.visitedAt.toDate().toLocaleDateString('ja-JP',
+        {year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+      if (!byDate[d]) byDate[d] = { free:0, program:0, childcare:0 };
+      byDate[d][v.visitType]++;
+    });
+
+    const total = visits.length;
+
+    // サマリーカード更新
+    document.getElementById('cntTotal').textContent    = total;
+    document.getElementById('cntFree').textContent     = counts.free     || 0;
+    document.getElementById('cntProgram').textContent  = counts.program  || 0;
+    document.getElementById('cntChildcare').textContent= counts.childcare|| 0;
+
+    // 日別テーブル
+    const tbody = document.getElementById('dailyTbody');
+    tbody.innerHTML = '';
+    Object.keys(byDate).sort().forEach(date => {
+      const row = byDate[date];
+      const tr  = document.createElement('tr');
+      const d   = new Date(date);
+      const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+      tr.innerHTML = `
+        <td>${date.slice(5)} (${dow})</td>
+        <td class="num">${row.program  || ''}</td>
+        <td class="num">${row.childcare|| ''}</td>
+        <td class="num">${row.free     || ''}</td>
+        <td class="num tot">${(row.free||0)+(row.program||0)+(row.childcare||0)}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    // 合計行
+    const tfoot = document.getElementById('dailyTfoot');
+    tfoot.innerHTML = `<tr class="foot-row">
+      <td>月　計</td>
+      <td class="num">${counts.program  ||0}</td>
+      <td class="num">${counts.childcare||0}</td>
+      <td class="num">${counts.free     ||0}</td>
+      <td class="num tot">${total}</td>
+    </tr>`;
+
+    // 市報告用テキスト生成
+    document.getElementById('reportText').value =
+`【市報告用】${year}年${month}月分
+─────────────────────────────
+支援プログラム参加者数：${counts.program  || 0} 人
+託児利用者数          ：${counts.childcare|| 0} 人
+自由来所者数          ：${counts.free     || 0} 人
+合　計                ：${total} 人
+─────────────────────────────
+（陽の木さくら保育園 子育て支援センター）`;
+  }
+
+  // ── CSV出力 ──────────────────────────────────────────────────────
+  window.exportCSV = async function() {
+    const year  = parseInt(document.getElementById('selYear').value);
+    const month = parseInt(document.getElementById('selMonth').value);
+    const start = new Date(year, month - 1, 1);
+    const end   = new Date(year, month, 1);
+
+    const q = query(
+      collection(db, 'visits'),
+      where('visitedAt', '>=', Timestamp.fromDate(start)),
+      where('visitedAt', '<',  Timestamp.fromDate(end)),
+      orderBy('visitedAt', 'asc')
+    );
+    const snap   = await getDocs(q);
+    const visits = snap.docs.map(d => d.data());
+
+    const typeLabel = { free:'自由来所', program:'支援プログラム', childcare:'託児' };
+    const rows = [['日付','時刻','氏名','利用区分','お子さん生年月日']];
+    visits.forEach(v => {
+      const dt = v.visitedAt.toDate();
+      rows.push([
+        dt.toLocaleDateString('ja-JP'),
+        dt.toLocaleTimeString('ja-JP', {hour:'2-digit',minute:'2-digit'}),
+        v.name,
+        typeLabel[v.visitType] || v.visitType,
+        v.childDob || ''
+      ]);
+    });
+
+    const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `来場記録_${year}年${month}月.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── 初期値セット ────────────────────────────────────────────────
+  window.addEventListener('load', () => {
+    const now = new Date();
+    document.getElementById('selYear').value  = now.getFullYear();
+    document.getElementById('selMonth').value = now.getMonth() + 1;
+  });
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --green:  #2d6a4f;
+    --mint:   #74c69d;
+    --cream:  #faf7f2;
+    --warm:   #f4a261;
+    --text:   #1a2e22;
+    --muted:  #6b8f71;
+    --border: #d8e8dc;
+    --shadow: 0 2px 16px rgba(45,106,79,.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--green);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+
+  /* ログイン */
+  #loginScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    padding: 24px;
+  }
+  .login-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 36px 32px;
+    width: min(360px, 100%);
+    text-align: center;
+  }
+  .login-card h2 { color: var(--green); margin-bottom: 6px; }
+  .login-card p  { color: var(--muted); font-size: .85rem; margin-bottom: 24px; }
+  .login-card input {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 1rem;
+    font-family: inherit; outline: none;
+    margin-bottom: 12px;
+  }
+  .login-card input:focus { border-color: var(--mint); }
+  .err { color: #c0392b; font-size: .82rem; margin-bottom: 8px; }
+
+  /* メイン */
+  #mainScreen { display: none; padding: 20px; max-width: 900px; margin: 0 auto; }
+
+  /* フィルタバー */
+  .filter-bar {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+  .filter-bar label { font-size: .82rem; font-weight: 700; color: var(--muted); }
+  .filter-bar select, .filter-bar input {
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: .9rem;
+    font-family: inherit;
+    outline: none;
+  }
+  .btn { padding: 9px 18px; border-radius: 8px; font-family: inherit;
+         font-size: .88rem; font-weight: 700; cursor: pointer; border: none; }
+  .btn-primary { background: var(--green); color: #fff; }
+  .btn-csv     { background: var(--warm); color: #fff; }
+
+  /* サマリーカード */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .s-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    border-top: 4px solid;
+  }
+  .s-card.total    { border-color: var(--green); }
+  .s-card.free     { border-color: var(--mint); }
+  .s-card.program  { border-color: #52b788; }
+  .s-card.childcare{ border-color: var(--warm); }
+  .s-card .label { font-size: .76rem; color: var(--muted); font-weight: 700; }
+  .s-card .count { font-size: 2rem; font-weight: 900; color: var(--text); line-height: 1.1; }
+  .s-card .unit  { font-size: .8rem; color: var(--muted); }
+
+  /* テーブル */
+  .table-wrap {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-title {
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: .9rem;
+    color: var(--green);
+    border-bottom: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th {
+    background: #f0f7f3;
+    padding: 9px 12px;
+    text-align: center;
+    font-size: .78rem;
+    color: var(--muted);
+    border-bottom: 1.5px solid var(--border);
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  td:first-child { text-align: left; font-weight: 500; }
+  td.num  { color: var(--text); font-weight: 700; }
+  td.tot  { color: var(--green); font-size: 1rem; }
+  .foot-row td { background: var(--cream); font-weight: 700; }
+
+  /* 市報告テキスト */
+  .report-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+  }
+  .report-box h3 { color: var(--green); font-size: .9rem; margin-bottom: 10px; }
+  textarea {
+    width: 100%; border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 12px; font-family: monospace;
+    font-size: .85rem; color: var(--text); background: #f8fdf9;
+    outline: none; resize: vertical;
+  }
+
+  #loadingMsg { text-align:center; padding:20px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🌿</span>
+  <h1>子育て支援センター 管理ダッシュボード</h1>
+</header>
+
+<!-- ログイン -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h2>🔐 管理者ログイン</h2>
+    <p>スタッフ専用ページです</p>
+    <div class="err" id="loginErr"></div>
+    <input type="password" id="passInput" placeholder="パスワードを入力"
+           onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">ログイン</button>
+  </div>
+</div>
+
+<!-- メイン -->
+<div id="mainScreen">
+
+  <!-- フィルタバー -->
+  <div class="filter-bar">
+    <label>対象年月：</label>
+    <select id="selYear">
+      <option>2025</option><option>2026</option><option>2027</option>
+    </select>
+    <span>年</span>
+    <select id="selMonth">
+      <option>1</option><option>2</option><option>3</option><option>4</option>
+      <option>5</option><option>6</option><option>7</option><option>8</option>
+      <option>9</option><option>10</option><option>11</option><option>12</option>
+    </select>
+    <span>月</span>
+    <button class="btn btn-primary" onclick="loadData()">集計する</button>
+    <button class="btn btn-csv"     onclick="exportCSV()">📥 CSV出力</button>
+  </div>
+
+  <div id="loadingMsg" style="display:none">読み込み中…</div>
+
+  <div id="results" style="display:none">
+
+    <!-- サマリー -->
+    <div class="summary-grid">
+      <div class="s-card total">
+        <div class="label">合計来所者</div>
+        <div class="count" id="cntTotal">-</div>
+        <div class="unit">人</div>
+      </div>
+      <div class="s-card program">
+        <div class="label">📚 支援プログラム</div>
+        <div class="count" id="cntProgram">-</div>
+        <div class="unit">人</div>
+      </div>
+      <div class="s-card childcare">
+        <div class="label">👶 託　児</div>
+        <div class="count" id="cntChildcare">-</div>
+        <div class="unit">人</div>
+      </div>
+      <div class="s-card free">
+        <div class="label">🌿 自由来所</div>
+        <div class="count" id="cntFree">-</div>
+        <div class="unit">人</div>
+      </div>
+    </div>
+
+    <!-- 日別テーブル -->
+    <div class="table-wrap">
+      <div class="table-title">日別集計</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">日付</th>
+            <th>支援P</th>
+            <th>託児</th>
+            <th>自由来所</th>
+            <th>計</th>
+          </tr>
+        </thead>
+        <tbody id="dailyTbody"></tbody>
+        <tfoot id="dailyTfoot"></tfoot>
+      </table>
+    </div>
+
+    <!-- 市報告テキスト -->
+    <div class="report-box">
+      <h3>📋 市報告用テキスト（コピーして使用）</h3>
+      <textarea id="reportText" rows="8" readonly></textarea>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

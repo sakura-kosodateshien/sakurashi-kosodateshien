@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ひのきっこ 子育て支援センター | システムデモ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;--warm:#f9a03f;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);min-height:100vh;color:var(--text)}
+header{background:var(--green);padding:20px 20px 16px;text-align:center}
+header .en{font-size:.7rem;letter-spacing:.25em;color:rgba(255,255,255,.45);margin-bottom:5px}
+header h1{color:#fff;font-size:1.25rem;font-weight:700}
+header .demo-badge{display:inline-block;margin-top:8px;background:var(--warm);color:#fff;font-size:.68rem;padding:3px 10px;border-radius:20px;font-weight:700}
+.hero{background:var(--green);padding:0 20px 24px;text-align:center}
+.hero p{color:rgba(255,255,255,.7);font-size:.82rem;line-height:1.75;max-width:340px;margin:0 auto}
+main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
+.section-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;color:var(--muted);margin:20px 0 8px;text-transform:uppercase;padding-left:2px}
+.card{display:block;text-decoration:none;background:#fff;border-radius:14px;padding:16px 18px;margin-bottom:10px;border:1.5px solid var(--border);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,var(--green))}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(45,106,79,.1)}
+.card-row{display:flex;align-items:center;gap:12px}
+.card-icon{font-size:1.5rem;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--light)}
+.card-meta{flex:1}
+.card-title{font-size:.95rem;font-weight:700;color:var(--text)}
+.card-desc{font-size:.75rem;color:var(--muted);margin-top:3px;line-height:1.5}
+.card-arrow{color:var(--muted);font-size:1rem}
+.card.user1{--accent:#74c69d}.card.user2{--accent:#4a90d9}.card.user3{--accent:#9b59b6}
+.card.staff1{--accent:#f9a03f}.card.staff2{--accent:#e74c3c}.card.staff3{--accent:#2d6a4f}
+.note{background:var(--light);border-radius:10px;padding:13px 15px;font-size:.75rem;color:var(--muted);line-height:1.75;margin-top:18px}
+.note strong{color:var(--green)}
+.firebase-note{background:#fff8e1;border-radius:10px;padding:12px 14px;font-size:.73rem;color:#7d5a00;line-height:1.75;margin-top:10px;border:1px solid #ffe082}
+.firebase-note strong{color:#e65100}
+</style>
+</head>
+<body>
+<header>
+  <div class="en">HINOKI SAKURA · ANPAN HINOKISAKURA</div>
+  <h1>🌿 子育て支援センター</h1>
+  <div class="demo-badge">DEMO</div>
+</header>
+<div class="hero">
+  <p>スタッフ体験用デモページです。<br>4月のひのきっこだよりのデータで動作しています。</p>
+</div>
+<main>
+  <div class="section-label">利用者向け</div>
+  <a href="user_program.html" class="card user1">
+    <div class="card-row">
+      <div class="card-icon">📋</div>
+      <div class="card-meta"><div class="card-title">プログラム別予約</div><div class="card-desc">参加したいプログラムを選んで空き確認・予約。スマホ向き。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+  <a href="user_calendar.html" class="card user2">
+    <div class="card-row">
+      <div class="card-icon">📅</div>
+      <div class="card-meta"><div class="card-title">週カレンダー表示</div><div class="card-desc">今週の全プログラムを時間軸で一覧。「いつ来ようか」を決めるのに便利。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+  <a href="programs.html" class="card user3">
+    <div class="card-row">
+      <div class="card-icon">🎨</div>
+      <div class="card-meta"><div class="card-title">プログラム紹介</div><div class="card-desc">画像・テキスト・YouTube動画で各プログラムを詳しく紹介。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+
+  <div class="section-label">スタッフ向け</div>
+  <a href="staff.html" class="card staff1">
+    <div class="card-row">
+      <div class="card-icon">🗂️</div>
+      <div class="card-meta"><div class="card-title">予約管理（ガントチャート）</div><div class="card-desc">時間軸×曜日で予約・託児を一覧。残枠・予約者をタップで確認。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+  <a href="admin.html" class="card staff2">
+    <div class="card-row">
+      <div class="card-icon">📊</div>
+      <div class="card-meta"><div class="card-title">月次集計・市報告</div><div class="card-desc">月別の利用者数を自動集計。市への報告テキストをワンタップ生成。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+
+  <div class="section-label">チェックインシステム</div>
+  <a href="register.html" class="card staff3">
+    <div class="card-row">
+      <div class="card-icon">🪪</div>
+      <div class="card-meta"><div class="card-title">利用者登録・QR発行</div><div class="card-desc">初回登録フォーム。完了するとユニークQRコードが発行される。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+  <a href="checkin.html" class="card staff1">
+    <div class="card-row">
+      <div class="card-icon">📷</div>
+      <div class="card-meta"><div class="card-title">チェックイン端末</div><div class="card-desc">タブレット専用。QRスキャン→会員照合→予約確認→来場記録を自動保存。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+
+  <div class="note">
+    <strong>デモについて</strong><br>
+    4月のひのきっこだよりをもとにしたサンプルデータで動作しています。予約ボタンを押しても実際には登録されません。
+  </div>
+  <div class="firebase-note">
+    <strong>本番運用に必要な作業</strong><br>
+    各HTMLファイルの <code>YOUR_API_KEY</code> 等を Firebase プロジェクト（sakurashi-kosodateshien）の実際の設定値に置き換えてください。
+  </div>
+</main>
+</body>
+</html>

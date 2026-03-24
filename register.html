@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利用者登録 | 陽の木さくら子育て支援センター</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── Firebase 設定（hinokisakura.com と同じプロジェクト） ──────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+    projectId: "sakurashi-kosodateshien",
+    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+    messagingSenderId: "365529893548",
+    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ── ユニークID生成 ──────────────────────────────────────────────────
+  function generateUID() {
+    return 'U' + Date.now().toString(36).toUpperCase()
+           + Math.random().toString(36).substring(2,6).toUpperCase();
+  }
+
+  // ── 登録処理 ────────────────────────────────────────────────────────
+  window.submitRegistration = async function() {
+    const name     = document.getElementById('name').value.trim();
+    const kana     = document.getElementById('kana').value.trim();
+    const childDob = document.getElementById('childDob').value;
+    const tel      = document.getElementById('tel').value.trim();
+    const lang     = document.getElementById('lang').value;
+
+    if (!name || !childDob || !tel) {
+      alert('※ 必須項目をすべて入力してください。');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled   = true;
+    btn.textContent = '登録中…';
+
+    const uid = generateUID();
+    const data = {
+      uid, name, kana, childDob, tel, lang,
+      registeredAt: new Date().toISOString(),
+      active: true
+    };
+
+    try {
+      await setDoc(doc(db, 'users', uid), data);
+      showQR(uid, name);
+    } catch(e) {
+      console.error(e);
+      alert('登録に失敗しました。通信状況を確認してください。\n' + e.message);
+      btn.disabled   = false;
+      btn.textContent = '登録してQRコードを受け取る';
+    }
+  };
+
+  function showQR(uid, name) {
+    document.getElementById('formSection').style.display = 'none';
+    const sec = document.getElementById('qrSection');
+    sec.style.display = 'flex';
+    document.getElementById('qrName').textContent = name + ' さん';
+    document.getElementById('qrUID').textContent  = 'ID: ' + uid;
+
+    // QRコード生成（チェックインURLを埋め込む）
+    const checkinURL = location.origin
+      + location.pathname.replace('register.html','checkin.html')
+      + '?uid=' + uid;
+    document.getElementById('qrcode').innerHTML = '';
+    new QRCode(document.getElementById('qrcode'), {
+      text:          checkinURL,
+      width:         220,
+      height:        220,
+      colorDark:     '#1a3a2a',
+      colorLight:    '#ffffff',
+      correctLevel:  QRCode.CorrectLevel.H
+    });
+  }
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --green:  #2d6a4f;
+    --mint:   #74c69d;
+    --cream:  #faf7f2;
+    --warm:   #f4a261;
+    --text:   #1a2e22;
+    --muted:  #6b8f71;
+    --border: #d8e8dc;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    background: var(--green);
+    color: #fff;
+    text-align: center;
+    padding: 20px 16px 16px;
+  }
+  header .logo { font-family: 'DM Serif Display', serif; font-size: 1.05rem; opacity: .7; letter-spacing: .12em; }
+  header h1 { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+
+  .card {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 24px rgba(45,106,79,.10);
+    padding: 32px 28px;
+    width: min(480px, 94vw);
+    margin: 28px auto;
+  }
+
+  .card h2 {
+    color: var(--green);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .card .sub {
+    color: var(--muted);
+    font-size: .82rem;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .field { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  label .req {
+    color: var(--warm);
+    margin-left: 4px;
+    font-size: .75rem;
+  }
+  input, select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .95rem;
+    font-family: inherit;
+    color: var(--text);
+    background: #f9fdf9;
+    transition: border-color .2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--mint); background: #fff; }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background .2s, transform .1s;
+  }
+  .btn:hover  { background: #1f4d38; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { background: #aaa; cursor: default; }
+
+  /* QRセクション */
+  #qrSection {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+  .qr-badge {
+    background: linear-gradient(135deg, var(--green) 0%, #40916c 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 18px 24px 14px;
+    width: 100%;
+  }
+  .qr-badge .welcome { font-size: .8rem; opacity: .8; }
+  .qr-badge .name    { font-size: 1.4rem; font-weight: 700; margin: 4px 0; }
+  .qr-badge .uid     { font-size: .72rem; opacity: .65; font-family: monospace; }
+
+  #qrcode {
+    background: #fff;
+    padding: 16px;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+  }
+
+  .qr-note {
+    background: #f0faf4;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: .82rem;
+    color: var(--muted);
+    line-height: 1.7;
+    width: 100%;
+    text-align: left;
+  }
+  .qr-note strong { color: var(--green); }
+
+  .divider {
+    border: none;
+    border-top: 1.5px solid var(--border);
+    margin: 20px 0;
+  }
+
+  footer {
+    color: var(--muted);
+    font-size: .75rem;
+    text-align: center;
+    padding: 16px;
+    margin-top: auto;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">HINOKI SAKURA</div>
+  <h1>🌿 子育て支援センター 利用者登録</h1>
+</header>
+
+<div class="card">
+
+  <!-- 登録フォーム -->
+  <div id="formSection">
+    <h2>はじめに登録してください</h2>
+    <p class="sub">登録後にQRコードが発行されます。次回からはQRコードをかざすだけでチェックインできます。</p>
+
+    <div class="field">
+      <label>保護者氏名<span class="req">必須</span></label>
+      <input id="name" type="text" placeholder="例：山田 花子">
+    </div>
+    <div class="field">
+      <label>ふりがな</label>
+      <input id="kana" type="text" placeholder="例：やまだ はなこ">
+    </div>
+    <div class="field">
+      <label>お子さんの生年月日<span class="req">必須</span></label>
+      <input id="childDob" type="date">
+    </div>
+    <div class="field">
+      <label>連絡先（携帯番号）<span class="req">必須</span></label>
+      <input id="tel" type="tel" placeholder="例：090-0000-0000">
+    </div>
+    <div class="field">
+      <label>希望言語 / Preferred Language</label>
+      <select id="lang">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+        <option value="pt">Português</option>
+        <option value="vi">Tiếng Việt</option>
+      </select>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitRegistration()">
+      登録してQRコードを受け取る
+    </button>
+  </div>
+
+  <!-- QR表示 -->
+  <div id="qrSection">
+    <div class="qr-badge">
+      <div class="welcome">登録が完了しました！</div>
+      <div class="name" id="qrName"></div>
+      <div class="uid"  id="qrUID"></div>
+    </div>
+
+    <div id="qrcode"></div>
+
+    <div class="qr-note">
+      <strong>📱 このQRコードを保存してください</strong><br>
+      スクリーンショットを撮って保存するか、印刷してお持ちください。<br>
+      次回からセンターの受付端末にかざすだけでチェックイン完了です。
+    </div>
+  </div>
+
+</div>
+
+<footer>陽の木さくら保育園 子育て支援センター</footer>
+</body>
+</html>
