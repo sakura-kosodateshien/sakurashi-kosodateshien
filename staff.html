@@ -56,7 +56,20 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .bk-stat{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:700}
 .s-ok{background:#e8f5e9;color:#2e7d32}
 .avail-info{background:#f0faf4;border-radius:8px;padding:8px 10px;font-size:.78rem;margin-bottom:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
-.add-btn{width:100%;padding:11px;border:1.5px dashed var(--mint);border-radius:10px;background:#fff;color:var(--green);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px}
+/* 未確認バナー */
+.pending-banner{display:none;background:#fff3cd;border-bottom:2px solid #ffc107;padding:10px 14px;cursor:pointer}
+.pending-banner.show{display:block}
+.pending-banner-inner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:700px;margin:0 auto}
+.pending-count{font-size:1rem;font-weight:700;color:#856404}
+.pending-weeks{display:flex;gap:6px;flex-wrap:wrap;margin-left:4px}
+.pending-week-btn{font-size:.72rem;padding:3px 10px;border-radius:20px;border:1px solid #ffc107;background:#fff;color:#856404;cursor:pointer;font-weight:700}
+.pending-week-btn:hover{background:#ffc107;color:#fff}
+/* 未確認バッジ（ガントブロック） */
+.bp{background:#fff3cd;color:#856404;border:.5px solid #ffc107}
+/* 確認ボタン */
+.confirm-btn{font-size:.72rem;padding:4px 10px;border-radius:8px;border:none;background:#2d6a4f;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;margin-left:auto}
+.confirm-btn:hover{background:#235a40}
+.s-pending{background:#fff3cd;color:#856404}
 </style>
 </head>
 <body>
@@ -67,7 +80,15 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
   <span class="staff-badge">STAFF</span>
 </header>
 
-<div class="toolbar">
+<!-- 未確認バナー -->
+<div class="pending-banner" id="pendingBanner">
+  <div class="pending-banner-inner">
+    <span>📬</span>
+    <span class="pending-count" id="pendingCount">未確認 0件</span>
+    <span style="font-size:.75rem;color:#856404">→ 該当週：</span>
+    <div class="pending-weeks" id="pendingWeeks"></div>
+  </div>
+</div>
   <div class="week-nav">
     <button onclick="changeWeek(-1)">◀</button>
     <span class="week-label" id="wlabel">読み込み中…</span>
@@ -170,18 +191,46 @@ function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEa
 
 function getBks(prog){ return liveBookings.filter(b=>b.date===prog.date&&b.status!=='cancelled'&&(b.progId===prog.id||b.progName===prog.name||(b.progName||'').includes(prog.name.split(' ')[0]))); }
 
+// ── 未確認バナー更新 ─────────────────────────────────────────────────
+function updatePendingBanner(){
+  const allPending=liveBookings.filter(b=>b.status==='pending');
+  const banner=document.getElementById('pendingBanner');
+  if(!allPending.length){banner.classList.remove('show');return;}
+  banner.classList.add('show');
+  document.getElementById('pendingCount').textContent='未確認 '+allPending.length+'件';
+  const weekMap={};
+  allPending.forEach(b=>{
+    const bDate=new Date(b.date+'T00:00:00');
+    const diffDays=Math.round((bDate-BASE)/(24*3600*1000));
+    const wOff=Math.floor(diffDays/7);
+    const wStart=new Date(BASE); wStart.setDate(BASE.getDate()+wOff*7);
+    const label=fmt(wStart)+'週';
+    if(!weekMap[wOff]) weekMap[wOff]={label,count:0};
+    weekMap[wOff].count++;
+  });
+  let html='';
+  Object.keys(weekMap).sort((a,b)=>a-b).forEach(off=>{
+    const w=weekMap[off];
+    html+=`<button class="pending-week-btn" onclick="jumpToWeek(${off})">${w.label}（${w.count}件）</button>`;
+  });
+  document.getElementById('pendingWeeks').innerHTML=html;
+}
+window.jumpToWeek=function(off){ weekOffset=parseInt(off); initFirebase(); };
+
 function render(){
   const dates=getWeekDates();
   const dks=dates.map(d=>dateKey(d));
   document.getElementById('wlabel').textContent=fmt(dates[0])+'〜'+fmt(dates[4]);
   const wps=ALL_PROGS.filter(p=>dks.includes(p.date));
   const progs=wps.filter(p=>viewMode==='all'||(viewMode==='s'&&p.type==='s')||(viewMode==='t'&&p.type==='t'));
-  let sbk=0,tbk=0,full=0,avail=0;
-  wps.forEach(p=>{ const c=getBks(p).length; if(p.type==='s')sbk+=c; else tbk+=c; if(p.cap<99){if(c>=p.cap)full++;else avail++;} });
+  let sbk=0,tbk=0,full=0,avail=0,pend=0;
+  wps.forEach(p=>{ const bks=getBks(p); const c=bks.length; const pc=bks.filter(b=>b.status==='pending').length; pend+=pc; if(p.type==='s')sbk+=c; else tbk+=c; if(p.cap<99){if(c>=p.cap)full++;else avail++;} });
   document.getElementById('sSbk').textContent=sbk+'組';
   document.getElementById('sTbk').textContent=tbk+'名';
   document.getElementById('sFull').textContent=full;
   document.getElementById('sAvail').textContent=avail;
+  updatePendingBanner();
+
   const totalH=HOURS.length*PH;
   let g='<div></div>';
   dates.forEach((d,i)=>{ g+=`<div class="gh"><div class="gd">${DAYS_JP[i]}</div><div class="gn">${fmt(d)}</div></div>`; });
@@ -196,11 +245,12 @@ function render(){
       const top=((p.sh-9)+(p.sm/60))*PH;
       const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
       const bks=getBks(p); const cnt=bks.length;
+      const pendCnt=bks.filter(b=>b.status==='pending').length;
       const isFull=cnt>=p.cap&&p.cap<99;
-      const cls=p.cancelled?'blk bc':isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
+      const cls=p.cancelled?'blk bc':isFull?'blk bf':pendCnt>0?'blk bp':p.type==='t'?'blk bt':'blk bs';
       g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
-        <div style="font-size:.63rem">${p.name}</div>
-        <div style="font-size:.58rem;opacity:.85">${p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
+        <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}</div>
+        <div style="font-size:.58rem;opacity:.9">${pendCnt>0?p.name+' +'+pendCnt+'未確認':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
       </div>`;
     });
     g+='</div>';
@@ -219,11 +269,37 @@ function openPanel(id){
      <span>予約 <strong>${cnt}${p.type==='t'?'名':'組'}</strong></span>
      ${p.cap<99?`<span>残り <strong style="color:${cnt>=p.cap?'#c62828':'var(--green)'}">${p.cap-cnt}${p.type==='t'?'名':'組'}</strong></span>`:''}`;
   let list='';
-  if(!bks.length){ list='<div style="font-size:.82rem;color:var(--muted);padding:8px 0">予約はまだありません</div>'; }
-  else { bks.forEach((b,i)=>{ list+=`<div class="bk-row"><div class="bk-num">${i+1}</div><div style="flex:1"><div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''}</div><div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''} ${b.note?'📝'+b.note:''}</div></div><span class="bk-stat s-ok">確定</span></div>`; }); }
+  if(!bks.length){
+    list='<div style="font-size:.82rem;color:var(--muted);padding:8px 0">予約はまだありません</div>';
+  } else {
+    bks.forEach((b,i)=>{
+      const isPending=b.status==='pending';
+      list+=`<div class="bk-row" id="bkrow-${b.fbId}">
+        <div class="bk-num">${i+1}</div>
+        <div style="flex:1">
+          <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''}</div>
+          <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''} ${b.note?'📝'+b.note:''}</div>
+        </div>
+        <span class="bk-stat ${isPending?'s-pending':'s-ok'}">${isPending?'⏳ 確認待ち':'確定'}</span>
+        ${isPending?`<button class="confirm-btn" onclick="confirmBooking('${b.fbId}','${p.id}')">✅ 確認</button>`:''}
+      </div>`;
+    });
+  }
   document.getElementById('pList').innerHTML=list;
   document.getElementById('panelBg').classList.add('open');
 }
+
+window.confirmBooking=function(fbId, progId){
+  if(!window._fbUpdateDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
+  const btn=document.querySelector(`#bkrow-${fbId} .confirm-btn`);
+  if(btn){btn.disabled=true;btn.textContent='確認中…';}
+  window._fbUpdateDoc(fbId,{status:'confirmed'}).then(function(){
+    liveBookings=liveBookings.map(function(b){return b.fbId===fbId?Object.assign({},b,{status:'confirmed'}):b;});
+    render();
+    openPanel(progId);
+  }).catch(function(e){alert('更新に失敗しました: '+e.message);if(btn){btn.disabled=false;btn.textContent='✅ 確認';}});
+};
+
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
 function openAddModal(){ alert('電話予約追加機能は準備中です'); }
 document.getElementById('panelBg').addEventListener('click',e=>{ if(e.target===document.getElementById('panelBg')) closePanel(); });
@@ -255,7 +331,7 @@ render();
 // Firebaseを非同期で読み込み
 try{
   const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getFirestore,collection,query,where,onSnapshot}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const {getFirestore,collection,query,where,onSnapshot,doc,updateDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
   const db=getFirestore(initializeApp({
     apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
     authDomain:"sakurashi-kosodateshien.firebaseapp.com",
@@ -266,8 +342,8 @@ try{
   }));
   window._fbQuery=(d0,d4)=>query(collection(db,'bookings'),where('date','>=',d0),where('date','<=',d4));
   window._fbOnSnapshot=onSnapshot;
+  window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window.firebase_loaded=true;
-  // Firebase読み込み完了後にリアルタイム更新開始
   if(window.loadFirebase) window.loadFirebase();
 }catch(e){ console.warn('Firebase読み込み失敗（オフラインモード）:', e.message); }
 </script>
