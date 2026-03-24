@@ -411,36 +411,64 @@ function showMember(user){
 // ── メイン処理 ────────────────────────────────────────────────────
 async function main(){
   try{
-    const LIFF_ID='2009587361-BBVXkOWi';
+    const LIFF_ID='2009587361-BBVXkOWi'; // 会員証用LIFF ID
     await liff.init({ liffId:LIFF_ID });
 
     if(liff.isLoggedIn()){
       const profile=await liff.getProfile();
-      const snap=await getDocs(query(
+      const lineUserId=profile.userId;
+
+      // lineUserIdで検索
+      let snap=await getDocs(query(
         collection(db,'users'),
-        where('lineUserId','==',profile.userId)
+        where('lineUserId','==',lineUserId)
       ));
+
+      // 見つからない場合はuidでも検索（旧登録データ対応）
       if(snap.empty){
-        hide('stateLoading'); show('cardUnreg');
+        const params=new URLSearchParams(location.search);
+        const testUid=params.get('uid');
+        if(testUid){
+          snap=await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
+        }
+      }
+
+      if(snap.empty){
+        hide('stateLoading');
+        show('cardUnreg');
         document.querySelector('#cardUnreg .btn').href=
-          `register.html?lineUserId=${encodeURIComponent(profile.userId)}`;
+          `register.html?lineUserId=${encodeURIComponent(lineUserId)}`;
       } else {
         showMember(snap.docs[0].data());
       }
     } else {
+      // LINEログイン未済
       const params=new URLSearchParams(location.search);
       const testUid=params.get('uid');
       if(testUid){
+        // テストモード：UIDで直接検索
         const snap=await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
         if(!snap.empty){ showMember(snap.docs[0].data()); }
         else{ hide('stateLoading'); show('cardUnreg'); }
       } else {
+        // LINEログインへ誘導
         liff.login();
       }
     }
   }catch(e){
+    console.error('LIFF/Firebaseエラー:', e);
     hide('stateLoading');
-    document.getElementById('errMsg').textContent='LINEアプリからアクセスしてください。\n('+e.message+')';
+
+    // エラーの種類に応じてメッセージを変える
+    let msg = 'エラーが発生しました。';
+    if(e.message && e.message.includes('network')){
+      msg = 'ネットワークエラーです。通信状況を確認してください。';
+    } else if(e.message && e.message.includes('LIFF')){
+      msg = 'LINEアプリからアクセスしてください。';
+    } else if(e.code === 'failed-precondition'){
+      msg = 'データベースの準備中です。しばらくしてから再度お試しください。';
+    }
+    document.getElementById('errMsg').textContent = msg + '\n(' + e.message + ')';
     show('stateError');
   }
 }
