@@ -41,6 +41,7 @@ header .staff-badge{font-size:.68rem;background:var(--warm);color:#fff;padding:2
 .bs{background:#C0DD97;color:#27500A;border:.5px solid #639922}
 .bt{background:#B5D4F4;color:#0C447C;border:.5px solid #378ADD;background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.3) 3px,rgba(255,255,255,.3) 4px)}
 .bf{background:#F7C1C1;color:#791F1F;border:.5px solid #E24B4A}
+.bc{background:#e0e0e0;color:#757575;border:.5px solid #9e9e9e}
 
 .legend{display:flex;gap:10px;padding:6px 12px;flex-wrap:wrap}
 .li{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted)}
@@ -115,7 +116,7 @@ header .staff-badge{font-size:.68rem;background:var(--warm);color:#fff;padding:2
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, query, where, onSnapshot, addDoc, Timestamp }
+import { getFirestore, collection, query, where, onSnapshot, addDoc, getDocs, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -193,19 +194,41 @@ function dateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStar
 const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
 const DAYS_JP=["月","火","水","木","金"];
 
+// ── changes/ をALL_PROGSに反映 ────────────────────────────────────
+async function applyChangesToProgs(){
+  try{
+    const snap = await getDocs(collection(db,'changes'));
+    snap.docs.forEach(d=>{
+      const c = d.data();
+      if(!c.targetId) return;
+      const prog = ALL_PROGS.find(p=>p.id===c.targetId || p.date===c.targetDate);
+      if(!prog) return;
+      if(c.type==='cancel'){ prog.cancelled=true; prog.changeNote=c.note||'中止'; }
+      if(c.type==='time'){
+        if(c.newTime){
+          const parts=c.newTime.match(/(\d+):(\d+)〜(\d+):(\d+)/);
+          if(parts){ prog.sh=+parts[1];prog.sm=+parts[2];prog.eh=+parts[3];prog.em=+parts[4]; }
+        }
+        prog.changed=true; prog.changeNote=c.note||`時間変更：${c.newTime}`;
+      }
+      if(c.type==='cap' && c.newCap!==undefined){ prog.cap=c.newCap; prog.changed=true; }
+      if(c.type==='add' && c.newProg){
+        ALL_PROGS.push({...c.newProg, added:true});
+      }
+    });
+  }catch(e){ console.warn('changes適用エラー:',e.message); }
+}
+
 // ── Firebase リアルタイムリスナー ────────────────────────────────────
 function subscribeWeek(){
-  if(unsubscribe) unsubscribe(); // 前のリスナーを解除
+  if(unsubscribe) unsubscribe();
   const dates=getWeekDates();
   const dateKeys=dates.map(d=>dateKey(d));
-
-  // bookings コレクションを今週の日付範囲でリッスン
   const q=query(
     collection(db,'bookings'),
     where('date','>=',dateKeys[0]),
     where('date','<=',dateKeys[4])
   );
-
   unsubscribe=onSnapshot(q, snap=>{
     liveBookings=snap.docs.map(d=>({fbId:d.id,...d.data()}));
     render();
@@ -271,12 +294,15 @@ function render(){
       const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
       const bks=getBookingsForProg(p).filter(b=>b.status!=='cancelled');
       const cnt=bks.length;
-      const isFull=cnt>=p.cap&&p.cap<99;
-      const cls=isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
-      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
-        <div style="font-size:.63rem">${p.name}</div>
-        <div style="font-size:.58rem;opacity:.85">${p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
+      const isCancelled=p.cancelled;
+      const isFull=!isCancelled&&cnt>=p.cap&&p.cap<99;
+      const cls=isCancelled?'blk bc':isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
+      const badge=isCancelled?'⚠️中止':p.changed?'🔔変更':p.added?'🆕追加':'';
+      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${isCancelled?'opacity:.5':''}" onclick="${isCancelled?'':'openPanel(\''+p.id+'\')'}">
+        <div style="font-size:.63rem">${badge?`<span style="font-size:.55rem">${badge}</span> `:''} ${p.name}</div>
+        <div style="font-size:.58rem;opacity:.85">${isCancelled?p.changeNote||'中止':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
       </div>`;
+    });
     });
     g+='</div>';
   }
@@ -332,7 +358,7 @@ document.getElementById('panelBg').addEventListener('click',e=>{
 });
 
 // ── 初期化 ──────────────────────────────────────────────────────────
-subscribeWeek();
+applyChangesToProgs().then(() => subscribeWeek());
 </script>
 </body>
 </html>

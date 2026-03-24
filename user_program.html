@@ -84,6 +84,12 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
 
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2e22;color:#fff;padding:10px 20px;border-radius:20px;font-size:.85rem;opacity:0;transition:all .3s;z-index:300;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 変更バッジ */
+.change-badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;margin-top:3px}
+.badge-cancel{background:#fce4ec;color:#c62828}
+.badge-change{background:#fff8e1;color:#e65100}
+.badge-add{background:#e8f5e9;color:#2e7d32}
 </style>
 </head>
 <body>
@@ -320,6 +326,63 @@ const PROGS = [
 let openId = null;
 let selectedSlot = null;
 
+// ── changes/ を読み込んでPROGSに反映 ─────────────────────────────
+async function applyChanges(){
+  try {
+    const snap = await getDocs(collection(db, 'changes'));
+    if(snap.empty) return;
+
+    snap.docs.forEach(d => {
+      const c = d.data();
+      if(!c.targetId) return;
+
+      // 対象プログラムを検索（id or 日付+名前で照合）
+      const prog = PROGS.find(p =>
+        p.id === c.targetId ||
+        p.slots.some(s => toDateKey(s.date) === c.targetDate)
+      );
+      if(!prog) return;
+
+      if(c.type === 'cancel'){
+        // プログラム中止：該当スロットをfull+cancelledに
+        prog.slots.forEach(s => {
+          if(!c.targetDate || toDateKey(s.date) === c.targetDate){
+            s.full = true;
+            s.cancelled = true;
+            s.changeNote = c.note || '中止';
+          }
+        });
+      }
+      if(c.type === 'time'){
+        // 時間変更
+        prog.slots.forEach(s => {
+          if(!c.targetDate || toDateKey(s.date) === c.targetDate){
+            s.time = c.newTime || s.time;
+            s.changed = true;
+            s.changeNote = c.note || `時間変更：${c.newTime}`;
+          }
+        });
+      }
+      if(c.type === 'cap'){
+        // 定員変更
+        if(c.newCap !== undefined) prog.cap = c.newCap;
+        prog.capLabel = prog.capLabel.replace(/\d+組/, c.newCap+'組');
+      }
+      if(c.type === 'add'){
+        // プログラム追加
+        if(c.newSlot) prog.slots.push({
+          date: c.newSlot.date,
+          time: c.newSlot.time,
+          bk: 0, full: false, added: true,
+          changeNote: '追加'
+        });
+      }
+    });
+  } catch(e){
+    console.warn('changes読み込みエラー:', e.message);
+  }
+}
+
 function filterMonth(){ render(); }
 
 function render(){
@@ -350,15 +413,23 @@ function render(){
         const cls = s.full ? 'dot-full' : i < s.bk ? 'dot-filled' : 'dot-empty';
         return `<div class="dot ${cls}"></div>`;
       }).join('') : '';
+
+      // 変更バッジ
+      let changeBadge = '';
+      if(s.cancelled) changeBadge = `<span class="change-badge badge-cancel">⚠️ ${s.changeNote||'中止'}</span>`;
+      else if(s.changed) changeBadge = `<span class="change-badge badge-change">🔔 ${s.changeNote||'変更あり'}</span>`;
+      else if(s.added)   changeBadge = `<span class="change-badge badge-add">🆕 追加</span>`;
+
       html += `<div class="slot ${s.full?'full':''}" onclick="${s.full?'':'openModal(\''+p.id+'\','+si+')'}">
         <div class="slot-left">
           <div class="slot-date">${s.date}</div>
           ${s.label ? `<div class="slot-time" style="color:var(--green);font-weight:700">${s.label}</div>` : ''}
           <div class="slot-time">${s.time}</div>
+          ${changeBadge}
         </div>
         ${dots ? `<div class="dots">${dots}</div>` : ''}
         <button class="${s.full?'btn-reserve btn-full':'btn-reserve btn-ok'}" ${s.full?'disabled':''}>
-          ${s.full ? '満員' : '予約する'}
+          ${s.cancelled ? '中止' : s.full ? '満員' : '予約する'}
         </button>
       </div>`;
     });
@@ -586,7 +657,8 @@ document.getElementById('modalBg').addEventListener('click', e => {
   if(e.target === document.getElementById('modalBg')) closeModal();
 });
 
-render();
+// changes/を読み込んでから初期表示
+applyChanges().then(() => render());
 </script>
 </body>
 </html>
