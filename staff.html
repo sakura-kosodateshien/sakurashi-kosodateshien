@@ -294,12 +294,31 @@ window.confirmBooking=function(fbId, progId){
   const btn=document.querySelector('#bkrow-'+fbId+' .confirm-btn');
   if(btn){btn.disabled=true;btn.textContent='確認中…';}
   window._fbUpdateDoc(fbId,{status:'confirmed'}).then(function(){
-    // グローバルのliveBookingsを即時更新
+    // liveBookingsを即時更新
     liveBookings=liveBookings.map(function(b){
       return b.fbId===fbId ? Object.assign({},b,{status:'confirmed'}) : b;
     });
-    render();        // ガント・バナー再描画
-    openPanel(progId); // パネルも更新
+    render();
+    openPanel(progId);
+    // Firebaseから全pendingを再取得してバナーを正確に更新
+    if(window._fbQueryPending){
+      window._fbQueryPending().then(function(snap){
+        const stillPending=snap.docs.map(function(d){return Object.assign({fbId:d.id},d.data());});
+        // liveBookingsの該当レコードをFirebase最新値で上書き
+        stillPending.forEach(function(b){
+          const idx=liveBookings.findIndex(function(x){return x.fbId===b.fbId;});
+          if(idx>=0) liveBookings[idx]=b; else liveBookings.push(b);
+        });
+        // pendingでなくなったものをconfirmedに更新
+        liveBookings=liveBookings.map(function(b){
+          if(b.status==='pending' && !stillPending.find(function(p){return p.fbId===b.fbId;})){
+            return Object.assign({},b,{status:'confirmed'});
+          }
+          return b;
+        });
+        updatePendingBanner();
+      }).catch(function(e){console.warn('pending再取得エラー:',e.message);});
+    }
   }).catch(function(e){
     alert('更新に失敗しました: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='✅ 確認';}
