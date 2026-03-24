@@ -11,12 +11,12 @@
 
   // ── Firebase 設定（hinokisakura.com と同じプロジェクト） ──────────────
   const firebaseConfig = {
-    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+    apiKey: "YOUR_API_KEY",
     authDomain: "sakurashi-kosodateshien.firebaseapp.com",
     projectId: "sakurashi-kosodateshien",
-    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
-    messagingSenderId: "365529893548",
-    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+    storageBucket: "sakurashi-kosodateshien.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -45,9 +45,14 @@
     btn.disabled   = true;
     btn.textContent = '登録中…';
 
+    // LIFFページから渡されたLINE User IDを取得
+    const params     = new URLSearchParams(location.search);
+    const lineUserId = params.get('lineUserId') || '';
+
     const uid = generateUID();
     const data = {
       uid, name, kana, childDob, tel, lang,
+      lineUserId,
       registeredAt: new Date().toISOString(),
       active: true
     };
