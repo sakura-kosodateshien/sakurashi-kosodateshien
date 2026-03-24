@@ -38,8 +38,8 @@
     return (t.getFullYear() - d.getFullYear()) * 12 + (t.getMonth() - d.getMonth());
   }
 
-  // ── メイン処理：UID → 会員照合 → 予約照合 → 記録 ────────────────────
-  async function processUID(uid) {
+  // ── チェックイン処理 ──────────────────────────────────────────────────
+  async function processCheckin(uid) {
     showState('loading', '確認中…');
     try {
       // ① 会員情報
@@ -50,6 +50,7 @@
         return;
       }
       const user = userSnap.data();
+      const months = calcMonths(user.childDob);
 
       // ② 本日の予約を検索
       const today = todayStr();
@@ -61,24 +62,30 @@
       ));
       const bookings = bkSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // ③ 利用区分の決定（スタッフ選択 or 予約内容から自動判定）
+      // ③ 利用区分・プログラム名
       let visitType = window.currentType || 'free';
+      let progNames = [];
       if (bookings.length > 0) {
-        visitType = bookings[0].progId === 'tochi' ? 'childcare' : 'program';
+        visitType  = bookings[0].progId === 'tochi' ? 'childcare' : 'program';
+        progNames  = bookings.map(b => b.progName || b.progId).filter(Boolean);
       }
 
-      // ④ 来場記録を保存
+      // ④ 来場記録を保存（月齢・プログラム名も追加）
       const visitRef = await addDoc(collection(db, 'visits'), {
         uid,
-        name:       user.name,
-        childDob:   user.childDob,
+        name:        user.name,
+        childDob:    user.childDob,
+        childMonths: months,          // ← 来場時点の月齢
         visitType,
-        visitedAt:  Timestamp.now(),
-        date:       today,
-        bookingIds: bookings.map(b => b.id)
+        progNames,                    // ← 参加プログラム名配列
+        visitedAt:   Timestamp.now(),
+        date:        today,
+        exitAt:      null,            // ← 退場時に更新
+        duration:    null,            // ← 退場時に計算
+        bookingIds:  bookings.map(b => b.id)
       });
 
-      // ⑤ 予約に checkedIn フラグを付ける
+      // ⑤ 予約に checkedIn フラグ
       for (const bk of bookings) {
         await updateDoc(doc(db, 'bookings', bk.id), {
           checkedIn:   true,
@@ -87,10 +94,57 @@
         });
       }
 
-      // ⑥ 画面表示
-      const months = calcMonths(user.childDob);
-      showState('success', user.name, { months, visitType, bookings,
+      showState('checkin', user.name, { months, visitType, bookings, visitId: visitRef.id,
         time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' }) });
+      setTimeout(() => showState('ready'), 5000);
+
+    } catch(e) {
+      console.error(e);
+      showState('error', 'エラーが発生しました', e.message);
+      setTimeout(() => showState('ready'), 3500);
+    }
+  }
+
+  // ── チェックアウト処理 ────────────────────────────────────────────────
+  async function processCheckout(uid) {
+    showState('loading', '退場記録中…');
+    try {
+      const today = todayStr();
+
+      // 本日の未退場の来場記録を検索
+      const vSnap = await getDocs(query(
+        collection(db, 'visits'),
+        where('uid',    '==', uid),
+        where('date',   '==', today),
+        where('exitAt', '==', null)
+      ));
+
+      if (vSnap.empty) {
+        showState('error', 'チェックイン記録が見つかりません', '先にチェックインしてください');
+        setTimeout(() => showState('ready'), 3500);
+        return;
+      }
+
+      const userSnap = await getDoc(doc(db, 'users', uid));
+      const user = userSnap.exists() ? userSnap.data() : { name: uid };
+
+      // 最新の来場記録に退場時刻を記録
+      const visitDoc = vSnap.docs[vSnap.docs.length - 1];
+      const visitData = visitDoc.data();
+      const exitAt  = Timestamp.now();
+      const entryMs = visitData.visitedAt.toMillis();
+      const exitMs  = exitAt.toMillis();
+      const duration = Math.round((exitMs - entryMs) / 60000); // 分単位
+
+      await updateDoc(doc(db, 'visits', visitDoc.id), {
+        exitAt,
+        duration // 滞在分数
+      });
+
+      showState('checkout', user.name, {
+        duration,
+        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' })
+      });
       setTimeout(() => showState('ready'), 5000);
 
     } catch(e) {
@@ -108,13 +162,19 @@
     lastScannedAt = now;
     let uid = decodedText;
     try { const u = new URL(decodedText); uid = u.searchParams.get('uid') || decodedText; } catch(e) {}
-    await processUID(uid);
+
+    if (window.scanMode === 'out') {
+      await processCheckout(uid);
+    } else {
+      await processCheckin(uid);
+    }
   }
 
   // ── 手動スキャンイベント受け取り ───────────────────────────────────────
   window.addEventListener('manualScan', e => {
-    lastScanned = ''; // 手動は連続防止をリセット
-    processUID(e.detail);
+    lastScanned = '';
+    if (window.scanMode === 'out') processCheckout(e.detail);
+    else processCheckin(e.detail);
   });
 
   // ── 表示ステート ──────────────────────────────────────────────────────
@@ -125,53 +185,47 @@
     const subEl   = document.getElementById('overlaySub');
 
     if (state === 'ready') {
-      overlay.className = 'overlay ready';
-      icon.textContent  = '📷';
-      mainEl.textContent = 'QRコードをかざしてください';
-      subEl.innerHTML = '';
+      overlay.className  = 'overlay ready';
+      icon.textContent   = '📷';
+      mainEl.textContent = window.scanMode === 'out' ? 'QRをかざして退場記録' : 'QRコードをかざしてください';
+      subEl.innerHTML    = '';
       return;
     }
     if (state === 'loading') {
-      overlay.className = 'overlay loading';
-      icon.textContent  = '⏳';
+      overlay.className  = 'overlay loading';
+      icon.textContent   = '⏳';
       mainEl.textContent = main;
-      subEl.innerHTML = '';
+      subEl.innerHTML    = '';
       return;
     }
-    if (state === 'success') {
-      overlay.className = 'overlay success';
-      icon.textContent  = '✅';
+    if (state === 'checkin') {
+      overlay.className  = 'overlay success';
+      icon.textContent   = '✅';
       mainEl.textContent = 'ようこそ！' + main + ' さん';
-
-      const typeLabel = {
-        program:   '📚 支援プログラム',
-        childcare: '👶 託　児',
-        free:      '🌿 自由来所'
-      }[sub.visitType] || '';
-
-      // 予約ありの場合はプログラム名を強調表示
-      let bkHtml = '';
-      if (sub.bookings && sub.bookings.length > 0) {
-        bkHtml = sub.bookings.map(b =>
-          `<div class="info-row booking-row">
-             ✅ ${b.progName || b.progId}${b.time ? '　' + b.time : ''}
-           </div>`
-        ).join('');
-      } else {
-        bkHtml = `<div class="info-row muted-row">本日の予約なし（自由来所）</div>`;
-      }
-
+      const typeLabel = { program:'📚 支援プログラム', childcare:'👶 託　児', free:'🌿 自由来所' }[sub.visitType] || '';
+      let bkHtml = sub.bookings && sub.bookings.length > 0
+        ? sub.bookings.map(b=>`<div class="info-row booking-row">✅ ${b.progName||b.progId}${b.time?'　'+b.time:''}</div>`).join('')
+        : `<div class="info-row muted-row">本日の予約なし（自由来所）</div>`;
       subEl.innerHTML = `
         <div class="info-row">${typeLabel}　お子さん ${sub.months}ヶ月</div>
         ${bkHtml}
-        <div class="info-row">来所 ${sub.time}</div>`;
+        <div class="info-row">入室 ${sub.time}</div>`;
+      return;
+    }
+    if (state === 'checkout') {
+      overlay.className  = 'overlay checkout';
+      icon.textContent   = '👋';
+      mainEl.textContent = main + ' さん、またね！';
+      subEl.innerHTML    = `
+        <div class="info-row">退場 ${sub.time}</div>
+        <div class="info-row">滞在時間 ${sub.duration}分</div>`;
       return;
     }
     if (state === 'error') {
-      overlay.className = 'overlay error';
-      icon.textContent  = '❌';
+      overlay.className  = 'overlay error';
+      icon.textContent   = '❌';
       mainEl.textContent = main;
-      subEl.innerHTML = `<div class="info-row">${sub}</div>`;
+      subEl.innerHTML    = `<div class="info-row">${sub}</div>`;
     }
   }
 
@@ -250,7 +304,15 @@
   .manual-wrap input::placeholder{color:rgba(255,255,255,.35)}
   .manual-wrap button{padding:8px 14px;border-radius:10px;border:none;background:var(--mint);color:#1a3d2b;font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer}
 
-  footer{text-align:center;padding:4px 16px 10px;color:rgba(255,255,255,.3);font-size:.65rem}
+  .overlay.checkout{background:rgba(20,50,80,.93)}
+
+  /* 入退室モード切り替え */
+  .mode-tabs{display:flex;gap:0;padding:6px 14px 4px;justify-content:center}
+  .mode-tab{flex:1;max-width:160px;padding:7px 4px;border-radius:0;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.5);font-size:.82rem;font-family:inherit;background:transparent;cursor:pointer;font-weight:700;transition:all .15s;text-align:center}
+  .mode-tab:first-child{border-radius:10px 0 0 10px}
+  .mode-tab:last-child{border-radius:0 10px 10px 0;border-left:none}
+  .mode-tab.active-in{background:rgba(82,183,136,.35);color:#a7f3c4;border-color:var(--mint)}
+  .mode-tab.active-out{background:rgba(249,160,63,.35);color:#fde68a;border-color:#f9a03f}
 </style>
 </head>
 <body>
@@ -260,7 +322,13 @@
   <h1>🌿 チェックイン端末</h1>
 </header>
 
-<div class="type-tabs">
+<!-- 入室・退室モード切り替え -->
+<div class="mode-tabs">
+  <button class="mode-tab active-in" id="modeIn"  onclick="setMode('in',this)">▶ 入室</button>
+  <button class="mode-tab"           id="modeOut" onclick="setMode('out',this)">◀ 退室</button>
+</div>
+
+<div class="type-tabs" id="typeTabs">
   <button class="type-tab active" onclick="setType('free',this)">🌿 自由来所</button>
   <button class="type-tab" onclick="setType('program',this)">📚 支援P</button>
   <button class="type-tab" onclick="setType('childcare',this)">👶 託児</button>
@@ -293,6 +361,18 @@
 
 <script>
   window.currentType = 'free';
+  window.scanMode    = 'in';
+
+  function setMode(mode, el) {
+    window.scanMode = mode;
+    document.getElementById('modeIn').className  = 'mode-tab' + (mode==='in'  ? ' active-in'  : '');
+    document.getElementById('modeOut').className = 'mode-tab' + (mode==='out' ? ' active-out' : '');
+    // 退室モードは利用区分タブ不要なので非表示
+    document.getElementById('typeTabs').style.display = mode==='in' ? 'flex' : 'none';
+    // overlay待機テキスト更新
+    const mainEl = document.getElementById('overlayMain');
+    if(mainEl) mainEl.textContent = mode==='out' ? 'QRをかざして退場記録' : 'QRコードをかざしてください';
+  }
 
   function setType(type, el) {
     window.currentType = type;
