@@ -199,7 +199,7 @@ function render(){
       const idx=WEEK_PROGS.indexOf(p);
       gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openSheet(${idx})">
         <div>${p.emoji}${p.name}</div>
-        <div style="font-size:.6rem;opacity:.8">${full?'満員':p.cap<99?`残${p.cap-p.bk}組`:'自由'}</div>
+        <div style="font-size:.6rem;opacity:.8">${full?'満員':p.cap<99?(p.cap-p.bk)<=1?'残りわずか':'空きあり':'自由'}</div>
       </div>`;
     });
     gh+='</div>';
@@ -218,7 +218,7 @@ function render(){
       const full=p.bk>=p.cap&&p.cap<99;
       const few=p.cap<99&&(p.cap-p.bk)<=1&&!full;
       const tagC=full?'tag-full':few?'tag-few':'tag-ok';
-      const tagT=full?'満員':few?'残1組':'空きあり';
+      const tagT=full?'満員':few?'残りわずか':'空きあり';
       const idx=WEEK_PROGS.indexOf(p);
       dl+=`<div class="mini-card" onclick="openSheet(${idx})">
         <div class="em">${p.emoji}</div>
