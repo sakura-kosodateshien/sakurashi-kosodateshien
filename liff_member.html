@@ -3,508 +3,211 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>会員証 | ひのきっこ子育て支援センター</title>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<title>会員証 | ひのきっこ</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;
-  --cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2;
-}
-body{
-  font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
-  background:var(--cream);min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;
-  color:var(--text);
-}
-header{width:100%;background:var(--green);padding:16px 20px 14px;text-align:center}
+body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;background:#fdf8f2;min-height:100vh;color:#1a2e22}
+header{background:#2d6a4f;padding:16px 20px;text-align:center}
 header .en{font-size:.68rem;letter-spacing:.2em;color:rgba(255,255,255,.45);margin-bottom:4px}
 header h1{color:#fff;font-size:1rem;font-weight:700}
-
-.card{width:min(380px,92vw);margin:20px auto;background:#fff;border-radius:20px;box-shadow:0 4px 24px rgba(45,106,79,.12);overflow:hidden}
-
-.member-head{background:linear-gradient(135deg,var(--green) 0%,#40916c 100%);padding:18px 20px 14px;text-align:center;color:#fff}
-.member-head .label{font-size:.72rem;opacity:.65;letter-spacing:.1em;margin-bottom:4px}
-.member-head .name{font-size:1.4rem;font-weight:700;margin-bottom:2px}
-.member-head .uid{font-size:.68rem;opacity:.5;font-family:monospace}
-
-/* タブ */
-.tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab-btn{flex:1;padding:10px 4px;font-size:.8rem;font-weight:700;font-family:inherit;background:#fff;border:none;border-bottom:2.5px solid transparent;color:var(--muted);cursor:pointer;transition:all .15s}
-.tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
-.tab-panel{display:none;padding:16px 18px}
-.tab-panel.active{display:block}
-
-/* QRエリア */
-.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
-#qrcode{background:#fff;padding:14px;border-radius:12px;border:1.5px solid var(--border)}
-.qr-note{background:var(--light);border-radius:10px;padding:10px 14px;font-size:.76rem;color:var(--muted);line-height:1.7;width:100%;text-align:center}
-
-/* 会員情報 */
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:.84rem}
+.wrap{width:min(380px,92vw);margin:24px auto;padding:0 16px}
+.card{background:#fff;border-radius:16px;padding:24px 20px;box-shadow:0 4px 16px rgba(0,0,0,.08);margin-bottom:16px}
+.icon{font-size:2.4rem;text-align:center;margin-bottom:12px}
+.msg{font-size:.95rem;text-align:center;margin-bottom:8px;font-weight:700}
+.sub{font-size:.82rem;color:#6b8f71;text-align:center;line-height:1.6;margin-bottom:20px}
+.btn{display:block;width:100%;padding:13px;background:#2d6a4f;color:#fff;border:none;border-radius:12px;font-size:.92rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
+.btn-sub{display:block;width:100%;padding:11px;background:#fff;color:#6b8f71;border:1px solid #dceee2;border-radius:12px;font-size:.85rem;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
+.divider{border-top:1px solid #dceee2;margin:16px 0}
+.small{font-size:.76rem;color:#6b8f71;text-align:center;margin-bottom:10px}
+#loading{text-align:center;padding:40px 20px;color:#6b8f71}
+#memberCard{display:none}
+#qrArea{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:16px}
+#qrcode{background:#fff;padding:14px;border-radius:12px;border:1.5px solid #dceee2}
+.qr-note{background:#f0faf4;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#6b8f71;line-height:1.7;width:100%;text-align:center}
+.member-name{font-size:1.3rem;font-weight:700;text-align:center;margin-bottom:4px}
+.member-uid{font-size:.68rem;color:#6b8f71;text-align:center;margin-bottom:16px;font-family:monospace}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #dceee2;font-size:.84rem}
 .info-row:last-child{border-bottom:none}
-.info-label{color:var(--muted);font-size:.76rem}
-.info-val{font-weight:500}
-
-/* 予約カード */
-.bk-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px}
-.bk-card:last-child{margin-bottom:0}
-.bk-date{font-size:.78rem;color:var(--muted);margin-bottom:4px}
-.bk-prog{font-size:.92rem;font-weight:700;margin-bottom:3px}
-.bk-time{font-size:.78rem;color:var(--muted)}
-.bk-badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700;margin-top:5px}
-.badge-ok{background:#e8f5e9;color:#2e7d32}
-.badge-today{background:#fff8e1;color:#e65100}
-.bk-cancel-late{border-color:#f97316;color:#c2410c}
-.bk-cancel-tel{border-color:#3b82f6;color:#1d4ed8}
-
-/* キャンセルモーダル */
-.cm-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end;justify-content:center}
-.cm-box{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 36px;width:100%;max-width:480px}
-.cm-box h3{font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:6px}
-.cm-prog{font-size:.88rem;font-weight:700;margin-bottom:8px}
-.cm-note{font-size:.78rem;color:#c2410c;background:#fff7ed;border-radius:8px;padding:10px 12px;margin-bottom:12px;line-height:1.65;border:1px solid #fed7aa}
-.cm-box label{display:block;font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:5px}
-.cm-box input,.cm-box textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:.88rem;font-family:inherit;outline:none}
-.cm-box textarea{resize:vertical;min-height:80px}
-.cm-box textarea:focus,.cm-box input:focus{border-color:var(--green)}
-.cm-actions{display:flex;gap:8px;margin-top:12px}
-.cm-cancel-btn{flex:1;padding:11px;border:1px solid var(--border);border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:var(--muted)}
-.cm-ok-btn{flex:2;padding:11px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
-.empty-msg{text-align:center;color:var(--muted);font-size:.85rem;padding:20px 0}
-
-/* 本日の予約（QRタブ内） */
-.today-bk{background:#e8f5e9;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:.8rem}
-.today-bk .tb-ttl{font-weight:700;color:var(--green);font-size:.76rem;margin-bottom:5px}
-.bk-item{display:flex;gap:8px;padding:3px 0}
-.bk-item .pn{flex:1;font-weight:500}
-.bk-item .pt{font-size:.73rem;color:var(--muted)}
-
-/* 状態 */
-.state{width:min(380px,92vw);margin:40px auto;text-align:center;padding:20px}
-.state .icon{font-size:2.4rem;margin-bottom:12px}
-.state .msg{font-size:.9rem;color:var(--muted);line-height:1.7}
-.state .sub{font-size:.8rem;color:var(--muted);margin-top:8px}
-
-/* 登録誘導 */
-.reg-card{width:min(380px,92vw);margin:20px auto;background:#fff;border-radius:16px;border:1.5px solid var(--border);padding:24px 20px;text-align:center}
-.reg-card h2{font-size:1rem;font-weight:700;color:var(--green);margin-bottom:8px}
-.reg-card p{font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:16px}
-.btn{display:block;width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:.92rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;transition:background .15s}
-.btn:hover{background:#235a40}
-.btn-sub{display:block;width:100%;padding:11px;background:#fff;color:var(--muted);border:1px solid var(--border);border-radius:12px;font-size:.85rem;font-family:inherit;cursor:pointer;margin-top:8px;text-decoration:none;text-align:center}
-
-footer{color:var(--muted);font-size:.7rem;text-align:center;padding:16px;margin-top:auto}
+.info-label{color:#6b8f71;font-size:.76rem}
+/* モーダル */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px}
+.modal h3{font-size:.95rem;font-weight:700;margin-bottom:8px}
+.modal p{font-size:.82rem;color:#6b8f71;margin-bottom:16px;line-height:1.6}
+.modal input{width:100%;padding:10px 12px;border:1.5px solid #dceee2;border-radius:10px;font-size:.9rem;font-family:inherit;margin-bottom:12px;outline:none}
+.modal-actions{display:flex;gap:8px}
+.btn-cancel-modal{flex:1;padding:11px;border:1px solid #dceee2;border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:#6b8f71}
+.btn-ok-modal{flex:2;padding:11px;border:none;border-radius:10px;background:#2d6a4f;color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
+#errMsg{color:#c62828;font-size:.82rem;text-align:center;margin-top:8px}
 </style>
 </head>
 <body>
-
 <header>
   <div class="en">HINOKI SAKURA · MEMBER CARD</div>
   <h1>🌿 ひのきっこ 会員証</h1>
 </header>
 
-<!-- ローディング -->
-<div class="state" id="stateLoading" style="display:none">
-  <div class="icon">⏳</div>
-  <div class="msg">会員情報を確認中です…</div>
-</div>
+<div class="wrap">
+  <!-- ローディング -->
+  <div id="loading">読み込み中…</div>
 
-<!-- 会員証（登録済み） -->
-<div class="card" id="cardMember" style="display:none">
-  <div class="member-head">
-    <div class="label">MEMBER CARD</div>
-    <div class="name" id="mName"></div>
-    <div class="uid"  id="mUid"></div>
-  </div>
-
-  <!-- タブ -->
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('qr',this)">🎫 会員QR</button>
-    <button class="tab-btn"        onclick="switchTab('bk',this)">📋 予約確認</button>
-    <button class="tab-btn"        onclick="switchTab('info',this)">👤 会員情報</button>
-  </div>
-
-  <!-- QRタブ -->
-  <div class="tab-panel active" id="tabQr">
-    <div class="qr-wrap">
-      <div id="qrcode"></div>
-      <div class="qr-note">センター受付のタブレットにかざしてください<br>チェックインが自動で完了します</div>
-    </div>
-    <div class="today-bk" id="todayBk" style="display:none">
-      <div class="tb-ttl">📋 本日の予約</div>
-      <div id="todayBkList"></div>
+  <!-- 会員証 -->
+  <div id="memberCard">
+    <div class="card">
+      <div class="member-name" id="mName"></div>
+      <div class="member-uid" id="mUid"></div>
+      <div id="qrArea">
+        <div id="qrcode"></div>
+        <div class="qr-note">センター受付のタブレットにかざしてください</div>
+      </div>
+      <div id="memberInfo"></div>
     </div>
   </div>
 
-  <!-- 予約確認タブ -->
-  <div class="tab-panel" id="tabBk">
-    <div id="bkList"><div class="empty-msg">読み込み中…</div></div>
+  <!-- 未登録 -->
+  <div id="unregCard" style="display:none">
+    <div class="card">
+      <div class="icon">🌱</div>
+      <div class="msg">まだ会員登録されていません</div>
+      <div class="sub">登録すると次回からQRコードをかざすだけでチェックインできます</div>
+      <a href="https://liff.line.me/2009587361-fY64rJtv" class="btn">無料で会員登録する</a>
+      <div class="divider"></div>
+      <div class="small">すでに登録済みの方はこちら</div>
+      <button class="btn-sub" onclick="openLinkModal()">📱 電話番号でLINEと紐づける</button>
+      <div id="errMsg"></div>
+    </div>
   </div>
 
-  <!-- 会員情報タブ -->
-  <div class="tab-panel" id="tabInfo">
-    <div id="memberInfo"></div>
-  </div>
-</div>
-
-<!-- 未登録 -->
-<div id="cardUnreg">
-  <div class="state">
-    <div class="icon">🌱</div>
-    <div class="msg">まだ会員登録されていません</div>
-    <div class="sub">登録すると次回からQRコードをかざすだけでチェックインできます</div>
-  </div>
-  <div class="reg-card">
-    <h2>会員登録はこちら</h2>
-    <p>お名前・お子さんの生年月日・連絡先を登録してください。<br>登録は無料です。</p>
-    <a href="https://liff.line.me/2009587361-fY64rJtv" class="btn" id="regBtn">無料で会員登録する</a>
-    <a href="user_program.html" class="btn-sub">登録せずに予約する</a>
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-      <p style="font-size:.76rem;color:var(--muted);margin-bottom:10px">すでに登録済みの方はこちら</p>
-      <button class="btn-sub" onclick="linkExistingUser()" style="width:100%">📱 既存の会員情報とLINEを紐づける</button>
+  <!-- エラー -->
+  <div id="errCard" style="display:none">
+    <div class="card">
+      <div class="icon">⚠️</div>
+      <div class="msg">エラーが発生しました</div>
+      <div class="sub" id="errDetail"></div>
     </div>
   </div>
 </div>
 
-<!-- エラー -->
-<div class="state" id="stateError" style="display:none">
-  <div class="icon">⚠️</div>
-  <div class="msg" id="errMsg">エラーが発生しました</div>
-  <div class="sub">しばらくしてから再度お試しください</div>
-</div>
-
-<!-- LINE紐づけモーダル -->
-<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end;justify-content:center" id="linkModal">
-  <div class="cm-box">
-    <h3>📱 既存会員とLINEを紐づける</h3>
-    <p style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6">登録時の電話番号を入力してください。会員情報とLINEアカウントを紐づけます。</p>
-    <label>登録時の電話番号</label>
-    <input type="tel" id="linkTel" placeholder="090-0000-0000" style="margin-bottom:12px">
-    <div class="cm-actions">
-      <button class="cm-cancel-btn" onclick="document.getElementById('linkModal').style.display='none'">キャンセル</button>
-      <button class="cm-ok-btn" id="linkBtn" onclick="execLink()">紐づける</button>
+<!-- 紐づけモーダル -->
+<div class="modal-bg" id="linkModal">
+  <div class="modal">
+    <h3>📱 LINEと会員情報を紐づける</h3>
+    <p>登録時の電話番号を入力してください。</p>
+    <input type="tel" id="linkTel" placeholder="例：080-0000-0000">
+    <div id="linkErr" style="color:#c62828;font-size:.8rem;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel-modal" onclick="closeLinkModal()">キャンセル</button>
+      <button class="btn-ok-modal" id="linkBtn" onclick="execLink()">紐づける</button>
     </div>
   </div>
 </div>
 
-<!-- キャンセル理由モーダル -->
-<div class="cm-bg" id="cancelModal">
-  <div class="cm-box">
-    <h3>⚠️ キャンセル期限超過</h3>
-    <div class="cm-prog" id="cmProgName"></div>
-    <div class="cm-note" id="cmDeadline"></div>
-    <label>キャンセル理由（必須）</label>
-    <textarea id="cmReason" placeholder="例：体調不良のため、急な用事が入ったため など"></textarea>
-    <div class="cm-actions">
-      <button class="cm-cancel-btn" id="cmClose">戻る</button>
-      <button class="cm-ok-btn"    id="cmConfirm">キャンセルする</button>
-    </div>
-  </div>
-</div>
-
-<footer>陽の木さくら保育園 子育て支援センター ひのきっこ</footer>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getFirestore, collection, query, where, getDocs,
-  doc, updateDoc, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
+const db = getFirestore(initializeApp({
   apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
   authDomain: "sakurashi-kosodateshien.firebaseapp.com",
   projectId: "sakurashi-kosodateshien",
   storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
   messagingSenderId: "365529893548",
   appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
-};
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+}));
 
-let currentUser = null;
 let currentLineUserId = '';
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
 function calcMonths(dob){
   const d=new Date(dob),t=new Date();
   return (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
 }
-function show(id){
-  const el=document.getElementById(id);
-  if(el) el.style.display='block';
-}
-function hide(id){
-  const el=document.getElementById(id);
-  if(el) el.style.display='none';
-}
 
-// 10秒でタイムアウト表示
-setTimeout(()=>{
-  const loading=document.getElementById('stateLoading');
-  if(loading && loading.style.display!=='none'){
-    hide('stateLoading');
-    document.getElementById('errMsg').textContent=
-      '読み込みがタイムアウトしました。\nページを閉じて再度「会員QR」をタップしてください。';
-    show('stateError');
-  }
-}, 10000);
-
-// ── タブ切り替え ──────────────────────────────────────────────────
-window.switchTab = function(tab, el){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
-};
-
-// ── QRコード生成 ──────────────────────────────────────────────────
-function generateQR(uid){
+function showMember(user){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('memberCard').style.display='block';
+  document.getElementById('mName').textContent = user.name + ' さん';
+  document.getElementById('mUid').textContent  = 'ID: ' + user.uid;
+  const months = calcMonths(user.childDob);
+  document.getElementById('memberInfo').innerHTML = `
+    <div class="info-row"><span class="info-label">月齢</span><span>${months}ヶ月</span></div>
+    <div class="info-row"><span class="info-label">電話</span><span>${user.tel||'-'}</span></div>`;
   const base = location.origin + location.pathname.replace('liff_member.html','checkin.html');
-  document.getElementById('qrcode').innerHTML='';
   new QRCode(document.getElementById('qrcode'),{
-    text:`${base}?uid=${uid}`,
-    width:200,height:200,
-    colorDark:'#1a3a2a',colorLight:'#ffffff',
-    correctLevel:QRCode.CorrectLevel.H
+    text: base+'?uid='+user.uid,
+    width:200, height:200,
+    colorDark:'#1a3a2a', colorLight:'#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
   });
 }
 
-// ── 本日の予約 ────────────────────────────────────────────────────
-async function loadTodayBookings(uid){
-  const today=todayStr();
-  try{
-    const snap=await getDocs(query(
-      collection(db,'bookings'),
-      where('uid','==',uid),
-      where('date','==',today),
-      where('status','in',['confirmed','pending'])
-    ));
-    const bks=snap.docs.map(d=>d.data());
-    if(!bks.length) return;
-    document.getElementById('todayBk').style.display='block';
-    document.getElementById('todayBkList').innerHTML=bks.map(b=>
-      `<div class="bk-item"><span class="pn">${b.progName||b.progId}</span><span class="pt">${b.time||''}</span></div>`
-    ).join('');
-  }catch(e){ console.warn(e); }
+function showUnreg(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('unregCard').style.display='block';
 }
 
-// ── 今後の予約一覧 ────────────────────────────────────────────────
-async function loadBookings(uid){
-  const today=todayStr();
-  try{
-    const snap=await getDocs(query(
-      collection(db,'bookings'),
-      where('uid','==',uid),
-      where('date','>=',today),
-      where('status','in',['confirmed','pending'])
-    ));
-    const bks=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .sort((a,b)=>a.date.localeCompare(b.date));
+window.openLinkModal = ()=>{ document.getElementById('linkModal').classList.add('open'); };
+window.closeLinkModal = ()=>{ document.getElementById('linkModal').classList.remove('open'); };
 
-    if(!bks.length){
-      document.getElementById('bkList').innerHTML=
-        '<div class="empty-msg">予約はまだありません</div>';
-      return;
-    }
-
-    document.getElementById('bkList').innerHTML=bks.map(b=>{
-      const isToday  = b.date===today;
-      const dateDisp = b.dateLabel||b.date;
-      const cStatus  = getCancelStatus(b.date);
-      const deadline = getCancelDeadline(b.date);
-      const dlFmt    = `${deadline.getMonth()+1}/${deadline.getDate()}（${['日','月','火','水','木','金','土'][deadline.getDay()]}）14:00まで`;
-      let cancelBtn  = '';
-      if(cStatus==='today'){
-        cancelBtn = `<button class="bk-cancel bk-cancel-tel" onclick="cancelBooking('${b.id}','${(b.progName||b.progId).replace(/'/g,'\\'')}','${b.date}','${dateDisp}',this)">📞 当日は電話で</button>`;
-      } else {
-        const isLate = cStatus==='comment';
-        cancelBtn = `<button class="bk-cancel ${isLate?'bk-cancel-late':''}" onclick="cancelBooking('${b.id}','${(b.progName||b.progId).replace(/'/g,'\\'')}','${b.date}','${dateDisp}',this)">${isLate?'⚠️ キャンセル（理由必須）':'キャンセル'}</button>`;
-      }
-      return `<div class="bk-card">
-        <div class="bk-date">${dateDisp}</div>
-        <div class="bk-prog">${b.progName||b.progId}</div>
-        <div class="bk-time">${b.time||''}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
-          <span class="bk-badge ${isToday?'badge-today':'badge-ok'}">${isToday?'本日':'確定'}</span>
-          ${cancelBtn}
-        </div>
-        ${cStatus==='free'?`<div style="font-size:.68rem;color:var(--muted);margin-top:4px">キャンセル期限：${dlFmt}</div>`:''}
-      </div>`;
-    }).join('');
-  }catch(e){
-    document.getElementById('bkList').innerHTML=
-      '<div class="empty-msg">予約の取得に失敗しました</div>';
-  }
-}
-
-// ── キャンセル期限判定 ────────────────────────────────────────────
-// 月曜 → 前週金曜14時まで / それ以外 → 2日前14時まで
-function getCancelDeadline(dateStr){
-  const prog = new Date(dateStr + 'T00:00:00+09:00');
-  const dow  = prog.getDay(); // 0=日,1=月
-  let deadline;
-  if(dow === 1){ // 月曜
-    deadline = new Date(prog);
-    deadline.setDate(prog.getDate() - 3); // 前の金曜
-  } else {
-    deadline = new Date(prog);
-    deadline.setDate(prog.getDate() - 2); // 2日前
-  }
-  deadline.setHours(14, 0, 0, 0);
-  return deadline;
-}
-
-function getCancelStatus(dateStr){
-  const now      = new Date();
-  const progDate = new Date(dateStr + 'T00:00:00+09:00');
-  const today    = new Date(); today.setHours(0,0,0,0);
-  const progDay  = new Date(progDate); progDay.setHours(0,0,0,0);
-
-  // 当日
-  if(progDay.getTime() === today.getTime()) return 'today';
-
-  const deadline = getCancelDeadline(dateStr);
-  if(now <= deadline) return 'free';    // 期限内：自由キャンセル
-  return 'comment';                      // 期限超過：理由コメント必須
-}
-
-// ── キャンセルモーダル ─────────────────────────────────────────────
-function showCancelModal(bookingId, progName, dateStr, dateDisp, btn){
-  const status = getCancelStatus(dateStr);
-
-  if(status === 'today'){
-    // 当日 → 電話誘導
-    if(confirm(`「${progName}」は本日のプログラムです。\nキャンセルはお電話でご連絡ください。\n\n📞 043-310-5757\n\n電話をかけますか？`)){
-      location.href='tel:0433105757';
-    }
-    return;
-  }
-
-  const deadline  = getCancelDeadline(dateStr);
-  const deadlineFmt = `${deadline.getMonth()+1}/${deadline.getDate()}（${['日','月','火','水','木','金','土'][deadline.getDay()]}）14:00`;
-
-  if(status === 'comment'){
-    // 期限超過：理由コメント必須
-    const modal = document.getElementById('cancelModal');
-    document.getElementById('cmProgName').textContent = `${progName}　${dateDisp}`;
-    document.getElementById('cmDeadline').textContent = `キャンセル期限（${deadlineFmt}）を過ぎています。理由をご記入ください。`;
-    document.getElementById('cmReason').value = '';
-    modal.style.display = 'flex';
-    document.getElementById('cmConfirm').onclick = async () => {
-      const reason = document.getElementById('cmReason').value.trim();
-      if(!reason){ alert('キャンセル理由を入力してください'); return; }
-      modal.style.display = 'none';
-      await execCancel(bookingId, progName, btn, reason);
-    };
-    document.getElementById('cmClose').onclick = () => { modal.style.display='none'; };
-  } else {
-    // 期限内：確認のみ
-    if(!confirm(`「${progName}」（${dateDisp}）の予約をキャンセルしますか？\n\nキャンセル期限：${deadlineFmt}`)) return;
-    execCancel(bookingId, progName, btn, '');
-  }
-}
-
-async function execCancel(bookingId, progName, btn, reason){
-  if(btn){ btn.disabled=true; btn.textContent='処理中…'; }
-  try{
-    await updateDoc(doc(db,'bookings',bookingId),{
-      status:'cancelled',
-      cancelledAt: Timestamp.now(),
-      cancelReason: reason || ''
-    });
-    if(btn){ btn.closest('.bk-card').style.opacity='.4'; btn.textContent='キャンセル済み'; }
-    if(currentUser) loadBookings(currentUser.uid);
-  }catch(e){
-    alert('キャンセルに失敗しました。\n'+e.message);
-    if(btn){ btn.disabled=false; btn.textContent='キャンセル'; }
-  }
-}
-
-window.cancelBooking = function(bookingId, progName, dateStr, dateDisp, btn){
-  showCancelModal(bookingId, progName, dateStr, dateDisp, btn);
-};
-
-// ── 会員情報表示 ──────────────────────────────────────────────────
-function showMember(user){
-  currentUser=user;
-  const months=calcMonths(user.childDob);
-  document.getElementById('mName').textContent=user.name+' さん';
-  document.getElementById('mUid').textContent='ID: '+user.uid;
-  generateQR(user.uid);
-  document.getElementById('memberInfo').innerHTML=`
-    <div class="info-row"><span class="info-label">お子さんの月齢</span><span class="info-val">${months}ヶ月</span></div>
-    <div class="info-row"><span class="info-label">連絡先</span><span class="info-val">${user.tel||'未登録'}</span></div>
-    <div class="info-row"><span class="info-label">登録日</span><span class="info-val">${user.registeredAt?new Date(user.registeredAt).toLocaleDateString('ja-JP'):'-'}</span></div>`;
-  hide('stateLoading');
-  show('cardMember');
-  loadTodayBookings(user.uid);
-  loadBookings(user.uid);
-}
-
-// ── 既存ユーザーとLINE紐づけ ─────────────────────────────────────
-window.linkExistingUser = function(){
-  document.getElementById('linkModal').style.display='flex';
-};
-
-window.execLink = async function(){
+window.execLink = async ()=>{
   const tel = document.getElementById('linkTel').value.trim();
-  if(!tel){ alert('電話番号を入力してください'); return; }
-  if(!currentLineUserId){ alert('LINE情報が取得できませんでした。LINEアプリからアクセスしてください。'); return; }
-
+  if(!tel){ document.getElementById('linkErr').textContent='電話番号を入力してください'; return; }
   const btn = document.getElementById('linkBtn');
   btn.disabled=true; btn.textContent='検索中…';
-
   try{
-    const snap = await getDocs(query(
-      collection(db,'users'),
-      where('tel','==',tel)
-    ));
-    if(snap.empty){
-      alert('この電話番号で登録された会員が見つかりませんでした。');
+    const snap = await getDocs(collection(db,'users'));
+    const userDoc = snap.docs.find(d=>{
+      const t=(d.data().tel||'').replace(/[-\s]/g,'');
+      return t===tel.replace(/[-\s]/g,'');
+    });
+    if(!userDoc){
+      document.getElementById('linkErr').textContent='この電話番号の会員が見つかりませんでした';
       btn.disabled=false; btn.textContent='紐づける';
       return;
     }
-    // 電話番号一致のユーザーにlineUserIdを追加
-    const userDoc = snap.docs[0];
-    await updateDoc(doc(db,'users',userDoc.id),{
-      lineUserId: currentLineUserId
-    });
-    document.getElementById('linkModal').style.display='none';
-    // 再読み込み
+    await updateDoc(doc(db,'users',userDoc.id),{ lineUserId: currentLineUserId });
+    window.closeLinkModal();
     showMember({...userDoc.data(), lineUserId: currentLineUserId});
   }catch(e){
-    alert('紐づけに失敗しました。\n'+e.message);
+    document.getElementById('linkErr').textContent='エラー: '+e.message;
     btn.disabled=false; btn.textContent='紐づける';
   }
 };
-async function main(){
-  // まず未登録画面を即表示（LIFFなし）
-  show('cardUnreg');
-  document.querySelector('#cardUnreg .btn').href =
-    `https://liff.line.me/2009587361-fY64rJtv`;
 
-  // バックグラウンドでLIFF初期化を試みる
+// メイン処理
+async function main(){
   try{
+    // LIFFを読み込む
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://static.line-scdn.net/liff/edge/2/sdk.js';
+      s.onload=resolve; s.onerror=reject;
+      document.head.appendChild(s);
+    });
+
     await liff.init({ liffId:'2009587361-BBVXkOWi' });
-    if(!liff.isLoggedIn()){ liff.login(); return; }
+
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
 
     const profile = await liff.getProfile();
     currentLineUserId = profile.userId;
 
+    // Firestore全件取得してJS照合
     const snap = await getDocs(collection(db,'users'));
     const found = snap.docs.map(d=>({id:d.id,...d.data()}))
       .find(u=>u.lineUserId===currentLineUserId);
 
-    if(found){
-      hide('cardUnreg');
-      showMember(found);
-    }
+    if(found){ showMember(found); }
+    else { showUnreg(); }
+
   }catch(e){
     console.error(e);
-    // エラーでも未登録画面はすでに表示済みなので何もしない
+    showUnreg(); // エラー時も未登録画面を表示
   }
 }
 
