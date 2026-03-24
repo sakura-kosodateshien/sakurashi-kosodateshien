@@ -113,176 +113,226 @@ header .staff-badge{font-size:.68rem;background:var(--warm);color:#fff;padding:2
   </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, query, where, onSnapshot, addDoc, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
 const PH=28;
 const HOURS=[9,10,11,12,13,14];
-const BASE=new Date(2026,3,6); // 4/6（月）週1
+const BASE=new Date(2026,3,6);
 let weekOffset=0;
 let viewMode='all';
 let selectedProg=null;
+let liveBookings=[];   // Firebaseから取得したリアルタイム予約データ
+let unsubscribe=null;  // リスナー解除用
 
-// ── 4月の全プログラム（日付ベース） ────────────────────────────────────
-// date: "2026-04-DD"  day: 0=月…4=金  sh/sm=開始  eh/em=終了
+// ── 4月プログラムマスタ（スケジュール定義） ──────────────────────────
 const ALL_PROGS = [
   // 週1: 4/6〜4/10
-  {id:"w1-lunch-mon", name:"ランチひろば",     emoji:"🍱",type:"s",date:"2026-04-06",day:0,sh:12,sm:0,eh:14,em:0,cap:4,
-   bookings:[{n:"山田 花子",age:"8ヶ月",s:"ok"},{n:"鈴木 美咲",age:"1才2ヶ月",s:"ok"}]},
-  {id:"w1-eigo-tue",  name:"英語 7か月〜1才", emoji:"📚",type:"s",date:"2026-04-07",day:1,sh:10,sm:0,eh:12,em:0,cap:6,
-   bookings:[{n:"田中 陽子",age:"7ヶ月",s:"ok"},{n:"伊藤 なつき",age:"10ヶ月",s:"ok"},{n:"佐藤 ゆり",age:"8ヶ月",s:"ok"}]},
-  {id:"w1-lunch-wed", name:"ランチひろば",     emoji:"🍱",type:"s",date:"2026-04-08",day:2,sh:12,sm:0,eh:14,em:0,cap:4,
-   bookings:[{n:"加藤 みか",age:"1才",s:"ok"},{n:"高橋 さやか",age:"2才",s:"ok"},{n:"渡辺 えり",age:"1才3ヶ月",s:"ok"},{n:"中村 はな",age:"8ヶ月",s:"ok"}]},
-  {id:"w1-chiku-thu", name:"知育 7か月〜1才", emoji:"📚",type:"s",date:"2026-04-09",day:3,sh:10,sm:0,eh:12,em:0,cap:6,
-   bookings:[{n:"小林 かな",age:"7ヶ月",s:"ok"}]},
-  {id:"w1-oyatsu-thu",name:"おやつ",          emoji:"🍰",type:"s",date:"2026-04-09",day:3,sh:14,sm:0,eh:14,em:30,cap:99,
-   bookings:[]},
-  {id:"w1-niwa-fri",  name:"園庭遊び",         emoji:"🌳",type:"s",date:"2026-04-10",day:4,sh:9,sm:0,eh:11,em:0,cap:99,
-   bookings:[{n:"山本 ゆか",age:"1才",s:"ok"}]},
-  // 週1 託児
-  {id:"w1-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-07",day:1,sh:9,sm:30,eh:11,em:30,cap:2,bookings:[{n:"藤田 凛",age:"2才",time:"9:30〜11:00",s:"ok"}]},
-  {id:"w1-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-08",day:2,sh:11,sm:0,eh:13,em:0,cap:2,bookings:[{n:"山口 さくら",age:"1才2ヶ月",time:"11:00〜13:00",s:"ok"},{n:"松田 ひな",age:"0才7ヶ月",time:"11:00〜12:30",s:"ok"}]},
-  {id:"w1-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-09",day:3,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w1-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-10",day:4,sh:10,sm:30,eh:12,em:30,cap:2,bookings:[{n:"小川 えな",age:"0才10ヶ月",time:"10:30〜12:00",s:"ok"}]},
-
+  {id:"w1-lunch-mon", name:"ランチひろば",    emoji:"🍱",type:"s",date:"2026-04-06",day:0,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w1-eigo-tue",  name:"英語 7か月〜1才",emoji:"📚",type:"s",date:"2026-04-07",day:1,sh:10,sm:0,eh:12,em:0,cap:6},
+  {id:"w1-lunch-wed", name:"ランチひろば",    emoji:"🍱",type:"s",date:"2026-04-08",day:2,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w1-chiku-thu", name:"知育 7か月〜1才",emoji:"📚",type:"s",date:"2026-04-09",day:3,sh:10,sm:0,eh:12,em:0,cap:6},
+  {id:"w1-oyatsu-thu",name:"おやつ",          emoji:"🍰",type:"s",date:"2026-04-09",day:3,sh:14,sm:0,eh:14,em:30,cap:99},
+  {id:"w1-niwa-fri",  name:"園庭遊び",        emoji:"🌳",type:"s",date:"2026-04-10",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
+  {id:"w1-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-07",day:1,sh:9,sm:30,eh:11,em:30,cap:2},
+  {id:"w1-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-08",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
+  {id:"w1-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-09",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w1-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-10",day:4,sh:10,sm:30,eh:12,em:30,cap:2},
   // 週2: 4/13〜4/17
-  {id:"w2-hattatsu-mon",name:"発達相談",           emoji:"💬",type:"s",date:"2026-04-13",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bookings:[]},
-  {id:"w2-massage-mon", name:"ベビーマッサージ",   emoji:"👐",type:"s",date:"2026-04-13",day:0,sh:9,sm:30,eh:10,em:0,cap:3,bookings:[{n:"岡田 みな",age:"8ヶ月",s:"ok"},{n:"前田 りさ",age:"10ヶ月",s:"ok"}]},
-  {id:"w2-eigo-tue",    name:"英語 1才〜3才",      emoji:"📚",type:"s",date:"2026-04-14",day:1,sh:10,sm:0,eh:12,em:0,cap:6,bookings:[{n:"中島 ゆき",age:"1才3ヶ月",s:"ok"},{n:"上田 あお",age:"2才",s:"ok"}]},
-  {id:"w2-pulapan-wed", name:"プラパン工房",        emoji:"🎨",type:"s",date:"2026-04-15",day:2,sh:10,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w2-chiku-thu",   name:"知育 1才〜3才",      emoji:"📚",type:"s",date:"2026-04-16",day:3,sh:10,sm:0,eh:12,em:0,cap:6,bookings:[{n:"大野 ひか",age:"1才6ヶ月",s:"ok"},{n:"内田 もも",age:"2才3ヶ月",s:"ok"},{n:"竹内 そら",age:"1才",s:"ok"},{n:"田村 なお",age:"2才",s:"ok"},{n:"細川 みく",age:"1才2ヶ月",s:"ok"},{n:"菊地 えり",age:"3才",s:"ok"}]},
-  {id:"w2-tanjou-fri",  name:"お誕生日会",          emoji:"🎂",type:"s",date:"2026-04-17",day:4,sh:9,sm:30,eh:11,em:0,cap:99,bookings:[]},
-  // 週2 託児
-  {id:"w2-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-13",day:0,sh:10,sm:0,eh:12,em:0,cap:2,bookings:[{n:"佐々木 結衣",age:"1才",time:"10:00〜12:00",s:"ok"}]},
-  {id:"w2-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-14",day:1,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w2-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-15",day:2,sh:11,sm:0,eh:13,em:0,cap:2,bookings:[]},
-  {id:"w2-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-16",day:3,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w2-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-17",day:4,sh:10,sm:0,eh:12,em:0,cap:2,bookings:[]},
-
+  {id:"w2-massage-mon", name:"ベビーマッサージ",  emoji:"👐",type:"s",date:"2026-04-13",day:0,sh:9,sm:30,eh:10,em:0,cap:3},
+  {id:"w2-hattatsu-mon",name:"発達相談",          emoji:"💬",type:"s",date:"2026-04-13",day:0,sh:11,sm:0,eh:12,em:0,cap:99},
+  {id:"w2-eigo-tue",    name:"英語 1才〜3才",     emoji:"📚",type:"s",date:"2026-04-14",day:1,sh:10,sm:0,eh:12,em:0,cap:6},
+  {id:"w2-pulapan-wed", name:"プラパン工房",       emoji:"🎨",type:"s",date:"2026-04-15",day:2,sh:10,sm:0,eh:11,em:0,cap:2},
+  {id:"w2-chiku-thu",   name:"知育 1才〜3才",     emoji:"📚",type:"s",date:"2026-04-16",day:3,sh:10,sm:0,eh:12,em:0,cap:6},
+  {id:"w2-tanjou-fri",  name:"お誕生日会",         emoji:"🎂",type:"s",date:"2026-04-17",day:4,sh:9,sm:30,eh:11,em:0,cap:99},
+  {id:"w2-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-13",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
+  {id:"w2-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-14",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w2-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-15",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
+  {id:"w2-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-16",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w2-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-17",day:4,sh:10,sm:0,eh:12,em:0,cap:2},
   // 週3: 4/20〜4/24
-  {id:"w3-photo-mon",   name:"ベビーフォト",        emoji:"📸",type:"s",date:"2026-04-20",day:0,sh:10,sm:0,eh:14,em:0,cap:3,bookings:[{n:"林 さき",age:"6ヶ月",s:"ok"}]},
-  {id:"w3-lunch-tue",   name:"ランチひろば",         emoji:"🍱",type:"s",date:"2026-04-21",day:1,sh:12,sm:0,eh:14,em:0,cap:4,bookings:[{n:"石田 のぞみ",age:"1才",s:"ok"}]},
-  {id:"w3-yoga-wed",    name:"リラックスヨガ",       emoji:"🧘",type:"s",date:"2026-04-22",day:2,sh:11,sm:0,eh:11,em:30,cap:4,bookings:[{n:"藤原 まい",age:"ママ",s:"ok"},{n:"辻 あき",age:"ママ",s:"ok"},{n:"橋本 のり",age:"ママ",s:"ok"}]},
-  {id:"w3-lunch-thu",   name:"ランチひろば",         emoji:"🍱",type:"s",date:"2026-04-23",day:3,sh:12,sm:0,eh:14,em:0,cap:4,bookings:[]},
-  {id:"w3-niwa-fri",    name:"園庭遊び",             emoji:"🌳",type:"s",date:"2026-04-24",day:4,sh:9,sm:0,eh:11,em:0,cap:99,bookings:[]},
-  // 週3 託児
-  {id:"w3-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-20",day:0,sh:10,sm:0,eh:12,em:0,cap:2,bookings:[]},
-  {id:"w3-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-21",day:1,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w3-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-22",day:2,sh:11,sm:0,eh:13,em:0,cap:2,bookings:[]},
-  {id:"w3-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-23",day:3,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w3-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-24",day:4,sh:10,sm:0,eh:12,em:0,cap:2,bookings:[]},
-
+  {id:"w3-photo-mon",  name:"ベビーフォト",   emoji:"📸",type:"s",date:"2026-04-20",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
+  {id:"w3-lunch-tue",  name:"ランチひろば",   emoji:"🍱",type:"s",date:"2026-04-21",day:1,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w3-yoga-wed",   name:"リラックスヨガ", emoji:"🧘",type:"s",date:"2026-04-22",day:2,sh:11,sm:0,eh:11,em:30,cap:4},
+  {id:"w3-lunch-thu",  name:"ランチひろば",   emoji:"🍱",type:"s",date:"2026-04-23",day:3,sh:12,sm:0,eh:14,em:0,cap:4},
+  {id:"w3-niwa-fri",   name:"園庭遊び",       emoji:"🌳",type:"s",date:"2026-04-24",day:4,sh:9,sm:0,eh:11,em:0,cap:99},
+  {id:"w3-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-20",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
+  {id:"w3-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-21",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w3-t-wed",name:"託児",emoji:"👶",type:"t",date:"2026-04-22",day:2,sh:11,sm:0,eh:13,em:0,cap:2},
+  {id:"w3-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-23",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w3-t-fri",name:"託児",emoji:"👶",type:"t",date:"2026-04-24",day:4,sh:10,sm:0,eh:12,em:0,cap:2},
   // 週4: 4/27〜5/1
-  {id:"w4-hattatsu-mon",name:"発達相談",           emoji:"💬",type:"s",date:"2026-04-27",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bookings:[]},
-  {id:"w4-photo-mon",   name:"ベビーフォト",        emoji:"📸",type:"s",date:"2026-04-27",day:0,sh:10,sm:0,eh:14,em:0,cap:3,bookings:[]},
-  {id:"w4-oyatsu-mon",  name:"おやつ",             emoji:"🍰",type:"s",date:"2026-04-27",day:0,sh:14,sm:0,eh:14,em:30,cap:99,bookings:[]},
-  {id:"w4-massage-tue", name:"ベビーマッサージ",    emoji:"👐",type:"s",date:"2026-04-28",day:1,sh:9,sm:30,eh:10,em:0,cap:3,bookings:[]},
-  // 週4 託児
-  {id:"w4-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-27",day:0,sh:10,sm:0,eh:12,em:0,cap:2,bookings:[]},
-  {id:"w4-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-28",day:1,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
-  {id:"w4-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-30",day:3,sh:9,sm:0,eh:11,em:0,cap:2,bookings:[]},
+  {id:"w4-photo-mon",   name:"ベビーフォト",      emoji:"📸",type:"s",date:"2026-04-27",day:0,sh:10,sm:0,eh:14,em:0,cap:3},
+  {id:"w4-hattatsu-mon",name:"発達相談",           emoji:"💬",type:"s",date:"2026-04-27",day:0,sh:11,sm:0,eh:12,em:0,cap:99},
+  {id:"w4-oyatsu-mon",  name:"おやつ",             emoji:"🍰",type:"s",date:"2026-04-27",day:0,sh:14,sm:0,eh:14,em:30,cap:99},
+  {id:"w4-massage-tue", name:"ベビーマッサージ",   emoji:"👐",type:"s",date:"2026-04-28",day:1,sh:9,sm:30,eh:10,em:0,cap:3},
+  {id:"w4-t-mon",name:"託児",emoji:"👶",type:"t",date:"2026-04-27",day:0,sh:10,sm:0,eh:12,em:0,cap:2},
+  {id:"w4-t-tue",name:"託児",emoji:"👶",type:"t",date:"2026-04-28",day:1,sh:9,sm:0,eh:11,em:0,cap:2},
+  {id:"w4-t-thu",name:"託児",emoji:"👶",type:"t",date:"2026-04-30",day:3,sh:9,sm:0,eh:11,em:0,cap:2},
 ];
 
-// ── 表示週のプログラムを取得 ──────────────────────────────────────────
+// ── ユーティリティ ────────────────────────────────────────────────────
 function getWeekDates(){
   const d=new Date(BASE); d.setDate(BASE.getDate()+weekOffset*7);
   return Array.from({length:5},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return x; });
 }
-
 function dateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
 const DAYS_JP=["月","火","水","木","金"];
 
-function changeWeek(d){ weekOffset+=d; render(); }
-function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+// ── Firebase リアルタイムリスナー ────────────────────────────────────
+function subscribeWeek(){
+  if(unsubscribe) unsubscribe(); // 前のリスナーを解除
+  const dates=getWeekDates();
+  const dateKeys=dates.map(d=>dateKey(d));
 
+  // bookings コレクションを今週の日付範囲でリッスン
+  const q=query(
+    collection(db,'bookings'),
+    where('date','>=',dateKeys[0]),
+    where('date','<=',dateKeys[4])
+  );
+
+  unsubscribe=onSnapshot(q, snap=>{
+    liveBookings=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    render();
+  }, err=>{
+    console.warn('Firebase読み込みエラー（オフラインモード）:', err.message);
+    liveBookings=[];
+    render();
+  });
+}
+
+// ── プログラムに予約を紐づける ────────────────────────────────────────
+function getBookingsForProg(prog){
+  return liveBookings.filter(b=>
+    b.date===prog.date &&
+    (b.progId===prog.id ||
+     b.progName===prog.name ||
+     (prog.name.includes(b.progName||'') || (b.progName||'').includes(prog.name.split(' ')[0])))
+  );
+}
+
+// ── 週変更 ───────────────────────────────────────────────────────────
+function changeWeek(d){ weekOffset+=d; subscribeWeek(); }
+function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
+window.changeWeek=changeWeek; window.setView=setView;
+
+// ── ガントチャート描画 ────────────────────────────────────────────────
 function render(){
   const dates=getWeekDates();
   const dateKeys=dates.map(d=>dateKey(d));
   document.getElementById('wlabel').textContent=`${fmt(dates[0])}〜${fmt(dates[4])}`;
 
-  // この週に該当するプログラムのみ
   const weekProgs=ALL_PROGS.filter(p=>dateKeys.includes(p.date));
   const progs=weekProgs.filter(p=>viewMode==='all'||(viewMode==='s'&&p.type==='s')||(viewMode==='t'&&p.type==='t'));
   const totalH=HOURS.length*PH;
 
-  // サマリー
-  const sbk=weekProgs.filter(p=>p.type==='s').reduce((a,p)=>a+p.bookings.filter(b=>b.s==='ok').length,0);
-  const tbk=weekProgs.filter(p=>p.type==='t').reduce((a,p)=>a+p.bookings.filter(b=>b.s==='ok').length,0);
-  const full=weekProgs.filter(p=>p.bookings.filter(b=>b.s==='ok').length>=p.cap&&p.cap<99).length;
-  const avail=weekProgs.filter(p=>p.cap<99&&p.bookings.filter(b=>b.s==='ok').length<p.cap).length;
+  // サマリー集計
+  let sbk=0,tbk=0,full=0,avail=0;
+  weekProgs.forEach(p=>{
+    const bks=getBookingsForProg(p).filter(b=>b.status!=='cancelled');
+    const cnt=bks.length;
+    if(p.type==='s') sbk+=cnt;
+    if(p.type==='t') tbk+=cnt;
+    if(p.cap<99){ if(cnt>=p.cap) full++; else avail++; }
+  });
   document.getElementById('summary').innerHTML=`
     <div class="sc"><div class="sl">支援P予約</div><div class="sv">${sbk}<small style="font-size:.7rem;font-weight:400">組</small></div></div>
     <div class="sc"><div class="sl">託児予約</div><div class="sv">${tbk}<small style="font-size:.7rem;font-weight:400">名</small></div></div>
     <div class="sc"><div class="sl">満員枠</div><div class="sv" style="color:#c62828">${full}</div></div>
     <div class="sc"><div class="sl">空き枠</div><div class="sv" style="color:var(--green)">${avail}</div></div>`;
 
+  // ガントチャート描画
   let g='<div></div>';
   dates.forEach((d,i)=>{ g+=`<div class="gh"><div class="gd">${DAYS_JP[i]}</div><div class="gn">${fmt(d)}</div></div>`; });
   g+=`<div style="display:flex;flex-direction:column">`;
   HOURS.forEach(h=>{ g+=`<div class="tc" style="height:${PH}px">${h}:00</div>`; });
   g+='</div>';
-
-  if(!weekProgs.length){
-    for(let d=0;d<5;d++){
-      g+=`<div class="dc" style="height:${totalH}px;position:relative">`;
-      HOURS.forEach((_,i)=>{ if(i>0) g+=`<div class="hline" style="top:${i*PH}px"></div>`; });
-      g+='</div>';
-    }
-  } else {
-    for(let d=0;d<5;d++){
-      const dp=progs.filter(p=>p.day===d);
-      g+=`<div class="dc" style="height:${totalH}px;position:relative">`;
-      HOURS.forEach((_,i)=>{ if(i>0) g+=`<div class="hline" style="top:${i*PH}px"></div>`; });
-      dp.forEach(p=>{
-        const top=((p.sh-9)+(p.sm/60))*PH;
-        const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH, 14);
-        const bk=p.bookings.filter(b=>b.s==='ok').length;
-        const isFull=bk>=p.cap&&p.cap<99;
-        const cls=isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
-        g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
-          <div>${p.name}</div>
-          <div style="font-size:.58rem;opacity:.85">${p.cap<99?bk+'/'+p.cap+'組':bk+'名'}</div>
-        </div>`;
-      });
-      g+='</div>';
-    }
+  for(let d=0;d<5;d++){
+    const dp=progs.filter(p=>p.day===d);
+    g+=`<div class="dc" style="height:${totalH}px;position:relative">`;
+    HOURS.forEach((_,i)=>{ if(i>0) g+=`<div class="hline" style="top:${i*PH}px"></div>`; });
+    dp.forEach(p=>{
+      const top=((p.sh-9)+(p.sm/60))*PH;
+      const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
+      const bks=getBookingsForProg(p).filter(b=>b.status!=='cancelled');
+      const cnt=bks.length;
+      const isFull=cnt>=p.cap&&p.cap<99;
+      const cls=isFull?'blk bf':p.type==='t'?'blk bt':'blk bs';
+      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
+        <div style="font-size:.63rem">${p.name}</div>
+        <div style="font-size:.58rem;opacity:.85">${p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
+      </div>`;
+    });
+    g+='</div>';
   }
   document.getElementById('gantt').innerHTML=g;
 }
 
-function openPanel(id){
-  const p=ALL_PROGS.find(x=>x.id===id);
+// ── 予約者パネル ──────────────────────────────────────────────────────
+function openPanel(progId){
+  const p=ALL_PROGS.find(x=>x.id===progId);
   if(!p) return;
   selectedProg=p;
+  const bks=getBookingsForProg(p).filter(b=>b.status!=='cancelled');
+  const cnt=bks.length;
+
   document.getElementById('pTitle').textContent=`${p.emoji} ${p.name}`;
-  document.getElementById('pTime').textContent=`${p.date.slice(5).replace('-','/')}　${p.sh}:${String(p.sm).padStart(2,'0')}〜${p.eh}:${String(p.em).padStart(2,'0')}`;
-  const bk=p.bookings.filter(b=>b.s==='ok').length;
-  document.getElementById('pAvail').innerHTML=`<span>定員 ${p.cap<99?p.cap+'組':'制限なし'}</span><span>予約 <strong>${bk}${p.type==='t'?'名':'組'}</strong></span>${p.cap<99?`<span>残り <strong style="color:${bk>=p.cap?'#c62828':'var(--green)'}">${p.cap-bk}${p.type==='t'?'名':'組'}</strong></span>`:''}`;
-  const smap={ok:'s-ok',wait:'s-wait',cancel:'s-cancel'};
-  const slbl={ok:'確定',wait:'待機',cancel:'キャンセル'};
+  document.getElementById('pTime').textContent=
+    `${p.date.slice(5).replace('-','/')}　${p.sh}:${String(p.sm).padStart(2,'0')}〜${p.eh}:${String(p.em).padStart(2,'0')}`;
+  document.getElementById('pAvail').innerHTML=
+    `<span>定員 ${p.cap<99?p.cap+'組':'制限なし'}</span>
+     <span>予約 <strong>${cnt}${p.type==='t'?'名':'組'}</strong></span>
+     ${p.cap<99?`<span>残り <strong style="color:${cnt>=p.cap?'#c62828':'var(--green)'}">${p.cap-cnt}${p.type==='t'?'名':'組'}</strong></span>`:''}`;
+
   let list='';
-  p.bookings.forEach((b,i)=>{
-    list+=`<div class="bk-row">
-      <div class="bk-num">${i+1}</div>
-      <div><div class="bk-name">${b.n}</div><div class="bk-info">${b.age||''}${b.time?' ／ '+b.time:''}</div></div>
-      <span class="bk-stat ${smap[b.s]}">${slbl[b.s]}</span>
-    </div>`;
-  });
-  document.getElementById('pList').innerHTML=list||'<div style="font-size:.8rem;color:var(--muted);padding:8px 0">予約なし</div>';
+  if(bks.length===0){
+    list='<div style="font-size:.82rem;color:var(--muted);padding:8px 0">予約はまだありません</div>';
+  } else {
+    bks.forEach((b,i)=>{
+      list+=`<div class="bk-row">
+        <div class="bk-num">${i+1}</div>
+        <div style="flex:1">
+          <div class="bk-name">${b.name||''}${b.kana?`<span style="font-size:.7rem;color:var(--muted);margin-left:4px">（${b.kana}）</span>`:''}</div>
+          <div class="bk-info">
+            ${b.age||''} ${b.childCount?'/ '+b.childCount:''}<br>
+            📱 ${b.tel||''}
+            ${b.tochi?`<br>👶 託児：${b.tochiTime||'時間未定'}`:''}
+            ${b.note?`<br>📝 ${b.note}`:''}
+          </div>
+        </div>
+        <span class="bk-stat s-ok">確定</span>
+      </div>`;
+    });
+  }
+  document.getElementById('pList').innerHTML=list;
   document.getElementById('panelBg').classList.add('open');
 }
+window.openPanel=openPanel;
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
+window.closePanel=closePanel;
 
-function addDummy(){
-  if(!selectedProg) return;
-  const names=["木村 さえ","橋本 ゆい","長谷川 あか","石井 ほの","福田 みこ"];
-  selectedProg.bookings.push({n:names[Math.floor(Math.random()*names.length)],age:`${Math.floor(Math.random()*24)+1}ヶ月`,s:"ok"});
-  openPanel(selectedProg.id);
-  render();
-}
+document.getElementById('panelBg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('panelBg')) closePanel();
+});
 
-document.getElementById('panelBg').addEventListener('click',e=>{ if(e.target===document.getElementById('panelBg')) closePanel(); });
-render();
+// ── 初期化 ──────────────────────────────────────────────────────────
+subscribeWeek();
 </script>
 </body>
 </html>
