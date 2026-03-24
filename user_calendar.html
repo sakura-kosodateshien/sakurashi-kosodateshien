@@ -251,12 +251,12 @@ function openSheet(idx){
 }
 
 function handleBook(){
-  if(!selectedProg||selectedProg.type==='y'||selectedProg.cap>=99) { closeSheet(); return; }
+  if(!selectedProg||selectedProg.type==='y'||selectedProg.cap>=99){ closeSheet(); return; }
   if(selectedProg.bk>=selectedProg.cap) return;
   closeSheet();
-  const t=document.getElementById('toast');
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  // user_program.htmlへ遷移（プログラムIDと日付をパラメータで渡す）
+  const date = ['4/6','4/7','4/8','4/9','4/10','4/13','4/14','4/15','4/16','4/17','4/20','4/21','4/22','4/23','4/24','4/27','4/28','4/29','4/30'][weekOffset*5+selectedProg.day]||'';
+  location.href = 'user_program.html?prog='+encodeURIComponent(selectedProg.name)+'&date='+encodeURIComponent(selectedProg.date||date);
 }
 
 function closeSheet(){ document.getElementById('sheetBg').classList.remove('open'); }

@@ -175,7 +175,8 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
       </div>
       <div class="notice-box">
         <strong>キャンセルについて</strong><br>
-        ご都合が悪くなった場合はお早めにLINEまたはお電話（043-310-5757）でご連絡ください。
+        2日前まではLINEの「会員QR」→「予約確認」からキャンセルできます。<br>
+        それ以降のキャンセルはお電話（043-310-5757）でご連絡ください。
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal()">閉じる</button>
@@ -518,10 +519,15 @@ function openModal(progId, slotIdx){
     extraRow.style.display = 'none';
   }
 
-  // フォームリセット
-  ['fName','fKana','fTel','fNote','fTochiTime'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('fAge').value='';
-  document.getElementById('fChildCount').value='1人';
+  // フォームリセット → キャッシュから復元
+  const cache = JSON.parse(localStorage.getItem('hinokikko_user')||'{}');
+  document.getElementById('fName').value      = cache.name      || '';
+  document.getElementById('fKana').value      = cache.kana      || '';
+  document.getElementById('fTel').value       = cache.tel       || '';
+  document.getElementById('fAge').value       = cache.age       || '';
+  document.getElementById('fChildCount').value= cache.childCount|| '1人';
+  document.getElementById('fNote').value      = '';
+  document.getElementById('fTochiTime').value = '';
 
   document.getElementById('formView').style.display   = 'block';
   document.getElementById('successView').style.display = 'none';
@@ -616,6 +622,9 @@ async function submitBooking(){
       }
     }
 
+    // キャッシュに保存（次回自動入力用）
+    localStorage.setItem('hinokikko_user', JSON.stringify({name, kana, tel, age, childCount}));
+
     // 完了画面
     const extraSel2 = document.getElementById('tochiExtraSelect');
     const hasExtra2 = p.id==='tochi' && extraSel2 && extraSel2.selectedIndex > 0;
@@ -658,7 +667,22 @@ document.getElementById('modalBg').addEventListener('click', e => {
 });
 
 // changes/を読み込んでから初期表示
-applyChanges().then(() => render());
+applyChanges().then(() => {
+  render();
+  // カレンダーからの遷移：URLパラメータでプログラムを自動展開
+  const params = new URLSearchParams(location.search);
+  const progName = params.get('prog');
+  if(progName){
+    const p = PROGS.find(x=>x.name.includes(progName)||progName.includes(x.name.split(' ')[0]));
+    if(p){
+      openId = p.id;
+      render();
+      // 最初の空きスロットを自動選択
+      const si = p.slots.findIndex(s=>!s.full);
+      if(si>=0) setTimeout(()=>openModal(p.id, si), 300);
+    }
+  }
+});
 </script>
 </body>
 </html>
