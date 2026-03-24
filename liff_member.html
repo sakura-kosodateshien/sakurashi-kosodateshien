@@ -418,6 +418,16 @@ async function main(){
       const profile=await liff.getProfile();
       const lineUserId=profile.userId;
 
+      // デバッグ：LINE User IDを画面に一時表示
+      const params0=new URLSearchParams(location.search);
+      if(params0.get('debug')==='1'){
+        hide('stateLoading');
+        document.getElementById('errMsg').textContent=
+          'あなたのLINE User ID:\n'+lineUserId+'\n\nこのIDをFirestoreのusersドキュメントのlineUserIdフィールドに設定してください。';
+        show('stateError');
+        return;
+      }
+
       // lineUserIdで検索
       let snap=await getDocs(query(
         collection(db,'users'),
