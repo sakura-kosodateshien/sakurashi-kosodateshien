@@ -465,70 +465,71 @@ window.execLink = async function(){
 };
 async function main(){
   try{
-    const LIFF_ID='2009587361-BBVXkOWi'; // 会員証用LIFF ID
+    const LIFF_ID='2009587361-BBVXkOWi';
+
+    // ステップ1: LIFF初期化
+    document.getElementById('errMsg').textContent='ステップ1: LIFF初期化中…';
+    show('stateError'); hide('stateLoading');
+
     await liff.init({ liffId:LIFF_ID });
 
+    // ステップ2: ログイン確認
+    document.getElementById('errMsg').textContent='ステップ2: ログイン確認中… isLoggedIn='+liff.isLoggedIn();
+
     if(liff.isLoggedIn()){
+      // ステップ3: プロフィール取得
+      document.getElementById('errMsg').textContent='ステップ3: プロフィール取得中…';
       const profile=await liff.getProfile();
       const lineUserId=profile.userId;
       currentLineUserId=lineUserId;
 
-      // デバッグ：LINE User IDを画面に一時表示
-      const params0=new URLSearchParams(location.search);
-      if(params0.get('debug')==='1'){
-        hide('stateLoading');
-        document.getElementById('errMsg').textContent=
-          'あなたのLINE User ID:\n'+lineUserId;
-        show('stateError');
-        return;
-      }
+      // ステップ4: Firestore検索
+      document.getElementById('errMsg').textContent='ステップ4: DB検索中… userId='+lineUserId.slice(0,8)+'…';
 
-      // ① lineUserIdで検索
-      let snap=await getDocs(query(
+      const snap=await getDocs(query(
         collection(db,'users'),
         where('lineUserId','==',lineUserId)
       ));
 
+      // ステップ5: 結果確認
+      document.getElementById('errMsg').textContent='ステップ5: 検索完了 件数='+snap.size;
+
       if(!snap.empty){
-        // 登録済み → QR表示
+        hide('stateError');
+        hide('stateLoading');
         showMember(snap.docs[0].data());
         return;
       }
 
-      // ② 見つからない場合 → 電話番号入力で紐づけ or 新規登録を促す
+      // 未登録
+      hide('stateError');
       hide('stateLoading');
       show('cardUnreg');
       document.querySelector('#cardUnreg .btn').href=
         `https://liff.line.me/2009587361-fY64rJtv`;
 
     } else {
-      // LINEログイン未済
       const params=new URLSearchParams(location.search);
       const testUid=params.get('uid');
       if(testUid){
-        // テストモード：UIDで直接検索
         const snap=await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
-        if(!snap.empty){ showMember(snap.docs[0].data()); }
-        else{ hide('stateLoading'); show('cardUnreg'); }
+        if(!snap.empty){
+          hide('stateError'); hide('stateLoading');
+          showMember(snap.docs[0].data());
+        } else {
+          hide('stateError'); hide('stateLoading');
+          show('cardUnreg');
+        }
       } else {
-        // LINEログインへ誘導
-        liff.login();
+        document.getElementById('errMsg').textContent='LINEログインへ誘導します…';
+        setTimeout(()=>liff.login(), 1500);
       }
     }
   }catch(e){
-    console.error('LIFF/Firebaseエラー:', e);
+    console.error('エラー:', e);
     hide('stateLoading');
-
-    // エラーの種類に応じてメッセージを変える
-    let msg = 'エラーが発生しました。';
-    if(e.message && e.message.includes('network')){
-      msg = 'ネットワークエラーです。通信状況を確認してください。';
-    } else if(e.message && e.message.includes('LIFF')){
-      msg = 'LINEアプリからアクセスしてください。';
-    } else if(e.code === 'failed-precondition'){
-      msg = 'データベースの準備中です。しばらくしてから再度お試しください。';
-    }
-    document.getElementById('errMsg').textContent = msg + '\n(' + e.message + ')';
+    document.getElementById('errMsg').textContent=
+      '❌ エラー詳細:\n' + e.message + '\n\ncode: ' + (e.code||'なし');
     show('stateError');
   }
 }
