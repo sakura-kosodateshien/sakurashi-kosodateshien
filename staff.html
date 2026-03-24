@@ -291,13 +291,19 @@ function openPanel(id){
 
 window.confirmBooking=function(fbId, progId){
   if(!window._fbUpdateDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
-  const btn=document.querySelector(`#bkrow-${fbId} .confirm-btn`);
+  const btn=document.querySelector('#bkrow-'+fbId+' .confirm-btn');
   if(btn){btn.disabled=true;btn.textContent='確認中…';}
   window._fbUpdateDoc(fbId,{status:'confirmed'}).then(function(){
-    liveBookings=liveBookings.map(function(b){return b.fbId===fbId?Object.assign({},b,{status:'confirmed'}):b;});
-    render();
-    openPanel(progId);
-  }).catch(function(e){alert('更新に失敗しました: '+e.message);if(btn){btn.disabled=false;btn.textContent='✅ 確認';}});
+    // グローバルのliveBookingsを即時更新
+    liveBookings=liveBookings.map(function(b){
+      return b.fbId===fbId ? Object.assign({},b,{status:'confirmed'}) : b;
+    });
+    render();        // ガント・バナー再描画
+    openPanel(progId); // パネルも更新
+  }).catch(function(e){
+    alert('更新に失敗しました: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='✅ 確認';}
+  });
 };
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
@@ -318,9 +324,29 @@ function loadFirebase(){
   const q=window._fbQuery(dks[0],dks[4]);
   if(!q) return;
   unsubFn=window._fbOnSnapshot(q, snap=>{
-    liveBookings=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    // 今週の予約をliveBookingsに反映
+    const weekBks=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    // 他週のpendingは保持したまま今週分を置き換え
+    liveBookings=liveBookings.filter(b=>b.date<dks[0]||b.date>dks[4]).concat(weekBks);
     render();
+    fetchAllPending(); // バナー用に全pendingを更新
   }, err=>console.warn('FB error:',err.message));
+}
+
+// 全期間のpendingを取得してバナー更新
+function fetchAllPending(){
+  if(!window._fbQueryPending) return;
+  window._fbQueryPending().then(function(snap){
+    const pendingBks=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    // liveBookingsの非今週部分をpendingで補完
+    const dates=getWeekDates();
+    const dks=dates.map(d=>dateKey(d));
+    const otherPending=pendingBks.filter(b=>b.date<dks[0]||b.date>dks[4]);
+    // 重複を除いてマージ
+    const ids=new Set(liveBookings.map(b=>b.fbId));
+    otherPending.forEach(b=>{ if(!ids.has(b.fbId)) liveBookings.push(b); else { liveBookings=liveBookings.map(x=>x.fbId===b.fbId?b:x); } });
+    updatePendingBanner();
+  }).catch(function(e){ console.warn('pending fetch error:',e.message); });
 }
 
 // 初期描画（Firebaseなしでも動作）
@@ -331,7 +357,7 @@ render();
 // Firebaseを非同期で読み込み
 try{
   const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getFirestore,collection,query,where,onSnapshot,doc,updateDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const {getFirestore,collection,query,where,onSnapshot,getDocs,doc,updateDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
   const db=getFirestore(initializeApp({
     apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
     authDomain:"sakurashi-kosodateshien.firebaseapp.com",
@@ -341,6 +367,7 @@ try{
     appId:"1:365529893548:web:99b2ecc702d1bbdb752d09"
   }));
   window._fbQuery=(d0,d4)=>query(collection(db,'bookings'),where('date','>=',d0),where('date','<=',d4));
+  window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('status','==','pending')));
   window._fbOnSnapshot=onSnapshot;
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window.firebase_loaded=true;
