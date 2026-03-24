@@ -468,45 +468,45 @@ async function main(){
     const LIFF_ID='2009587361-BBVXkOWi';
     await liff.init({ liffId:LIFF_ID });
 
-    if(liff.isLoggedIn()){
-      const profile  = await liff.getProfile();
-      const lineUserId = profile.userId;
-      currentLineUserId = lineUserId;
-
-      // ① lineUserIdで検索
-      const snap1 = await getDocs(query(
-        collection(db,'users'),
-        where('lineUserId','==',lineUserId)
-      ));
-
-      if(!snap1.empty){
-        // 登録済み → QR表示
-        showMember(snap1.docs[0].data());
-        return;
-      }
-
-      // ② 見つからない場合 → 未登録画面（電話番号で紐づけ or 新規登録）
-      hide('stateLoading');
-      show('cardUnreg');
-      document.querySelector('#cardUnreg .btn').href =
-        `https://liff.line.me/2009587361-fY64rJtv`;
-
-    } else {
-      const params  = new URLSearchParams(location.search);
+    if(!liff.isLoggedIn()){
+      const params = new URLSearchParams(location.search);
       const testUid = params.get('uid');
       if(testUid){
-        const snap = await getDocs(query(collection(db,'users'),where('uid','==',testUid)));
-        if(!snap.empty){ showMember(snap.docs[0].data()); }
-        else{ hide('stateLoading'); show('cardUnreg'); }
+        const snap = await getDocs(collection(db,'users'));
+        const user = snap.docs.map(d=>d.data()).find(u=>u.uid===testUid);
+        if(user){ showMember(user); } else { hide('stateLoading'); show('cardUnreg'); }
       } else {
         liff.login();
       }
+      return;
     }
+
+    const profile = await liff.getProfile();
+    currentLineUserId = profile.userId;
+
+    // usersコレクション全件取得してJSで照合（クエリを使わない）
+    const snap = await getDocs(collection(db,'users'));
+    const users = snap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // lineUserIdで照合
+    let found = users.find(u=>u.lineUserId===currentLineUserId);
+
+    if(found){
+      showMember(found);
+      return;
+    }
+
+    // 未登録 → 未登録画面
+    hide('stateLoading');
+    show('cardUnreg');
+    document.querySelector('#cardUnreg .btn').href =
+      `https://liff.line.me/2009587361-fY64rJtv`;
+
   }catch(e){
     console.error('エラー:', e);
     hide('stateLoading');
     document.getElementById('errMsg').textContent =
-      '❌ ' + e.message + (e.code ? '\ncode: '+e.code : '');
+      '❌ ' + e.message + (e.code?'\n'+e.code:'');
     show('stateError');
   }
 }
