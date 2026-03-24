@@ -232,8 +232,25 @@ function calcMonths(dob){
   const d=new Date(dob),t=new Date();
   return (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
 }
-function show(id){ document.getElementById(id).style.display=''; }
-function hide(id){ document.getElementById(id).style.display='none'; }
+function show(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display='block';
+}
+function hide(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display='none';
+}
+
+// 10秒でタイムアウト表示
+setTimeout(()=>{
+  const loading=document.getElementById('stateLoading');
+  if(loading && loading.style.display!=='none'){
+    hide('stateLoading');
+    document.getElementById('errMsg').textContent=
+      '読み込みがタイムアウトしました。\nページを閉じて再度「会員QR」をタップしてください。';
+    show('stateError');
+  }
+}, 10000);
 
 // ── タブ切り替え ──────────────────────────────────────────────────
 window.switchTab = function(tab, el){
