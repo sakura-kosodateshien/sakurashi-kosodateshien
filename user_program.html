@@ -156,6 +156,12 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
         <label>託児の希望時間</label>
         <input type="text" placeholder="例：10:00〜11:00" id="fTochiTime">
       </div>
+      <div class="form-row" id="tochiExtraRow" style="display:none">
+        <label>2枠目も一緒に予約しますか？<span style="font-size:.68rem;color:var(--muted);margin-left:4px">（月4枠まで・1回2枠まで）</span></label>
+        <select id="tochiExtraSelect">
+          <option value="">追加しない（1枠のみ）</option>
+        </select>
+      </div>
       <div class="form-row">
         <label>備考・アレルギー等</label>
         <textarea rows="2" placeholder="アレルギーや当日の連絡事項などあればご記入ください" id="fNote"></textarea>
@@ -348,30 +354,84 @@ function toggleProg(id){
 // 託児付きプログラムのID
 const TOCHI_PROGS = ['pulapan','yoga','tochi'];
 
+// ── 託児の上限チェック ────────────────────────────────────────────────
+async function checkTochiLimits(tel, dateKey) {
+  if (!tel) return { ok: true };
+  try {
+    // 当月の確定予約を取得
+    const monthStart = '2026-04-01';
+    const monthEnd   = '2026-04-30';
+    const snap = await getDocs(query(
+      collection(db, 'bookings'),
+      where('progId',  '==', 'tochi'),
+      where('tel',     '==', tel),
+      where('date',    '>=', monthStart),
+      where('date',    '<=', monthEnd),
+      where('status',  'in', ['confirmed','pending'])
+    ));
+    const monthBookings = snap.docs.map(d => d.data());
+    const monthCount = monthBookings.length;
+
+    // 月4枠上限チェック
+    if (monthCount >= 4) {
+      return { ok: false, msg: '今月の託児予約上限（4枠）に達しています。\n利用完了後に次の予約が可能です。' };
+    }
+
+    // 同日予約チェック
+    const sameDay = monthBookings.find(b => b.date === dateKey);
+    if (sameDay) {
+      return { ok: false, msg: 'この日はすでに託児の予約があります。\n（1日1枠まで）' };
+    }
+
+    return { ok: true, remaining: 4 - monthCount };
+  } catch(e) {
+    console.warn('上限チェックエラー:', e.message);
+    return { ok: true }; // エラー時は通す
+  }
+}
+
+// ── 託児複数枠選択状態 ────────────────────────────────────────────────
+let tochiExtraSlots = []; // 2枠目の日程
+
 function openModal(progId, slotIdx){
   const p = PROGS.find(x=>x.id===progId);
   const s = p.slots[slotIdx];
   selectedSlot = {prog:p, slot:s};
+  tochiExtraSlots = [];
 
-  document.getElementById('mTitle').textContent = `${p.emoji} ${p.name}`;
+  document.getElementById('mTitle').textContent  = `${p.emoji} ${p.name}`;
   document.getElementById('mDetail').textContent = `${s.date}　${s.time}　定員${p.cap<10?p.cap+'組':'制限なし'}`;
-  document.getElementById('mDesc').textContent = p.note;
+  document.getElementById('mDesc').textContent   = p.note;
 
-  // 託児行の表示切り替え
+  // 託児の場合：2枠目追加選択UIを表示
+  const isTochi = p.id === 'tochi';
   const hasTochi = TOCHI_PROGS.includes(p.id);
-  document.getElementById('tochiRow').style.display = hasTochi ? 'block' : 'none';
+  document.getElementById('tochiRow').style.display     = hasTochi ? 'block' : 'none';
   document.getElementById('tochiTimeRow').style.display = 'none';
   document.getElementById('fTochi').value = 'no';
+
+  // 2枠目選択行（託児専用）
+  const extraRow = document.getElementById('tochiExtraRow');
+  if (isTochi) {
+    // 他の空き日程をセレクトに追加
+    const otherSlots = p.slots.filter((_,i) => i !== slotIdx && !p.slots[i].full);
+    let opts = '<option value="">追加しない（1枠のみ）</option>';
+    otherSlots.forEach((os, i) => {
+      opts += `<option value="${os.date||os.dateKey||i}">${os.date}　${os.time}</option>`;
+    });
+    document.getElementById('tochiExtraSelect').innerHTML = opts;
+    extraRow.style.display = 'block';
+  } else {
+    extraRow.style.display = 'none';
+  }
 
   // フォームリセット
   ['fName','fKana','fTel','fNote','fTochiTime'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fAge').value='';
   document.getElementById('fChildCount').value='1人';
 
-  // フォーム表示・完了画面非表示
-  document.getElementById('formView').style.display='block';
-  document.getElementById('successView').style.display='none';
-
+  document.getElementById('formView').style.display   = 'block';
+  document.getElementById('successView').style.display = 'none';
   document.getElementById('modalBg').classList.add('open');
 }
 
@@ -401,40 +461,80 @@ async function submitBooking(){
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
 
-  // 送信ボタンを無効化
+  // ── 託児の場合：上限チェック ────────────────────────────────────────
+  if (p.id === 'tochi') {
+    const dateK = toDateKey(s.date);
+
+    // 2枠目選択確認
+    const extraSel = document.getElementById('tochiExtraSelect');
+    const extraIdx = extraSel ? extraSel.selectedIndex : 0;
+    const hasExtra = extraSel && extraIdx > 0;
+    const reserveCount = hasExtra ? 2 : 1;
+
+    // 月残り枠チェック
+    const check = await checkTochiLimits(tel, dateK);
+    if (!check.ok) { alert(check.msg); return; }
+
+    // 2枠予約しようとしているのに残り1枠の場合
+    if (hasExtra && check.remaining < 2) {
+      alert(`今月の残り枠は${check.remaining}枠です。\n1枠のみ予約してください。`);
+      return;
+    }
+  }
+
   const btn = document.querySelector('.btn-submit');
   btn.disabled = true;
   btn.textContent = '送信中…';
 
   try {
-    // Firebaseに予約を保存
-    await addDoc(collection(db, 'bookings'), {
+    const dateK = toDateKey(s.date);
+    const baseData = {
       progId:     p.id,
       progName:   p.name,
-      date:       toDateKey(s.date),
+      date:       dateK,
       dateLabel:  s.date,
       time:       s.time,
-      name,
-      kana,
-      age,
-      childCount,
-      tel,
-      note,
+      name, kana, age, childCount, tel, note,
       tochi,
       tochiTime:  tochi ? tochiTime : '',
       status:     'confirmed',
       bookedAt:   Timestamp.now()
-    });
+    };
 
-    // 完了画面に切り替え
+    // 1枠目を保存
+    await addDoc(collection(db, 'bookings'), baseData);
+
+    // 2枠目（託児のみ）
+    if (p.id === 'tochi') {
+      const extraSel = document.getElementById('tochiExtraSelect');
+      if (extraSel && extraSel.selectedIndex > 0) {
+        const extraSlotIdx = extraSel.selectedIndex - 1;
+        const extraSlots   = p.slots.filter((_,i) => i !== p.slots.indexOf(s) && !p.slots[p.slots.indexOf(s)].full);
+        if (extraSlots[extraSlotIdx]) {
+          const es = extraSlots[extraSlotIdx];
+          await addDoc(collection(db, 'bookings'), {
+            ...baseData,
+            date:      toDateKey(es.date),
+            dateLabel: es.date,
+            time:      es.time,
+            bookedAt:  Timestamp.now()
+          });
+        }
+      }
+    }
+
+    // 完了画面
+    const extraSel2 = document.getElementById('tochiExtraSelect');
+    const hasExtra2 = p.id==='tochi' && extraSel2 && extraSel2.selectedIndex > 0;
     document.getElementById('svDetail').innerHTML =
       `<div>📋 <strong>${p.emoji} ${p.name}</strong></div>
        <div>📅 ${s.date}　${s.time}</div>
+       ${hasExtra2 ? `<div>📅 ${extraSel2.options[extraSel2.selectedIndex].text}（2枠目）</div>` : ''}
        <div>👤 ${name}（${age}）</div>
        <div>📱 ${tel}</div>
-       ${tochi?`<div>👶 託児利用：${tochiTime||'時間未定'}</div>`:''}`;
+       ${tochi ? `<div>👶 託児利用：${tochiTime||'時間未定'}</div>` : ''}`;
 
-    document.getElementById('formView').style.display  = 'none';
+    document.getElementById('formView').style.display   = 'none';
     document.getElementById('successView').style.display = 'block';
 
   } catch(e) {
