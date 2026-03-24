@@ -182,7 +182,28 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
 
 <div class="toast" id="toast">✅ 予約リクエストを送信しました</div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+function toDateKey(dateStr) {
+  const m = dateStr.match(/(\d+)\/(\d+)/);
+  if (!m) return dateStr;
+  return `2026-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+}
+
 const PROGS = [
   {id:"lunch", name:"ランチひろば", emoji:"🍱", bg:"#e8f5e9",
    cap:4, capLabel:"各2〜4組",
@@ -346,33 +367,78 @@ function toggleTochiTime(){
   document.getElementById('tochiTimeRow').style.display = v==='yes' ? 'block' : 'none';
 }
 
-function submitBooking(){
-  const name = document.getElementById('fName').value.trim();
-  const age  = document.getElementById('fAge').value;
-  const tel  = document.getElementById('fTel').value.trim();
+async function submitBooking(){
+  const name       = document.getElementById('fName').value.trim();
+  const kana       = document.getElementById('fKana').value.trim();
+  const age        = document.getElementById('fAge').value;
+  const childCount = document.getElementById('fChildCount').value;
+  const tel        = document.getElementById('fTel').value.trim();
+  const note       = document.getElementById('fNote').value.trim();
+  const tochi      = document.getElementById('fTochi').value === 'yes';
+  const tochiTime  = document.getElementById('fTochiTime').value.trim();
+
   if(!name){ alert('保護者氏名を入力してください'); return; }
   if(!age){  alert('お子さんの月齢を選択してください'); return; }
   if(!tel){  alert('連絡先を入力してください'); return; }
 
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
-  const tochi = document.getElementById('fTochi').value==='yes';
-  const tochiTime = document.getElementById('fTochiTime').value;
 
-  document.getElementById('svDetail').innerHTML =
-    `<div>📋 <strong>${p.emoji} ${p.name}</strong></div>
-     <div>📅 ${s.date}　${s.time}</div>
-     <div>👤 ${name}（${age}）</div>
-     <div>📱 ${tel}</div>
-     ${tochi?`<div>👶 託児利用：${tochiTime||'時間未定'}</div>`:''}`;
+  // 送信ボタンを無効化
+  const btn = document.querySelector('.btn-submit');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
 
-  document.getElementById('formView').style.display='none';
-  document.getElementById('successView').style.display='block';
-  // ← Firebase addDoc をここに追加予定
+  try {
+    // Firebaseに予約を保存
+    await addDoc(collection(db, 'bookings'), {
+      progId:     p.id,
+      progName:   p.name,
+      date:       toDateKey(s.date),
+      dateLabel:  s.date,
+      time:       s.time,
+      name,
+      kana,
+      age,
+      childCount,
+      tel,
+      note,
+      tochi,
+      tochiTime:  tochi ? tochiTime : '',
+      status:     'confirmed',
+      bookedAt:   Timestamp.now()
+    });
+
+    // 完了画面に切り替え
+    document.getElementById('svDetail').innerHTML =
+      `<div>📋 <strong>${p.emoji} ${p.name}</strong></div>
+       <div>📅 ${s.date}　${s.time}</div>
+       <div>👤 ${name}（${age}）</div>
+       <div>📱 ${tel}</div>
+       ${tochi?`<div>👶 託児利用：${tochiTime||'時間未定'}</div>`:''}`;
+
+    document.getElementById('formView').style.display  = 'none';
+    document.getElementById('successView').style.display = 'block';
+
+  } catch(e) {
+    console.error('予約保存エラー:', e);
+    alert('送信に失敗しました。通信状況を確認してください。\n' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '予約を送信する';
+  }
 }
 
-document.getElementById('modalBg').addEventListener('click',e=>{
-  if(e.target===document.getElementById('modalBg')) closeModal();
+// グローバル公開（module内のため）
+window.filterMonth   = filterMonth;
+window.toggleProg    = toggleProg;
+window.openModal     = openModal;
+window.closeModal    = closeModal;
+window.toggleTochiTime = toggleTochiTime;
+window.submitBooking = submitBooking;
+
+document.getElementById('modalBg').addEventListener('click', e => {
+  if(e.target === document.getElementById('modalBg')) closeModal();
 });
 
 render();
