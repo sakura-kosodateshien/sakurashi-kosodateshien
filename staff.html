@@ -133,7 +133,15 @@ const db  = getFirestore(app);
 
 const PH=28;
 const HOURS=[9,10,11,12,13,14];
-const BASE=new Date(2026,3,6);
+// 今週の月曜日を自動計算
+const BASE=(()=>{
+  const d=new Date();
+  const day=d.getDay();
+  const diff=day===0?-6:1-day;
+  d.setDate(d.getDate()+diff);
+  d.setHours(0,0,0,0);
+  return d;
+})();
 let weekOffset=0;
 let viewMode='all';
 let selectedProg=null;
@@ -255,6 +263,13 @@ function changeWeek(d){ weekOffset+=d; subscribeWeek(); }
 function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
 window.changeWeek=changeWeek; window.setView=setView;
 
+// 週ラベルを即時更新（Firebase待ちなしで）
+function updateWeekLabel(){
+  const dates=getWeekDates();
+  const el=document.getElementById('wlabel');
+  if(el) el.textContent=`${fmt(dates[0])}〜${fmt(dates[4])}`;
+}
+
 // ── ガントチャート描画 ────────────────────────────────────────────────
 function render(){
   const dates=getWeekDates();
@@ -359,7 +374,16 @@ document.getElementById('panelBg').addEventListener('click',e=>{
 });
 
 // ── 初期化 ──────────────────────────────────────────────────────────
-applyChangesToProgs().then(() => subscribeWeek());
+// 週ラベルを即時表示
+(function(){
+  const dates=getWeekDates();
+  document.getElementById('wlabel').textContent=`${fmt(dates[0])}〜${fmt(dates[4])}`;
+})();
+
+(async()=>{
+  try{ await applyChangesToProgs(); }catch(e){ console.warn('changes適用スキップ:', e.message); }
+  subscribeWeek();
+})();
 </script>
 </body>
 </html>
