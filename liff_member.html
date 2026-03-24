@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会員証 | ひのきっこ子育て支援センター</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;
+  --cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2;
+}
+body{
+  font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+  background:var(--cream);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  color:var(--text);
+}
+
+/* ヘッダー */
+header{
+  width:100%;background:var(--green);
+  padding:16px 20px 14px;text-align:center;
+}
+header .en{font-size:.68rem;letter-spacing:.2em;color:rgba(255,255,255,.45);margin-bottom:4px}
+header h1{color:#fff;font-size:1rem;font-weight:700}
+
+/* メインカード */
+.card{
+  width:min(380px,92vw);margin:24px auto;
+  background:#fff;border-radius:20px;
+  box-shadow:0 4px 24px rgba(45,106,79,.12);
+  overflow:hidden;
+}
+
+/* 会員証ヘッダー */
+.member-head{
+  background:linear-gradient(135deg,var(--green) 0%,#40916c 100%);
+  padding:20px 20px 16px;text-align:center;color:#fff;
+}
+.member-head .label{font-size:.72rem;opacity:.65;letter-spacing:.1em;margin-bottom:4px}
+.member-head .name{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+.member-head .uid{font-size:.68rem;opacity:.5;font-family:monospace}
+
+/* QRエリア */
+.qr-area{
+  padding:20px;display:flex;flex-direction:column;
+  align-items:center;gap:14px;
+}
+#qrcode{
+  background:#fff;padding:14px;
+  border-radius:12px;border:1.5px solid var(--border);
+}
+.qr-note{
+  background:var(--light);border-radius:10px;
+  padding:12px 14px;font-size:.78rem;
+  color:var(--muted);line-height:1.7;
+  width:100%;text-align:center;
+}
+
+/* 会員情報 */
+.member-info{
+  border-top:1px solid var(--border);
+  padding:14px 18px;
+}
+.info-row{
+  display:flex;justify-content:space-between;
+  align-items:center;padding:6px 0;
+  border-bottom:0.5px solid var(--border);
+  font-size:.84rem;
+}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--muted);font-size:.76rem}
+.info-val{font-weight:500}
+
+/* 今日の予約 */
+.today-booking{
+  margin:0 18px 16px;
+  background:#e8f5e9;border-radius:10px;
+  padding:12px 14px;font-size:.82rem;
+}
+.today-booking .tb-title{
+  font-weight:700;color:var(--green);
+  font-size:.78rem;margin-bottom:6px;
+}
+.booking-item{
+  display:flex;align-items:center;gap:8px;
+  padding:4px 0;
+}
+.booking-item .prog{flex:1;font-weight:500}
+.booking-item .time{font-size:.75rem;color:var(--muted)}
+.no-booking{color:var(--muted);font-size:.8rem;text-align:center;padding:4px 0}
+
+/* 状態表示 */
+.state{
+  width:min(380px,92vw);margin:40px auto;
+  text-align:center;padding:20px;
+}
+.state .icon{font-size:2.4rem;margin-bottom:12px}
+.state .msg{font-size:.9rem;color:var(--muted);line-height:1.7}
+.state .sub{font-size:.8rem;color:var(--muted);margin-top:8px}
+
+/* 登録誘導 */
+.reg-card{
+  width:min(380px,92vw);margin:20px auto;
+  background:#fff;border-radius:16px;
+  border:1.5px solid var(--border);
+  padding:24px 20px;text-align:center;
+}
+.reg-card h2{font-size:1rem;font-weight:700;color:var(--green);margin-bottom:8px}
+.reg-card p{font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.btn{
+  display:block;width:100%;padding:13px;
+  background:var(--green);color:#fff;
+  border:none;border-radius:12px;
+  font-size:.92rem;font-weight:700;
+  font-family:inherit;cursor:pointer;
+  text-decoration:none;text-align:center;
+  transition:background .15s;
+}
+.btn:hover{background:#235a40}
+.btn-sub{
+  display:block;width:100%;padding:11px;
+  background:#fff;color:var(--muted);
+  border:1px solid var(--border);border-radius:12px;
+  font-size:.85rem;font-family:inherit;
+  cursor:pointer;margin-top:8px;
+  text-decoration:none;text-align:center;
+}
+
+footer{
+  color:var(--muted);font-size:.7rem;
+  text-align:center;padding:16px;margin-top:auto;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="en">HINOKI SAKURA · MEMBER CARD</div>
+  <h1>🌿 ひのきっこ 会員証</h1>
+</header>
+
+<!-- ローディング -->
+<div class="state" id="stateLoading">
+  <div class="icon">⏳</div>
+  <div class="msg">会員情報を確認中です…</div>
+</div>
+
+<!-- 会員証（登録済み） -->
+<div class="card" id="cardMember" style="display:none">
+  <div class="member-head">
+    <div class="label">MEMBER CARD</div>
+    <div class="name" id="mName"></div>
+    <div class="uid"  id="mUid"></div>
+  </div>
+  <div class="qr-area">
+    <div id="qrcode"></div>
+    <div class="qr-note">
+      センター受付のタブレットにかざしてください<br>
+      チェックインが自動で完了します
+    </div>
+  </div>
+  <div class="today-booking" id="todayBooking" style="display:none">
+    <div class="tb-title">📋 本日の予約</div>
+    <div id="bookingList"></div>
+  </div>
+  <div class="member-info" id="memberInfo"></div>
+</div>
+
+<!-- 未登録 -->
+<div id="cardUnreg" style="display:none">
+  <div class="state">
+    <div class="icon">🌱</div>
+    <div class="msg">まだ会員登録されていません</div>
+    <div class="sub">登録すると次回からQRコードをかざすだけでチェックインできます</div>
+  </div>
+  <div class="reg-card">
+    <h2>会員登録はこちら</h2>
+    <p>お名前・お子さんの生年月日・連絡先を登録してください。<br>登録は無料です。</p>
+    <a href="register.html" class="btn">無料で会員登録する</a>
+    <a href="user_program.html" class="btn-sub">登録せずに予約する</a>
+  </div>
+</div>
+
+<!-- エラー -->
+<div class="state" id="stateError" style="display:none">
+  <div class="icon">⚠️</div>
+  <div class="msg" id="errMsg">エラーが発生しました</div>
+  <div class="sub">しばらくしてから再度お試しください</div>
+</div>
+
+<footer>陽の木さくら保育園 子育て支援センター ひのきっこ</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, query, where, getDocs, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── ユーティリティ ─────────────────────────────────────────────────
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+function calcMonths(dob){
+  const d=new Date(dob), t=new Date();
+  return (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
+}
+function show(id){ document.getElementById(id).style.display=''; }
+function hide(id){ document.getElementById(id).style.display='none'; }
+
+// ── QRコード生成 ──────────────────────────────────────────────────
+function generateQR(uid){
+  const checkinURL = `${location.origin}${location.pathname.replace('liff_member.html','checkin.html')}?uid=${uid}`;
+  document.getElementById('qrcode').innerHTML='';
+  new QRCode(document.getElementById('qrcode'),{
+    text: checkinURL,
+    width: 200, height: 200,
+    colorDark: '#1a3a2a', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+// ── 本日の予約を取得 ──────────────────────────────────────────────
+async function loadTodayBookings(uid){
+  const today = todayStr();
+  try {
+    const q = query(
+      collection(db,'bookings'),
+      where('uid','==',uid),
+      where('date','==',today),
+      where('status','in',['confirmed','pending'])
+    );
+    const snap = await getDocs(q);
+    const bks  = snap.docs.map(d=>d.data());
+    if(bks.length===0) return;
+
+    const area = document.getElementById('todayBooking');
+    const list = document.getElementById('bookingList');
+    area.style.display = 'block';
+    list.innerHTML = bks.map(b=>`
+      <div class="booking-item">
+        <span class="prog">${b.progName||b.progId}</span>
+        <span class="time">${b.time||''}</span>
+      </div>`).join('');
+  } catch(e){
+    console.warn('予約取得エラー:', e.message);
+  }
+}
+
+// ── 会員情報表示 ──────────────────────────────────────────────────
+function showMember(user){
+  const months = calcMonths(user.childDob);
+  document.getElementById('mName').textContent = user.name + ' さん';
+  document.getElementById('mUid').textContent  = 'ID: ' + user.uid;
+
+  generateQR(user.uid);
+
+  // 会員情報テーブル
+  document.getElementById('memberInfo').innerHTML = `
+    <div class="info-row">
+      <span class="info-label">お子さんの月齢</span>
+      <span class="info-val">${months}ヶ月</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">連絡先</span>
+      <span class="info-val">${user.tel||'未登録'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">登録日</span>
+      <span class="info-val">${user.registeredAt ? new Date(user.registeredAt).toLocaleDateString('ja-JP') : '-'}</span>
+    </div>`;
+
+  hide('stateLoading');
+  show('cardMember');
+  loadTodayBookings(user.uid);
+}
+
+// ── メイン処理 ────────────────────────────────────────────────────
+async function main(){
+  try {
+    // LIFF初期化
+    // ※ LIFF IDは後でLINE Developersコンソールから取得して設定
+    const LIFF_ID = '2009587361-BBVXkOWi';
+
+    await liff.init({ liffId: LIFF_ID });
+
+    let lineUserId = null;
+
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      lineUserId = profile.userId;
+    } else {
+      // LINEブラウザ以外（テスト用）はURLパラメータからUIDを取得
+      const params = new URLSearchParams(location.search);
+      const testUid = params.get('uid');
+      if(testUid){
+        // テストモード：UIDで直接検索
+        const q = query(collection(db,'users'), where('uid','==',testUid));
+        const snap = await getDocs(q);
+        if(!snap.empty){
+          showMember(snap.docs[0].data());
+        } else {
+          hide('stateLoading'); show('cardUnreg');
+        }
+        return;
+      }
+      // LINE未ログイン → ログイン誘導
+      liff.login();
+      return;
+    }
+
+    // LINE User IDでFirestoreを検索
+    const q = query(
+      collection(db,'users'),
+      where('lineUserId','==',lineUserId)
+    );
+    const snap = await getDocs(q);
+
+    if(snap.empty){
+      // 未登録 → 登録誘導
+      hide('stateLoading');
+      show('cardUnreg');
+
+      // 登録ページにLINE User IDを渡す
+      document.querySelector('#cardUnreg .btn').href =
+        `register.html?lineUserId=${encodeURIComponent(lineUserId)}`;
+    } else {
+      showMember(snap.docs[0].data());
+    }
+
+  } catch(e){
+    console.error('LIFF初期化エラー:', e);
+
+    // LIFF外（通常ブラウザ）でのテスト表示
+    hide('stateLoading');
+    document.getElementById('errMsg').textContent =
+      'LINEアプリからアクセスしてください。\n(' + e.message + ')';
+    show('stateError');
+  }
+}
+
+main();
+</script>
+</body>
+</html>
