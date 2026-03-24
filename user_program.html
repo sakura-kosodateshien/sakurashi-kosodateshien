@@ -218,8 +218,8 @@ const PROGS = [
    cap:3, capLabel:"各3組程度・2組から貸し切り",
    note:"スマホで簡単！赤ちゃんを可愛く撮るコツ講座＆撮影会。季節感たっぷりのフォトブースや可愛い撮影小物をご用意。手ぶら感覚でOK♪",
    slots:[
-     {date:"4/20（月）", time:"10:00〜14:00（1時間）", bk:1, full:false},
-     {date:"4/27（月）", time:"10:00〜14:00（1時間）", bk:0, full:false},
+     {date:"4/20（月）", time:"10:00〜14:00の間の1時間", bk:1, full:false},
+     {date:"4/27（月）", time:"10:00〜14:00の間の1時間", bk:0, full:false},
    ]},
   {id:"pulapan", name:"プラパン工房", emoji:"🎨", bg:"#e8eaf6",
    cap:2, capLabel:"各2組・託児付き",
@@ -242,12 +242,12 @@ const PROGS = [
    ]},
   {id:"eigo", name:"英語・知育", emoji:"📚", bg:"#e8f5e9",
    cap:6, capLabel:"各6組",
-   note:"英語（7か月〜1才）・知育（1才〜3才）。1才児はどちらでも選べます。終了後12:00〜14:00まで支援センターで遊べます♪",
+   note:"終了後12:00〜14:00まで支援センターで遊べます♪ 1才児はどちらでも選べます。",
    slots:[
-     {date:"4/7（火）英語", time:"10:00〜12:00", bk:3, full:false},
-     {date:"4/9（木）知育※", time:"10:00〜12:00", bk:5, full:false},
-     {date:"4/14（火）英語", time:"10:00〜12:00", bk:2, full:false},
-     {date:"4/16（木）知育", time:"10:00〜12:00", bk:6, full:true},
+     {date:"4/7（火）", time:"10:00〜12:00", bk:3, full:false, label:"英語　対象：7か月〜1才"},
+     {date:"4/9（木）", time:"10:00〜12:00", bk:5, full:false, label:"知育　対象：7か月〜1才"},
+     {date:"4/14（火）", time:"10:00〜12:00", bk:2, full:false, label:"英語　対象：1才〜3才"},
+     {date:"4/16（木）", time:"10:00〜12:00", bk:6, full:true,  label:"知育　対象：1才〜3才"},
    ]},
   {id:"hattatsu", name:"発達相談", emoji:"💬", bg:"#f3e5f5",
    cap:99, capLabel:"要予約・作業療法士",
@@ -264,12 +264,28 @@ const PROGS = [
    ]},
   {id:"tochi", name:"託児ルーム", emoji:"👶", bg:"#e3f2fd",
    cap:2, capLabel:"定員2名・月〜金 9:00〜14:00（2時間まで）",
-   note:"満6か月〜3歳未満。費用無料。希望の時間をご記入ください。",
+   note:"満6か月〜3歳未満。費用無料。希望の利用時間をご記入ください。",
    slots:[
-     {date:"4/7（火）", time:"希望時間を入力", bk:1, full:false},
-     {date:"4/8（水）", time:"希望時間を入力", bk:2, full:true},
-     {date:"4/9（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/1（水）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/2（木）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/3（金）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/7（火）",  time:"希望時間を入力", bk:1, full:false},
+     {date:"4/8（水）",  time:"希望時間を入力", bk:2, full:true},
+     {date:"4/9（木）",  time:"希望時間を入力", bk:0, full:false},
      {date:"4/10（金）", time:"希望時間を入力", bk:1, full:false},
+     {date:"4/13（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/14（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/15（水）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/16（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/17（金）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/20（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/21（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/22（水）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/23（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/24（金）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/27（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/28（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/30（木）", time:"希望時間を入力", bk:0, full:false},
    ]},
 ];
 
@@ -309,6 +325,7 @@ function render(){
       html += `<div class="slot ${s.full?'full':''}" onclick="${s.full?'':'openModal(\''+p.id+'\','+si+')'}">
         <div class="slot-left">
           <div class="slot-date">${s.date}</div>
+          ${s.label ? `<div class="slot-time" style="color:var(--green);font-weight:700">${s.label}</div>` : ''}
           <div class="slot-time">${s.time}</div>
         </div>
         ${dots ? `<div class="dots">${dots}</div>` : ''}
