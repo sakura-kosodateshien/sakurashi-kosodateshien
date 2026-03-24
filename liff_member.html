@@ -106,7 +106,7 @@ footer{color:var(--muted);font-size:.7rem;text-align:center;padding:16px;margin-
 </header>
 
 <!-- ローディング -->
-<div class="state" id="stateLoading">
+<div class="state" id="stateLoading" style="display:none">
   <div class="icon">⏳</div>
   <div class="msg">会員情報を確認中です…</div>
 </div>
@@ -481,50 +481,30 @@ window.execLink = async function(){
   }
 };
 async function main(){
-  try{
-    const LIFF_ID='2009587361-BBVXkOWi';
-    await liff.init({ liffId:LIFF_ID });
+  // まず未登録画面を即表示（LIFFなし）
+  show('cardUnreg');
+  document.querySelector('#cardUnreg .btn').href =
+    `https://liff.line.me/2009587361-fY64rJtv`;
 
-    if(!liff.isLoggedIn()){
-      const params = new URLSearchParams(location.search);
-      const testUid = params.get('uid');
-      if(testUid){
-        const snap = await getDocs(collection(db,'users'));
-        const user = snap.docs.map(d=>d.data()).find(u=>u.uid===testUid);
-        if(user){ showMember(user); } else { hide('stateLoading'); show('cardUnreg'); }
-      } else {
-        liff.login();
-      }
-      return;
-    }
+  // バックグラウンドでLIFF初期化を試みる
+  try{
+    await liff.init({ liffId:'2009587361-BBVXkOWi' });
+    if(!liff.isLoggedIn()){ liff.login(); return; }
 
     const profile = await liff.getProfile();
     currentLineUserId = profile.userId;
 
-    // usersコレクション全件取得してJSで照合（クエリを使わない）
     const snap = await getDocs(collection(db,'users'));
-    const users = snap.docs.map(d=>({id:d.id,...d.data()}));
-
-    // lineUserIdで照合
-    let found = users.find(u=>u.lineUserId===currentLineUserId);
+    const found = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .find(u=>u.lineUserId===currentLineUserId);
 
     if(found){
+      hide('cardUnreg');
       showMember(found);
-      return;
     }
-
-    // 未登録 → 未登録画面
-    hide('stateLoading');
-    show('cardUnreg');
-    document.querySelector('#cardUnreg .btn').href =
-      `https://liff.line.me/2009587361-fY64rJtv`;
-
   }catch(e){
-    console.error('エラー:', e);
-    hide('stateLoading');
-    document.getElementById('errMsg').textContent =
-      '❌ ' + e.message + (e.code?'\n'+e.code:'');
-    show('stateError');
+    console.error(e);
+    // エラーでも未登録画面はすでに表示済みなので何もしない
   }
 }
 
