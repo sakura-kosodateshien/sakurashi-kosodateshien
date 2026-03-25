@@ -251,22 +251,6 @@ function render(){
   document.getElementById('dayList').innerHTML=dl||'<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px">この週のプログラムはありません</p>';
 }
 
-  const progs = ALL_PROGS.filter(p=>dkeys.includes(p.date));
-  const totalH = HOURS.length * PH;
-
-  let html = '<div></div>';
-  dates.forEach((d,i)=>{
-    const today2 = d.toDateString()===new Date(2026,3,8).toDateString();
-    html+=`<div class="ch ${today2?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
-  });
-  HOURS.forEach(h=>{
-    html+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`;
-    for(let d=0;d<5;d++){
-      html+=`<div class="day-col" style="height:${PH}px"></div>`;
-    }
-  });
-  document.getElementById('calGrid').innerHTML = html;
-
 function openSheet(idx){
   const p=ALL_PROGS[idx];
   selectedProg=p;
