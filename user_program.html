@@ -166,14 +166,24 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
       <div id="tochiTimePickerWrap" style="display:none">
         <div class="tochi-time-wrap">
           <label>希望時間を選んでください<span class="req">*</span>（連続2時間以内）</label>
+          <div id="tochiDateLabel" style="font-size:.8rem;font-weight:700;color:var(--lav-dark);margin-bottom:6px"></div>
           <div class="tochi-time-grid" id="tochiTimeGrid"></div>
-          <div class="tochi-slot-note" id="tochiSlotNote">開始〜終了の時間をタップして選択（最大2時間）</div>
+          <div class="tochi-slot-note" id="tochiSlotNote">開始時間をタップしてください</div>
         </div>
         <div class="form-row" id="tochiExtraRow" style="display:none">
           <label>2枠目も一緒に予約しますか？<span style="font-size:.68rem;color:var(--muted);margin-left:4px">（月4枠まで・1回2枠まで）</span></label>
-          <select id="tochiExtraSelect">
+          <select id="tochiExtraSelect" onchange="onTochiExtraChange()">
             <option value="">追加しない（1枠のみ）</option>
           </select>
+        </div>
+        <!-- 2枠目の時間ピッカー -->
+        <div id="tochiExtra2Wrap" style="display:none">
+          <div class="tochi-time-wrap">
+            <label>2枠目の希望時間<span class="req">*</span></label>
+            <div id="tochiDateLabel2" style="font-size:.8rem;font-weight:700;color:var(--lav-dark);margin-bottom:6px"></div>
+            <div class="tochi-time-grid" id="tochiTimeGrid2"></div>
+            <div class="tochi-slot-note" id="tochiSlotNote2">開始時間をタップしてください</div>
+          </div>
         </div>
       </div>
 
@@ -534,8 +544,7 @@ function openModal(progId, slotIdx){
   document.getElementById('tochiTimePickerWrap').style.display = isTochi ? 'block' : 'none';
   if(isTochi){
     document.getElementById('fTochi').value = 'yes';
-    initTochiTimePicker();
-    // 2枠目選択肢
+    initTochiTimePicker(s.date);
     const otherSlots = p.slots.filter((_,i) => i !== slotIdx && !p.slots[i].full);
     let opts = '<option value="">追加しない（1枠のみ）</option>';
     otherSlots.forEach((os) => {
@@ -543,6 +552,7 @@ function openModal(progId, slotIdx){
     });
     document.getElementById('tochiExtraSelect').innerHTML = opts;
     document.getElementById('tochiExtraRow').style.display = otherSlots.length ? 'block' : 'none';
+    document.getElementById('tochiExtra2Wrap').style.display = 'none';
   } else {
     document.getElementById('fTochi').value = 'no';
   }
@@ -568,13 +578,20 @@ function closeModal(){
 
 // ── 託児時間ピッカー ────────────────────────────────────────────────
 const TOCHI_TIMES = ['9:00','9:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00'];
-let tochiSelectedStart = null;
-let tochiSelectedEnd   = null;
+let tochiSelectedStart  = null;
+let tochiSelectedEnd    = null;
+let tochiSelectedStart2 = null;
+let tochiSelectedEnd2   = null;
 
-function initTochiTimePicker(){
-  tochiSelectedStart = null;
-  tochiSelectedEnd   = null;
+function initTochiTimePicker(dateLabel){
+  tochiSelectedStart  = null;
+  tochiSelectedEnd    = null;
+  tochiSelectedStart2 = null;
+  tochiSelectedEnd2   = null;
   document.getElementById('fTochiTime').value = '';
+  // 日付ラベル表示
+  const dl = document.getElementById('tochiDateLabel');
+  if(dl) dl.textContent = '📅 ' + (dateLabel||'');
   renderTochiPicker();
 }
 
@@ -582,9 +599,7 @@ function renderTochiPicker(){
   const grid = document.getElementById('tochiTimeGrid');
   const note = document.getElementById('tochiSlotNote');
   if(!grid) return;
-
   grid.innerHTML = TOCHI_TIMES.map((t,i) => {
-    // 14:00は終了専用（開始不可）
     const isEndOnly = t === '14:00';
     let cls = 'tochi-slot';
     if(tochiSelectedStart !== null && tochiSelectedEnd !== null){
@@ -595,49 +610,92 @@ function renderTochiPicker(){
     if(isEndOnly && tochiSelectedStart === null) cls += ' disabled';
     return `<button type="button" class="${cls}" onclick="onTochiSlotClick(${i})">${t}</button>`;
   }).join('');
-
-  // 表示テキスト更新
   if(tochiSelectedStart === null){
     note.textContent = '開始時間をタップしてください';
   } else if(tochiSelectedEnd === null){
     note.textContent = `開始：${TOCHI_TIMES[tochiSelectedStart]}　→ 終了時間を選んでください（最大2時間）`;
   } else {
-    const timeStr = TOCHI_TIMES[tochiSelectedStart] + '〜' + TOCHI_TIMES[tochiSelectedEnd];
-    note.textContent = `✅ ${timeStr} を選択しました`;
+    const timeStr = TOCHI_TIMES[tochiSelectedStart]+'〜'+TOCHI_TIMES[tochiSelectedEnd];
+    note.textContent = '✅ '+timeStr+' を選択しました';
     document.getElementById('fTochiTime').value = timeStr;
   }
 }
 
 window.onTochiSlotClick = function(idx){
   const t = TOCHI_TIMES[idx];
-
   if(tochiSelectedStart === null){
-    // 1回目タップ：開始時間（14:00は開始不可）
     if(t === '14:00') return;
-    tochiSelectedStart = idx;
-    tochiSelectedEnd   = null;
+    tochiSelectedStart = idx; tochiSelectedEnd = null;
   } else if(tochiSelectedEnd === null){
-    // 2回目タップ：終了時間
-    if(idx <= tochiSelectedStart){
-      // 開始より前または同じ → やり直し
-      tochiSelectedStart = (t === '14:00') ? null : idx;
-      tochiSelectedEnd   = null;
-    } else {
-      // 最大2時間（4スロット）チェック
-      const diffSlots = idx - tochiSelectedStart;
-      if(diffSlots > 4){
-        alert('2時間以内で選択してください。');
-        return;
-      }
+    if(idx <= tochiSelectedStart){ tochiSelectedStart = (t==='14:00')?null:idx; tochiSelectedEnd=null; }
+    else {
+      if(idx - tochiSelectedStart > 4){ alert('2時間以内で選択してください。'); return; }
       tochiSelectedEnd = idx;
     }
   } else {
-    // 3回目以降：リセットして再選択
-    tochiSelectedStart = (t === '14:00') ? null : idx;
-    tochiSelectedEnd   = null;
+    tochiSelectedStart = (t==='14:00')?null:idx; tochiSelectedEnd=null;
   }
-
   renderTochiPicker();
+};
+
+// ── 2枠目時間ピッカー ─────────────────────────────────────────────
+function renderTochiPicker2(dateLabel){
+  const grid = document.getElementById('tochiTimeGrid2');
+  const note = document.getElementById('tochiSlotNote2');
+  const dl   = document.getElementById('tochiDateLabel2');
+  if(!grid) return;
+  if(dl) dl.textContent = '📅 ' + (dateLabel||'');
+  grid.innerHTML = TOCHI_TIMES.map((t,i) => {
+    const isEndOnly = t === '14:00';
+    let cls = 'tochi-slot';
+    if(tochiSelectedStart2 !== null && tochiSelectedEnd2 !== null){
+      if(i >= tochiSelectedStart2 && i <= tochiSelectedEnd2) cls += ' selected';
+    } else if(tochiSelectedStart2 !== null && i === tochiSelectedStart2){
+      cls += ' selected';
+    }
+    if(isEndOnly && tochiSelectedStart2 === null) cls += ' disabled';
+    return `<button type="button" class="${cls}" onclick="onTochiSlotClick2(${i})">${t}</button>`;
+  }).join('');
+  if(tochiSelectedStart2 === null){
+    note.textContent = '開始時間をタップしてください';
+  } else if(tochiSelectedEnd2 === null){
+    note.textContent = `開始：${TOCHI_TIMES[tochiSelectedStart2]}　→ 終了時間を選んでください（最大2時間）`;
+  } else {
+    const timeStr = TOCHI_TIMES[tochiSelectedStart2]+'〜'+TOCHI_TIMES[tochiSelectedEnd2];
+    note.textContent = '✅ '+timeStr+' を選択しました';
+  }
+}
+
+window.onTochiSlotClick2 = function(idx){
+  const t = TOCHI_TIMES[idx];
+  if(tochiSelectedStart2 === null){
+    if(t === '14:00') return;
+    tochiSelectedStart2 = idx; tochiSelectedEnd2 = null;
+  } else if(tochiSelectedEnd2 === null){
+    if(idx <= tochiSelectedStart2){ tochiSelectedStart2=(t==='14:00')?null:idx; tochiSelectedEnd2=null; }
+    else {
+      if(idx - tochiSelectedStart2 > 4){ alert('2時間以内で選択してください。'); return; }
+      tochiSelectedEnd2 = idx;
+    }
+  } else {
+    tochiSelectedStart2=(t==='14:00')?null:idx; tochiSelectedEnd2=null;
+  }
+  renderTochiPicker2();
+};
+
+// 2枠目選択変更時
+window.onTochiExtraChange = function(){
+  const sel = document.getElementById('tochiExtraSelect');
+  const wrap = document.getElementById('tochiExtra2Wrap');
+  if(sel.selectedIndex > 0){
+    const dateLabel = sel.options[sel.selectedIndex].text.split('　')[0];
+    tochiSelectedStart2 = null; tochiSelectedEnd2 = null;
+    wrap.style.display = 'block';
+    renderTochiPicker2(dateLabel);
+  } else {
+    wrap.style.display = 'none';
+    tochiSelectedStart2 = null; tochiSelectedEnd2 = null;
+  }
 };
 
 function toggleTochiTime(){} // 後方互換（空関数）
@@ -664,6 +722,14 @@ async function submitBooking(){
     // 時間ピッカーのバリデーション
     const tochiTimeVal = document.getElementById('fTochiTime').value;
     if(!tochiTimeVal){ alert('希望時間を選択してください'); return; }
+
+    // 2枠目選択時の時間バリデーション
+    const extraSel = document.getElementById('tochiExtraSelect');
+    if(extraSel && extraSel.selectedIndex > 0){
+      if(tochiSelectedStart2 === null || tochiSelectedEnd2 === null){
+        alert('2枠目の希望時間を選択してください'); return;
+      }
+    }
 
     const dateK = toDateKey(s.date);
 
@@ -714,11 +780,15 @@ async function submitBooking(){
         const extraSlots   = p.slots.filter((_,i) => i !== p.slots.indexOf(s) && !p.slots[p.slots.indexOf(s)].full);
         if (extraSlots[extraSlotIdx]) {
           const es = extraSlots[extraSlotIdx];
+          const extra2Time = (tochiSelectedStart2 !== null && tochiSelectedEnd2 !== null)
+            ? TOCHI_TIMES[tochiSelectedStart2]+'〜'+TOCHI_TIMES[tochiSelectedEnd2]
+            : '';
           await addDoc(collection(db, 'bookings'), {
             ...baseData,
             date:      toDateKey(es.date),
             dateLabel: es.date,
-            time:      es.time,
+            time:      extra2Time || es.time,
+            tochiTime: extra2Time,
             bookedAt:  Timestamp.now()
           });
         }
