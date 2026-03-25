@@ -386,6 +386,38 @@
     window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
     document.getElementById('manualUid').value = '';
   }
+
+  // ── 外部バーコードスキャナー対応 ────────────────────────────────────
+  // スキャナーはキーボードとして動作し高速入力→Enterを送信する
+  let barcodeBuffer = '';
+  let barcodeTimer  = null;
+
+  document.addEventListener('keydown', function(e) {
+    // 手入力欄にフォーカスがある場合はスルー
+    if(document.activeElement === document.getElementById('manualUid')) return;
+
+    if(e.key === 'Enter') {
+      // Enter → バッファの内容を処理
+      const data = barcodeBuffer.trim();
+      barcodeBuffer = '';
+      clearTimeout(barcodeTimer);
+      if(data.length > 3) {
+        // URLかUID文字列を解析
+        let uid = data;
+        try {
+          const u = new URL(data);
+          uid = u.searchParams.get('uid') || data;
+        } catch(err) {}
+        window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
+      }
+    } else if(e.key.length === 1) {
+      // 通常文字をバッファに追加
+      barcodeBuffer += e.key;
+      // 200ms以内に次の入力がなければバッファクリア（手入力と区別）
+      clearTimeout(barcodeTimer);
+      barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 200);
+    }
+  });
 </script>
 </body>
 </html>
