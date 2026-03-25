@@ -111,14 +111,74 @@ const PH = 42;
 const HOURS = [9,10,11,12,13,14];
 const BASE = new Date(2026,3,6);
 
-// 今週のオフセットを自動計算（4/6週が0）
+// 今週のオフセットを自動計算（4/6週が0、4/1〜4/5は-1週）
 function calcCurrentWeekOffset(){
   const today = new Date(); today.setHours(0,0,0,0);
   const diffDays = Math.round((today - BASE) / (24*3600*1000));
-  return Math.max(0, Math.floor(diffDays/7));
+  return Math.floor(diffDays/7); // マイナスも許可
 }
 let weekOffset = calcCurrentWeekOffset();
 let selectedProg = null;
+
+
+
+// 4月プログラムデータ（確定版）
+const ALL_PROGS = [
+  // ── 4/1〜4/3（4月第1週・水木金）────────────────────────────
+  {date:"2026-04-01",name:"自由遊び",emoji:"🎈",type:"y",day:2,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {date:"2026-04-01",name:"託児",emoji:"👶",type:"t",day:2,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。満6か月〜満3歳未満。"},
+  {date:"2026-04-02",name:"自由遊び",emoji:"🎈",type:"y",day:3,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {date:"2026-04-02",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-03",name:"自由遊び",emoji:"🎈",type:"y",day:4,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {date:"2026-04-03",name:"託児",emoji:"👶",type:"t",day:4,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  // ── 4/6週 ───────────────────────────────────────────────────
+  {date:"2026-04-06",name:"ランチひろば",emoji:"🍱",type:"s",day:0,sh:12,sm:0,eh:14,em:0,cap:4,bk:0,note:"各2〜4組貸し切り。お弁当持参。"},
+  {date:"2026-04-07",name:"英語 7か月〜1才",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:30,cap:6,bk:0,note:"7か月〜1才対象。"},
+  {date:"2026-04-07",name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-08",name:"ランチひろば",emoji:"🍱",type:"s",day:2,sh:12,sm:0,eh:14,em:0,cap:4,bk:0,note:"各2〜4組貸し切り。お弁当持参。"},
+  {date:"2026-04-08",name:"託児",emoji:"👶",type:"t",day:2,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-09",name:"知育 7か月〜1才",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:30,cap:6,bk:0,note:"7か月〜1才対象。"},
+  {date:"2026-04-09",name:"おやつ♡",emoji:"🍰",type:"s",day:3,sh:14,sm:0,eh:14,em:30,cap:99,bk:0,note:"キャロットケーキ。保育園のおやつを試食。"},
+  {date:"2026-04-09",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-10",name:"園庭遊び",emoji:"🌳",type:"s",day:4,sh:9,sm:0,eh:11,em:0,cap:99,bk:0,note:"9:00〜11:00 外遊び。"},
+  {date:"2026-04-10",name:"託児",emoji:"👶",type:"t",day:4,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  // ── 4/13週 ──────────────────────────────────────────────────
+  {date:"2026-04-13",name:"ベビーマッサージ",emoji:"👐",type:"s",day:0,sh:9,sm:30,eh:10,em:0,cap:3,bk:0,note:"満6か月〜1歳半対象。要予約3組。"},
+  {date:"2026-04-13",name:"発達相談",emoji:"💬",type:"s",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bk:0,note:"作業療法士による発達相談。"},
+  {date:"2026-04-13",name:"託児",emoji:"👶",type:"t",day:0,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-14",name:"英語 1才〜3才",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:30,cap:6,bk:0,note:"1才〜3才対象。"},
+  {date:"2026-04-14",name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-15",name:"プラパン手足形",emoji:"🎨",type:"s",day:2,sh:10,sm:0,eh:11,em:0,cap:2,bk:0,note:"足型・手形キーホルダー。託児付き。"},
+  {date:"2026-04-15",name:"託児",emoji:"👶",type:"t",day:2,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-16",name:"知育 1才〜3才",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:30,cap:6,bk:0,note:"1才〜3才対象。"},
+  {date:"2026-04-16",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-17",name:"お誕生日会",emoji:"🎂",type:"s",day:4,sh:9,sm:30,eh:10,em:30,cap:99,bk:0,note:"4月生まれ集まれ！保育園のお友達と一緒にお祝い。"},
+  {date:"2026-04-17",name:"託児",emoji:"👶",type:"t",day:4,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  // ── 4/20週 ──────────────────────────────────────────────────
+  {date:"2026-04-20",name:"ベビーフォト",emoji:"📸",type:"s",day:0,sh:10,sm:0,eh:11,em:0,cap:3,bk:0,note:"スマホで可愛く撮るコツ講座＆撮影会。2組から貸し切り。"},
+  {date:"2026-04-20",name:"託児",emoji:"👶",type:"t",day:0,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-21",name:"ランチひろば",emoji:"🍱",type:"s",day:1,sh:12,sm:0,eh:14,em:0,cap:4,bk:0,note:"各2〜4組貸し切り。お弁当持参。"},
+  {date:"2026-04-21",name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-22",name:"リラックスヨガ",emoji:"🧘",type:"s",day:2,sh:11,sm:0,eh:11,em:30,cap:4,bk:0,note:"子育てママのための託児付きヨガ。先着4組。"},
+  {date:"2026-04-22",name:"託児",emoji:"👶",type:"t",day:2,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-23",name:"ランチひろば",emoji:"🍱",type:"s",day:3,sh:12,sm:0,eh:14,em:0,cap:4,bk:0,note:"各2〜4組貸し切り。お弁当持参。"},
+  {date:"2026-04-23",name:"はじめてアート",emoji:"🎏",type:"s",day:3,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"こいのぼり制作。予約不要。9:00〜14:00でいつでも。"},
+  {date:"2026-04-23",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-24",name:"園庭遊び",emoji:"🌳",type:"s",day:4,sh:9,sm:0,eh:11,em:0,cap:99,bk:0,note:"9:00〜11:00 外遊び。"},
+  {date:"2026-04-24",name:"はじめてアート",emoji:"🎏",type:"s",day:4,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"こいのぼり制作。予約不要。9:00〜14:00でいつでも。"},
+  {date:"2026-04-24",name:"託児",emoji:"👶",type:"t",day:4,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  // ── 4/27週（4/29=昭和の日お休み）──────────────────────────
+  {date:"2026-04-27",name:"ベビーフォト",emoji:"📸",type:"s",day:0,sh:10,sm:0,eh:11,em:0,cap:3,bk:0,note:"スマホで可愛く撮るコツ講座＆撮影会。2組から貸し切り。"},
+  {date:"2026-04-27",name:"発達相談",emoji:"💬",type:"s",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bk:0,note:"作業療法士による発達相談。"},
+  {date:"2026-04-27",name:"おやつ♡",emoji:"🍰",type:"s",day:0,sh:14,sm:0,eh:14,em:30,cap:99,bk:0,note:"メロンパン風クッキー。保育園のおやつを試食。"},
+  {date:"2026-04-27",name:"はじめてアート",emoji:"🎏",type:"s",day:0,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"こいのぼり制作。予約不要。9:00〜14:00でいつでも。"},
+  {date:"2026-04-27",name:"託児",emoji:"👶",type:"t",day:0,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-28",name:"ベビーマッサージ",emoji:"👐",type:"s",day:1,sh:9,sm:30,eh:10,em:0,cap:3,bk:0,note:"満6か月〜1歳半対象。要予約3組。"},
+  {date:"2026-04-28",name:"はじめてアート",emoji:"🎏",type:"s",day:1,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"こいのぼり制作。予約不要。9:00〜14:00でいつでも。"},
+  {date:"2026-04-28",name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+  {date:"2026-04-30",name:"自由遊び",emoji:"🎈",type:"y",day:3,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
+  {date:"2026-04-30",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
+];
 
 function getWeekDates(){
   const d=new Date(BASE); d.setDate(BASE.getDate()+weekOffset*7);
