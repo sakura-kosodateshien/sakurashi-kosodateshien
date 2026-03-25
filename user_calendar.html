@@ -228,21 +228,25 @@ function render(){
         const sTotal = sProgs.length;
         let posStyle = '';
         if(type==='t'){
-          // 託児は左細め
-          posStyle = 'left:1px;width:38%;';
-        } else if(type==='s' && dayProgs.some(q=>q.type==='t')){
-          // 支援Pは右側（託児がある場合）
-          if(sTotal<=1){
-            posStyle = 'left:40%;right:2px;';
+          // 託児は右側
+          posStyle = 'left:auto;right:2px;width:48%;';
+        } else if(type==='y'){
+          // 自由遊びは左側（託児がある場合）
+          const hasTochi = dayProgs.some(q=>q.type==='t');
+          posStyle = hasTochi ? 'left:1px;width:48%;' : 'left:1px;right:2px;';
+        } else if(type==='s'){
+          // 支援Pは右側（託児がある場合）、なければ全幅を均等分割
+          const hasTochi = dayProgs.some(q=>q.type==='t');
+          const sProgs = dayProgs.filter(q=>q.type==='s');
+          const sIdx = sProgs.indexOf(p);
+          const sTotal = sProgs.length;
+          if(hasTochi){
+            const w = Math.floor(56/sTotal);
+            posStyle = `left:${43+sIdx*w}%;width:${w-1}%;`;
           } else {
-            // 複数支援Pは右側を分割
-            const w = Math.floor(58/sTotal);
-            posStyle = `left:${40+sIdx*w}%;width:${w-1}%;`;
+            const w = Math.floor(96/sTotal);
+            posStyle = `left:${2+sIdx*w}%;width:${w-1}%;`;
           }
-        } else if(type==='s' && sTotal>1){
-          // 託児なし・支援P複数の場合
-          const w = Math.floor(98/sTotal);
-          posStyle = `left:${1+sIdx*w}%;width:${w-1}%;`;
         }
 
         gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${posStyle}" onclick="openSheet(${idx})">
