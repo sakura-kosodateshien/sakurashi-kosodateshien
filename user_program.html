@@ -802,12 +802,12 @@ async function submitBooking(){
     const extraSel2 = document.getElementById('tochiExtraSelect');
     const hasExtra2 = p.id==='tochi' && extraSel2 && extraSel2.selectedIndex > 0;
     document.getElementById('svDetail').innerHTML =
-      `<div>📋 <strong>${p.emoji} ${p.name}</strong></div>
-       <div>📅 ${s.date}　${s.time}</div>
-       ${hasExtra2 ? `<div>📅 ${extraSel2.options[extraSel2.selectedIndex].text}（2枠目）</div>` : ''}
-       <div>👤 ${name}（${age}）</div>
-       <div>📱 ${tel}</div>
-       ${tochi ? `<div>👶 託児利用：${tochiTime||'時間未定'}</div>` : ''}`;
+      '<div>📋 <strong>'+p.emoji+' '+p.name+'</strong></div>'+
+      '<div>📅 '+s.date+'　'+s.time+'</div>'+
+      (hasExtra2 ? '<div>📅 '+extraSel2.options[extraSel2.selectedIndex].text+'（2枠目）</div>' : '')+
+      '<div>👤 '+name+'（'+age+'）</div>'+
+      '<div>📱 '+tel+'</div>'+
+      (tochi ? '<div>👶 託児希望時間：'+(tochiTime||'時間未定')+'</div>' : '');
 
     document.getElementById('formView').style.display   = 'none';
     document.getElementById('successView').style.display = 'block';
@@ -839,10 +839,12 @@ document.getElementById('modalBg').addEventListener('click', e => {
   if(e.target === document.getElementById('modalBg')) closeModal();
 });
 
-// changes/を読み込んでから初期表示
+// まず即時描画（Firebaseなしでも表示）
+render();
+
+// changes/を読み込んで再描画
 applyChanges().then(() => {
   render();
-  // カレンダーからの遷移：URLパラメータでプログラムを自動展開
   const params = new URLSearchParams(location.search);
   const progName = params.get('prog');
   if(progName){
@@ -850,12 +852,11 @@ applyChanges().then(() => {
     if(p){
       openId = p.id;
       render();
-      // 最初の空きスロットを自動選択
       const si = p.slots.findIndex(s=>!s.full);
       if(si>=0) setTimeout(()=>openModal(p.id, si), 300);
     }
   }
-});
+}).catch(() => {}); // エラー時は初期描画済みなのでそのまま
 </script>
 </body>
 </html>
