@@ -251,17 +251,34 @@ function render(){
   HOURS.forEach(h=>{ g+=`<div class="tc" style="height:${PH}px">${h}:00</div>`; });
   g+='</div>';
   for(let d=0;d<5;d++){
-    const dp=progs.filter(p=>p.day===d);
+    const dayProgs=progs.filter(p=>p.day===d);
     g+=`<div class="dc" style="height:${totalH}px;position:relative">`;
     HOURS.forEach((_,i)=>{ if(i>0) g+=`<div class="hline" style="top:${i*PH}px"></div>`; });
-    dp.forEach(p=>{
+    // 描画順：託児→支援P（支援Pが前面）
+    const drawOrder=[...dayProgs.filter(p=>p.type==='t'),...dayProgs.filter(p=>p.type!=='t')];
+    drawOrder.forEach(p=>{
       const top=((p.sh-9)+(p.sm/60))*PH;
       const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
       const bks=getBks(p); const cnt=bks.length;
       const pendCnt=bks.filter(b=>b.status==='pending').length;
       const isFull=cnt>=p.cap&&p.cap<99;
       const cls=p.cancelled?'blk bc':isFull?'blk bf':pendCnt>0?'blk bp':p.type==='t'?'blk bt':'blk bs';
-      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openPanel('${p.id}')">
+      // 列分割
+      const hasTochi=dayProgs.some(q=>q.type==='t');
+      const sProgs=dayProgs.filter(q=>q.type==='s');
+      const sIdx=sProgs.indexOf(p);
+      const sTotal=sProgs.length;
+      let pos='';
+      if(p.type==='t'){
+        pos='left:1px;width:48%;';
+      } else if(hasTochi){
+        const uw=50/Math.max(sTotal,1);
+        pos=`left:${50+sIdx*uw}%;width:${uw-0.5}%;`;
+      } else {
+        const uw=98/Math.max(sTotal,1);
+        pos=`left:${1+sIdx*uw}%;width:${uw-0.5}%;`;
+      }
+      g+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${pos}" onclick="openPanel('${p.id}')">
         <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}</div>
         <div style="font-size:.58rem;opacity:.9">${pendCnt>0?p.name+' +'+pendCnt+'未確認':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
       </div>`;
