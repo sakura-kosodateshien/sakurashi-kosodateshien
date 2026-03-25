@@ -459,18 +459,20 @@ const TOCHI_PROGS = ['pulapan','yoga','tochi'];
 async function checkTochiLimits(tel, dateKey) {
   if (!tel) return { ok: true };
   try {
-    // 当月の確定予約を取得
-    const monthStart = '2026-04-01';
-    const monthEnd   = '2026-04-30';
+    // telだけで絞り込み → JS側でフィルタ（複合インデックス不要）
     const snap = await getDocs(query(
       collection(db, 'bookings'),
-      where('progId',  '==', 'tochi'),
-      where('tel',     '==', tel),
-      where('date',    '>=', monthStart),
-      where('date',    '<=', monthEnd),
-      where('status',  'in', ['confirmed','pending'])
+      where('tel', '==', tel)
     ));
-    const monthBookings = snap.docs.map(d => d.data());
+    const all = snap.docs.map(d => d.data());
+
+    // 当月・託児・有効な予約のみ抽出
+    const monthBookings = all.filter(b =>
+      b.date >= '2026-04-01' &&
+      b.date <= '2026-04-30' &&
+      (b.progId === 'tochi' || b.tochi === true) &&
+      (b.status === 'confirmed' || b.status === 'pending')
+    );
     const monthCount = monthBookings.length;
 
     // 月4枠上限チェック
@@ -487,7 +489,8 @@ async function checkTochiLimits(tel, dateKey) {
     return { ok: true, remaining: 4 - monthCount };
   } catch(e) {
     console.warn('上限チェックエラー:', e.message);
-    return { ok: true }; // エラー時は通す
+    // エラー時は安全側に倒してブロック
+    return { ok: false, msg: '予約の確認中にエラーが発生しました。\nしばらくしてから再度お試しください。' };
   }
 }
 
