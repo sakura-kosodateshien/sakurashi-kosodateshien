@@ -192,12 +192,11 @@ function showMember(user){
     <div class="info-row"><span class="info-label">月齢</span><span>${months}ヶ月</span></div>
     <div class="info-row"><span class="info-label">電話</span><span>${user.tel||'-'}</span></div>
     <div class="info-row"><span class="info-label">登録日</span><span>${user.registeredAt?new Date(user.registeredAt).toLocaleDateString('ja-JP'):'-'}</span></div>`;
-  const base = location.origin + location.pathname.replace('liff_member.html','checkin.html');
   new QRCode(document.getElementById('qrcode'),{
-    text: base+'?uid='+user.uid,
+    text: user.uid,
     width:200, height:200,
     colorDark:'#1a3a2a', colorLight:'#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
+    correctLevel: QRCode.CorrectLevel.L
   });
   loadBookings(user.uid);
 }

@@ -160,8 +160,15 @@
     if (decodedText === lastScanned && now - lastScannedAt < 4000) return;
     lastScanned   = decodedText;
     lastScannedAt = now;
-    let uid = decodedText;
-    try { const u = new URL(decodedText); uid = u.searchParams.get('uid') || decodedText; } catch(e) {}
+
+    // UID抽出：URL形式またはUID文字列直接どちらにも対応
+    let uid = decodedText.trim();
+    try {
+      const u = new URL(decodedText);
+      uid = u.searchParams.get('uid') || decodedText;
+    } catch(e) {}
+    // 前後の空白・改行を除去
+    uid = uid.trim();
 
     if (window.scanMode === 'out') {
       await processCheckout(uid);
@@ -448,11 +455,12 @@
       clearTimeout(barcodeTimer);
       if(data.length > 3) {
         // URLかUID文字列を解析
-        let uid = data;
+        let uid = data.trim();
         try {
           const u = new URL(data);
           uid = u.searchParams.get('uid') || data;
         } catch(err) {}
+        uid = uid.trim();
         window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
       }
     } else if(e.key.length === 1) {
