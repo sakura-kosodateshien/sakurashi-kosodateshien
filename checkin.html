@@ -62,12 +62,13 @@
       ));
       const bookings = bkSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // ③ 利用区分・プログラム名
-      let visitType = window.currentType || 'free';
+      // ③ 利用区分・プログラム名（QRデータから自動判定）
+      let visitType = 'free'; // 予約なし → 自由来所
       let progNames = [];
       if (bookings.length > 0) {
-        visitType  = bookings[0].progId === 'tochi' ? 'childcare' : 'program';
-        progNames  = bookings.map(b => b.progName || b.progId).filter(Boolean);
+        const hasChildcare = bookings.some(b => b.progId === 'tochi' || b.tochi === true);
+        visitType = hasChildcare ? 'childcare' : 'program';
+        progNames = bookings.map(b => b.progName || b.progId).filter(Boolean);
       }
 
       // ④ 来場記録を保存（月齢・プログラム名も追加）
@@ -307,10 +308,6 @@
   header .sub{font-size:.68rem;opacity:.45;letter-spacing:.18em}
   header h1{font-size:1rem;font-weight:700;margin-top:2px}
 
-  .type-tabs{display:flex;gap:6px;padding:8px 16px 6px;justify-content:center}
-  .type-tab{padding:5px 16px;border-radius:20px;border:1.5px solid rgba(255,255,255,.22);color:rgba(255,255,255,.55);font-size:.78rem;font-family:inherit;background:transparent;cursor:pointer;font-weight:500;transition:all .15s}
-  .type-tab.active{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.5)}
-
   .reader-wrap{position:relative;flex:1;margin:0 14px 10px;border-radius:18px;overflow:hidden;background:#000}
   #reader{width:100%!important;height:100%!important}
   #reader video{object-fit:cover;width:100%;height:100%}
@@ -375,12 +372,6 @@
   <button class="mode-tab"           id="modeOut" onclick="setMode('out',this)">◀ 退室</button>
 </div>
 
-<div class="type-tabs" id="typeTabs">
-  <button class="type-tab active" onclick="setType('free',this)">🌿 自由来所</button>
-  <button class="type-tab" onclick="setType('program',this)">📚 支援P</button>
-  <button class="type-tab" onclick="setType('childcare',this)">👶 託児</button>
-</div>
-
 <div class="reader-wrap">
   <div id="reader"></div>
   <div class="scan-frame"><span></span></div>
@@ -419,17 +410,8 @@
     window.scanMode = mode;
     document.getElementById('modeIn').className  = 'mode-tab' + (mode==='in'  ? ' active-in'  : '');
     document.getElementById('modeOut').className = 'mode-tab' + (mode==='out' ? ' active-out' : '');
-    // 退室モードは利用区分タブ不要なので非表示
-    document.getElementById('typeTabs').style.display = mode==='in' ? 'flex' : 'none';
-    // overlay待機テキスト更新
     const mainEl = document.getElementById('overlayMain');
     if(mainEl) mainEl.textContent = mode==='out' ? 'QRをかざして退場記録' : 'QRコードをかざしてください';
-  }
-
-  function setType(type, el) {
-    window.currentType = type;
-    document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
   }
 
   function manualCheckin() {
