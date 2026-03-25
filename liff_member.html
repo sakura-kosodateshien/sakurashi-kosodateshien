@@ -53,6 +53,7 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 .bk-footer{display:flex;align-items:center;justify-content:space-between}
 .badge-ok{background:#e8f5e9;color:#2e7d32;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .badge-today{background:#fff8e1;color:#e65100;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
+.badge-pend{background:#f3e5f5;color:#7b1fa2;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .bk-cancel-btn{font-size:.72rem;padding:4px 10px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit}
 .bk-cancel-tel{border-color:#93c5fd;color:#1d4ed8}
 .empty-msg{text-align:center;color:#6b8f71;font-size:.85rem;padding:20px 0}
@@ -279,7 +280,7 @@ async function loadBookings(uid){
         <div class="bk-prog">${b.progName||b.progId}</div>
         <div class="bk-time">${b.time||''}</div>
         <div class="bk-footer">
-          <span class="${isToday?'badge-today':'badge-ok'}">${isToday?'本日':'確定'}</span>
+          <span class="${isToday?'badge-today':b.status==='pending'?'badge-pend':'badge-ok'}">${isToday?'本日':b.status==='pending'?'⏳ 確認中':'✅ 予約確定'}</span>
           ${cancelBtn}
         </div>
       </div>`;
