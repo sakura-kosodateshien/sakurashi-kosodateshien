@@ -53,6 +53,12 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 .bk-footer{display:flex;align-items:center;justify-content:space-between}
 .badge-ok{background:#e8f5e9;color:#2e7d32;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .badge-today{background:#fff8e1;color:#e65100;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
+
+/* 更新ボタン */
+.reload-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:6px;border-radius:50%;transition:transform .4s;color:inherit;opacity:.7}
+.reload-btn:hover{opacity:1}
+.reload-btn.spinning{animation:spin .6s linear infinite}
+@keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}
 .badge-pend{background:#f3e5f5;color:#7b1fa2;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .bk-cancel-btn{font-size:.72rem;padding:4px 10px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit}
 .bk-cancel-tel{border-color:#93c5fd;color:#1d4ed8}
@@ -64,9 +70,10 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 </style>
 </head>
 <body>
-<header>
+<header style="position:relative">
   <div class="en">HINOKI SAKURA · MEMBER CARD</div>
   <h1>🌿 ひのきっこ 会員証</h1>
+  <button class="reload-btn" onclick="reloadPage(this)" title="更新">↻</button>
 </header>
 
 <div class="wrap">
@@ -288,6 +295,12 @@ async function loadBookings(uid){
   }catch(e){
     document.getElementById('bkList').innerHTML='<div class="empty-msg">読み込みエラー: '+e.message+'</div>';
   }
+}
+
+
+function reloadPage(btn){
+  btn.classList.add('spinning');
+  setTimeout(()=>{ location.reload(); },300);
 }
 
 window.cancelTel=()=>{ if(confirm('043-310-5757 に電話しますか？')) location.href='tel:0433105757'; };

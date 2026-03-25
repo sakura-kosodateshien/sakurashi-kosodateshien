@@ -73,11 +73,12 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 </style>
 </head>
 <body>
-<header>
+<header style="position:relative">
   <a href="index.html">← 戻る</a>
   <h1>🗂️ 予約管理</h1>
   <a href="admin.html" style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:20px;text-decoration:none;font-weight:700">📊 管理</a>
   <span class="staff-badge">STAFF</span>
+  <button onclick="reloadPage(this)" title="更新" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:6px;border-radius:50%;color:#fff;opacity:.8">↻</button>
 </header>
 
 <!-- 未確認バナー -->
@@ -230,6 +231,12 @@ function updatePendingBanner(){
   document.getElementById('pendingWeeks').innerHTML=html;
 }
 window.jumpToWeek=function(off){ weekOffset=parseInt(off); initFirebase(); };
+
+function reloadPage(btn){
+  btn.style.transition='transform .4s';
+  btn.style.transform='translateY(-50%) rotate(360deg)';
+  setTimeout(()=>{ location.reload(); },350);
+}
 
 function render(){
   const dates=getWeekDates();

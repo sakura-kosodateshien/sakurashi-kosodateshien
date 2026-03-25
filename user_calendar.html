@@ -13,6 +13,12 @@ header{background:#dccfe6;padding:14px 16px;display:flex;align-items:center;gap:
 header a{color:rgba(60,40,80,.7);text-decoration:none;font-size:.85rem}
 header h1{color:#3d2a55;font-size:1rem;font-weight:700;flex:1;text-align:center}
 
+
+/* 更新ボタン */
+.reload-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:6px;border-radius:50%;transition:transform .4s;color:inherit;opacity:.7}
+.reload-btn:hover{opacity:1}
+.reload-btn.spinning{animation:spin .6s linear infinite}
+@keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}
 .week-nav{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
 .week-nav button{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.85rem;cursor:pointer;color:var(--text)}
 .week-label{flex:1;text-align:center;font-size:.9rem;font-weight:700}
@@ -70,9 +76,10 @@ main{padding:12px 14px 60px;max-width:480px;margin:0 auto}
 </style>
 </head>
 <body>
-<header>
+<header style="position:relative">
   <a href="index.html">← 戻る</a>
   <h1>📅 週カレンダー</h1>
+  <button class="reload-btn" onclick="reloadPage(this)" title="更新">↻</button>
 </header>
 
 <div class="week-nav">
@@ -183,6 +190,12 @@ function getWeekDates(){
 function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmt(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
 const DAYS_JP=["月","火","水","木","金"];
+
+
+function reloadPage(btn){
+  btn.classList.add('spinning');
+  setTimeout(()=>{ location.reload(); },300);
+}
 
 function changeWeek(d){ weekOffset+=d; render(); }
 
