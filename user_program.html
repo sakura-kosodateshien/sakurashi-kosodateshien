@@ -125,6 +125,7 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
         <div class="mp-name" id="mTitle"></div>
         <div class="mp-detail" id="mDetail"></div>
         <div class="mp-note" id="mDesc"></div>
+        <a id="mProgLink" href="" target="_blank" style="display:inline-block;margin-top:6px;font-size:.72rem;color:var(--lav-dark);text-decoration:underline">🔗 プログラム紹介を見る</a>
       </div>
       <div class="form-row">
         <label>保護者氏名<span class="req">*</span></label>
@@ -545,6 +546,7 @@ function openModal(progId, slotIdx){
   document.getElementById('mTitle').textContent  = `${p.emoji} ${p.name}`;
   document.getElementById('mDetail').textContent = `${s.date}　${s.time}　定員${p.cap<10?p.cap+'組':'制限なし'}`;
   document.getElementById('mDesc').textContent   = p.note;
+  document.getElementById('mProgLink').href = `programs.html`;
 
   // 託児専用フォーム切り替え
   const isTochi = p.id === 'tochi';
