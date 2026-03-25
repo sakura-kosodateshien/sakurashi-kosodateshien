@@ -23,15 +23,15 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700;flex:1;text-align:center}
 
 main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
 
-.prog-group{margin-bottom:8px;background:#fff;border-radius:14px;border:1px solid var(--lav-mid);overflow:hidden}
-.prog-head{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid transparent;transition:background .1s}
+.prog-group{margin-bottom:6px;background:#fff;border-radius:12px;border:1px solid var(--lav-mid);overflow:hidden}
+.prog-head{padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent;transition:background .1s}
 .prog-head:hover{background:var(--lav-light)}
 .prog-head.open{border-bottom-color:var(--lav-mid)}
-.prog-emoji{font-size:1.4rem;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prog-emoji{font-size:1.2rem;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .prog-meta{flex:1}
-.prog-name{font-size:.95rem;font-weight:700}
-.prog-cap{font-size:.72rem;color:var(--muted);margin-top:2px}
-.prog-avail{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px}
+.prog-name{font-size:.9rem;font-weight:700}
+.prog-cap{font-size:.68rem;color:var(--muted);margin-top:1px}
+.prog-avail{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px}
 .avail-ok{background:var(--lav-light);color:var(--lav-dark)}
 .avail-some{background:#fff8e1;color:#c47000}
 .avail-full{background:#fce4ec;color:#c62828}
@@ -113,7 +113,6 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
     <option value="4" selected>4月</option>
     <option value="5">5月</option>
   </select>
-  <span class="count" id="countLabel"></span>
 </div>
 
 <main id="main"></main>
@@ -485,7 +484,6 @@ function render(){
     html += `</div></div>`;
   });
   document.getElementById('main').innerHTML = html;
-  document.getElementById('countLabel').textContent = `${okCount}件 空きあり`;
 }
 
 function toggleProg(id){
