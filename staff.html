@@ -193,7 +193,8 @@ function getBks(prog){ return liveBookings.filter(b=>b.date===prog.date&&b.statu
 
 // ── 未確認バナー更新 ─────────────────────────────────────────────────
 function updatePendingBanner(){
-  const allPending=liveBookings.filter(b=>b.status==='pending');
+  // 4月以降のpendingのみ対象
+  const allPending=liveBookings.filter(b=>b.status==='pending' && b.date>='2026-04-01');
   const banner=document.getElementById('pendingBanner');
   if(!allPending.length){banner.classList.remove('show');return;}
   banner.classList.add('show');
@@ -202,7 +203,7 @@ function updatePendingBanner(){
   allPending.forEach(b=>{
     const bDate=new Date(b.date+'T00:00:00');
     const diffDays=Math.round((bDate-BASE)/(24*3600*1000));
-    const wOff=Math.floor(diffDays/7);
+    const wOff=Math.max(0,Math.floor(diffDays/7)); // マイナスは0に
     const wStart=new Date(BASE); wStart.setDate(BASE.getDate()+wOff*7);
     const label=fmt(wStart)+'週';
     if(!weekMap[wOff]) weekMap[wOff]={label,count:0};
@@ -393,7 +394,7 @@ try{
     appId:"1:365529893548:web:99b2ecc702d1bbdb752d09"
   }));
   window._fbQuery=(d0,d4)=>query(collection(db,'bookings'),where('date','>=',d0),where('date','<=',d4));
-  window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('status','==','pending')));
+  window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('status','==','pending'),where('date','>=','2026-04-01')));
   window._fbOnSnapshot=onSnapshot;
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window.firebase_loaded=true;
