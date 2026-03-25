@@ -723,20 +723,20 @@ async function submitBooking(){
     const tochiTimeVal = document.getElementById('fTochiTime').value;
     if(!tochiTimeVal){ alert('希望時間を選択してください'); return; }
 
-    // 2枠目選択時の時間バリデーション
-    const extraSel = document.getElementById('tochiExtraSelect');
-    if(extraSel && extraSel.selectedIndex > 0){
-      if(tochiSelectedStart2 === null || tochiSelectedEnd2 === null){
-        alert('2枠目の希望時間を選択してください'); return;
-      }
-    }
-
     const dateK = toDateKey(s.date);
 
     // 2枠目選択確認
     const extraSel = document.getElementById('tochiExtraSelect');
     const extraIdx = extraSel ? extraSel.selectedIndex : 0;
     const hasExtra = extraSel && extraIdx > 0;
+
+    // 2枠目選択時の時間バリデーション
+    if(hasExtra){
+      if(tochiSelectedStart2 === null || tochiSelectedEnd2 === null){
+        alert('2枠目の希望時間を選択してください'); return;
+      }
+    }
+
     const reserveCount = hasExtra ? 2 : 1;
 
     // 月残り枠チェック
