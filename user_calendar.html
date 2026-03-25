@@ -30,10 +30,10 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700;flex:1;text-align:center}
 .hr{position:absolute;left:0;right:0;height:.5px;background:var(--border)}
 .blk{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:.65rem;font-weight:700;overflow:hidden;cursor:pointer;line-height:1.3;transition:filter .1s}
 .blk:hover{filter:brightness(.93)}
-.blk-s{background:#C0DD97;color:#27500A;border:0.5px solid #639922}
-.blk-t{background:#B5D4F4;color:#0C447C;border:0.5px solid #378ADD}
-.blk-f{background:#F7C1C1;color:#791F1F;border:0.5px solid #E24B4A}
-.blk-y{background:#FFE082;color:#5d4037;border:0.5px solid #FFB300}
+.blk-s{background:#C0DD97;color:#27500A;border:0.5px solid #639922;z-index:3;left:2px;right:2px}
+.blk-t{background:rgba(181,212,244,.55);color:#0C447C;border:1px dashed #378ADD;z-index:1;left:1px;right:1px}
+.blk-f{background:#F7C1C1;color:#791F1F;border:0.5px solid #E24B4A;z-index:3}
+.blk-y{background:rgba(255,224,130,.5);color:#5d4037;border:0.5px dashed #FFB300;z-index:2}
 
 .legend{display:flex;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .li{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted)}
@@ -208,7 +208,12 @@ function render(){
   HOURS.forEach(h=>{ gh+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`; });
   gh+='</div>';
   for(let d=0;d<5;d++){
-    const dp=progs.filter(p=>p.day===d);
+    // 描画順：託児→自由遊び→支援P（支援Pが最前面）
+    const dp = [
+      ...progs.filter(p=>p.day===d && p.type==='t'),
+      ...progs.filter(p=>p.day===d && p.type==='y'),
+      ...progs.filter(p=>p.day===d && p.type==='s'),
+    ];
     gh+=`<div class="day-col" style="height:${totalH}px;position:relative">`;
     HOURS.forEach((_,i)=>{ if(i>0) gh+=`<div class="hr" style="top:${i*PH}px"></div>`; });
     dp.forEach(p=>{
@@ -216,8 +221,11 @@ function render(){
       const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH, 20);
       const full=p.bk>=p.cap&&p.cap<99;
       const cls=full?'blk blk-f':p.type==='t'?'blk blk-t':p.type==='y'?'blk blk-y':'blk blk-s';
+      // 支援Pは右寄せで幅を狭くして託児と並べて見せる
+      const isTochi = p.type==='t';
+      const styleExtra = isTochi ? 'right:auto;width:calc(50% - 3px);' : p.type==='s' ? 'left:auto;width:calc(50% - 3px);right:2px;' : '';
       const idx=ALL_PROGS.indexOf(p);
-      gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openSheet(${idx})">
+      gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${styleExtra}" onclick="openSheet(${idx})">
         <div>${p.emoji}${p.name}</div>
         <div style="font-size:.6rem;opacity:.8">${full?'満員':p.cap<99?(p.cap-p.bk)<=1?'残りわずか':'空きあり':'自由'}</div>
       </div>`;
