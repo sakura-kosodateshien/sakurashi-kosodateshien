@@ -236,17 +236,57 @@
     document.getElementById('startBtn').style.display = 'none';
     scanner = new Html5Qrcode('reader');
     try {
+      // 利用可能なカメラ一覧を取得して外部カメラを優先
+      const devices = await Html5Qrcode.getCameras();
+      let cameraId = null;
+
+      if(devices && devices.length > 0){
+        // カメラ選択UIを構築
+        const sel = document.getElementById('cameraSelect');
+        sel.innerHTML = devices.map((d,i) =>
+          `<option value="${d.id}">${d.label || 'カメラ '+(i+1)}</option>`
+        ).join('');
+
+        // 外部・会議用カメラを優先
+        const external = devices.find(d =>
+          /usb|extern|conference|hd|web|logicool|logitec|meeting/i.test(d.label)
+        );
+        const back = devices.find(d =>
+          /back|rear|environment|後/i.test(d.label)
+        );
+        const preferred = external || back || devices[devices.length - 1];
+        cameraId = preferred.id;
+        sel.value = cameraId;
+
+        if(devices.length > 1){
+          document.getElementById('cameraSel').style.display = 'block';
+        }
+      }
+
       await scanner.start(
-        { facingMode: 'environment' },
+        cameraId || { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 240, height: 240 } },
         onScanSuccess, () => {}
       );
       showState('ready');
     } catch(e) {
-      alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。');
+      alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。\n\n' + e.message);
       scanning = false;
       document.getElementById('startBtn').style.display = 'flex';
     }
+  };
+
+  window.switchCamera = async function(){
+    const cameraId = document.getElementById('cameraSelect').value;
+    if(!scanner || !cameraId) return;
+    try{
+      await scanner.stop();
+      await scanner.start(
+        cameraId,
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        onScanSuccess, () => {}
+      );
+    }catch(e){ console.warn('カメラ切り替えエラー:', e.message); }
   };
 
   window.addEventListener('load', () => showState('ready'));
@@ -350,6 +390,11 @@
     <div class="label">タップしてカメラを起動</div>
     <div class="hint">カメラへのアクセスを許可してください</div>
   </button>
+</div>
+
+<div id="cameraSel" style="display:none;text-align:center;padding:4px 14px">
+  <select id="cameraSelect" onchange="switchCamera()" style="font-size:.75rem;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.4);color:#fff;font-family:inherit;max-width:100%">
+  </select>
 </div>
 
 <div class="manual-wrap">
