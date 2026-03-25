@@ -272,11 +272,15 @@ function render(){
       if(p.type==='t'){
         pos='left:1px;width:48%;';
       } else if(hasTochi){
-        const uw=50/Math.max(sTotal,1);
-        pos=`left:${50+sIdx*uw}%;width:${uw-0.5}%;`;
+        const cols=Math.min(sTotal,2);
+        const col=sIdx%cols;
+        const uw=50/cols;
+        pos=`left:${50+col*uw}%;width:${uw-0.5}%;`;
       } else {
-        const uw=98/Math.max(sTotal,1);
-        pos=`left:${1+sIdx*uw}%;width:${uw-0.5}%;`;
+        const cols=Math.min(sTotal,3);
+        const col=sIdx%cols;
+        const uw=98/cols;
+        pos=`left:${1+col*uw}%;width:${uw-0.5}%;`;
       }
       g+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${pos}" onclick="openPanel('${p.id}')">
         <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}</div>

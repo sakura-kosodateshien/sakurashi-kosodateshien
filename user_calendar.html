@@ -228,24 +228,29 @@ function render(){
         const sTotal = sProgs.length;
         let posStyle = '';
         if(type==='t'){
-          // 託児は右側
-          posStyle = 'left:auto;right:2px;width:48%;';
+          // 託児は左半分
+          posStyle = 'left:1px;width:48%;';
         } else if(type==='y'){
-          // 自由遊びは左側（託児がある場合）
+          // 自由遊びは左半分（託児がある場合）、なければ全幅
           const hasTochi = dayProgs.some(q=>q.type==='t');
           posStyle = hasTochi ? 'left:1px;width:48%;' : 'left:1px;right:2px;';
         } else if(type==='s'){
-          // 支援Pは右側（託児がある場合）、なければ全幅を均等分割
           const hasTochi = dayProgs.some(q=>q.type==='t');
           const sProgs = dayProgs.filter(q=>q.type==='s');
           const sIdx = sProgs.indexOf(p);
           const sTotal = sProgs.length;
           if(hasTochi){
-            const w = Math.floor(56/sTotal);
-            posStyle = `left:${43+sIdx*w}%;width:${w-1}%;`;
+            // 託児あり：右半分を最大2列
+            const cols = Math.min(sTotal, 2);
+            const col = sIdx % cols;
+            const uw = 50 / cols;
+            posStyle = `left:${50 + col*uw}%;width:${uw - 0.5}%;`;
           } else {
-            const w = Math.floor(96/sTotal);
-            posStyle = `left:${2+sIdx*w}%;width:${w-1}%;`;
+            // 託児なし：全幅を最大3列
+            const cols = Math.min(sTotal, 3);
+            const col = sIdx % cols;
+            const uw = 98 / cols;
+            posStyle = `left:${1 + col*uw}%;width:${uw - 0.5}%;`;
           }
         }
 
