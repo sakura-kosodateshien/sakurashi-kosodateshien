@@ -107,96 +107,56 @@ main{padding:12px 14px 60px;max-width:480px;margin:0 auto}
 <div class="toast" id="toast">✅ 予約リクエストを送信しました</div>
 
 <script>
-const PH = 28;
+const PH = 42;
 const HOURS = [9,10,11,12,13,14];
-const BASE = new Date(2026,3,6); // April 6
+const BASE = new Date(2026,3,6);
 
-const WEEK_PROGS = [
-  // week 1 (offset 0)
-  {week:0,name:"ランチひろば",emoji:"🍱",type:"s",day:0,sh:12,sm:0,eh:14,em:0,cap:4,bk:2,note:"お弁当持参で仲良くランチ。"},
-  {week:0,name:"英語",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:0,cap:6,bk:3,note:"7か月〜1才対象。"},
-  {week:0,name:"ランチひろば",emoji:"🍱",type:"s",day:2,sh:12,sm:0,eh:14,em:0,cap:4,bk:4,note:"お弁当持参で仲良くランチ。"},
-  {week:0,name:"知育",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:0,cap:6,bk:2,note:"1才〜3才対象。"},
-  {week:0,name:"園庭遊び",emoji:"🌳",type:"s",day:4,sh:9,sm:0,eh:11,em:0,cap:99,bk:0,note:"9:00〜11:00 外遊び。"},
-  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:0,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
-  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:1,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
-  {week:0,name:"自由遊び",emoji:"🎈",type:"y",day:4,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
-  {week:0,name:"託児",emoji:"👶",type:"t",day:0,sh:10,sm:0,eh:12,em:0,cap:2,bk:2,note:"定員2名。"},
-  {week:0,name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:30,eh:11,em:30,cap:2,bk:1,note:"定員2名。"},
-  {week:0,name:"託児",emoji:"👶",type:"t",day:2,sh:11,sm:0,eh:13,em:0,cap:2,bk:2,note:"定員2名。"},
-  {week:0,name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:11,em:30,cap:2,bk:1,note:"定員2名。"},
-  // week 2
-  {week:1,name:"発達相談",emoji:"💬",type:"s",day:0,sh:11,sm:0,eh:12,em:0,cap:99,bk:0,note:"作業療法士による発達相談。"},
-  {week:1,name:"ベビーマッサージ",emoji:"👐",type:"s",day:0,sh:9,sm:30,eh:10,em:0,cap:3,bk:2,note:"満6か月〜3歳。"},
-  {week:1,name:"英語",emoji:"📚",type:"s",day:1,sh:10,sm:0,eh:12,em:0,cap:6,bk:2,note:"7か月〜1才対象。"},
-  {week:1,name:"プラパン工房",emoji:"🎨",type:"s",day:2,sh:10,sm:0,eh:11,em:0,cap:2,bk:0,note:"足型・手形キーホルダー。託児付き。"},
-  {week:1,name:"知育",emoji:"📚",type:"s",day:3,sh:10,sm:0,eh:12,em:0,cap:6,bk:6,note:"1才〜3才対象。"},
-  {week:1,name:"お誕生日会",emoji:"🎂",type:"s",day:4,sh:9,sm:30,eh:11,em:0,cap:99,bk:0,note:"4月生まれ集まれ！"},
-];
-
-let weekOffset = 0;
+// 今週のオフセットを自動計算（4/6週が0）
+function calcCurrentWeekOffset(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.round((today - BASE) / (24*3600*1000));
+  return Math.max(0, Math.floor(diffDays/7));
+}
+let weekOffset = calcCurrentWeekOffset();
 let selectedProg = null;
 
-function getWeekStart(){
-  const d = new Date(BASE);
-  d.setDate(BASE.getDate() + weekOffset*7);
-  return d;
+function getWeekDates(){
+  const d=new Date(BASE); d.setDate(BASE.getDate()+weekOffset*7);
+  return Array.from({length:5},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return x; });
 }
+function dateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmt(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
 const DAYS_JP=["月","火","水","木","金"];
 
 function changeWeek(d){ weekOffset+=d; render(); }
 
 function render(){
-  const ws = getWeekStart();
-  const dates = Array.from({length:5},(_,i)=>{ const d=new Date(ws); d.setDate(ws.getDate()+i); return d; });
+  const dates = getWeekDates();
+  const dkeys = dates.map(d=>dateKey(d));
   document.getElementById('wlabel').textContent = `${fmt(dates[0])}（月）〜 ${fmt(dates[4])}（金）`;
 
-  const progs = WEEK_PROGS.filter(p=>p.week===((weekOffset%2+2)%2));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const progs = ALL_PROGS.filter(p=>dkeys.includes(p.date));
   const totalH = HOURS.length * PH;
 
-  let html = '<div></div>'; // time label header spacer
-  dates.forEach((d,i)=>{
-    const today = d.toDateString()===new Date(2026,3,8).toDateString();
-    html+=`<div class="ch ${today?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
-  });
-  // time rows
-  HOURS.forEach(h=>{
-    html+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`;
-    for(let d=0;d<5;d++){
-      html+=`<div class="day-col" style="height:${PH}px"></div>`;
-    }
-  });
-  document.getElementById('calGrid').innerHTML = html;
-
-  // overlay blocks
-  const grid = document.getElementById('calGrid');
-  const cols = grid.children;
-  // cols: 0=spacer, 1-5=headers, then rows of 6 each
-  // build day columns as absolutely positioned overlay
-  const gridRect = grid.getBoundingClientRect();
-
-  // Use a separate overlay approach via position relative on grid
-  // Rebuild as proper grid with position relative day cells
   let gh = '<div></div>';
   dates.forEach((d,i)=>{
-    const today = d.toDateString()===new Date(2026,3,8).toDateString();
-    gh+=`<div class="ch ${today?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
+    const isToday = d.getTime()===today.getTime();
+    gh+=`<div class="ch ${isToday?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
   });
-  gh+=`<div style="display:contents" id="timeBody">`;
   gh+=`<div style="display:flex;flex-direction:column">`;
   HOURS.forEach(h=>{ gh+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`; });
   gh+='</div>';
   for(let d=0;d<5;d++){
-    const dp = progs.filter(p=>p.day===d);
+    const dp=progs.filter(p=>p.day===d);
     gh+=`<div class="day-col" style="height:${totalH}px;position:relative">`;
     HOURS.forEach((_,i)=>{ if(i>0) gh+=`<div class="hr" style="top:${i*PH}px"></div>`; });
     dp.forEach(p=>{
       const top=((p.sh-9)+(p.sm/60))*PH;
-      const ht=((p.eh-p.sh)+((p.em-p.sm)/60))*PH;
+      const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH, 20);
       const full=p.bk>=p.cap&&p.cap<99;
       const cls=full?'blk blk-f':p.type==='t'?'blk blk-t':p.type==='y'?'blk blk-y':'blk blk-s';
-      const idx=WEEK_PROGS.indexOf(p);
+      const idx=ALL_PROGS.indexOf(p);
       gh+=`<div class="${cls}" style="top:${top}px;height:${ht}px" onclick="openSheet(${idx})">
         <div>${p.emoji}${p.name}</div>
         <div style="font-size:.6rem;opacity:.8">${full?'満員':p.cap<99?(p.cap-p.bk)<=1?'残りわずか':'空きあり':'自由'}</div>
@@ -204,22 +164,20 @@ function render(){
     });
     gh+='</div>';
   }
-  gh+='</div>';
   document.getElementById('calGrid').innerHTML=gh;
 
-  // day list below
+  // 日別リスト
   let dl='';
-  const dayNames=['月','火','水','木','金'];
   for(let d=0;d<5;d++){
     const dp=progs.filter(p=>p.day===d&&p.type!=='y');
     if(!dp.length) continue;
-    dl+=`<h3>${fmt(dates[d])}（${dayNames[d]}）</h3>`;
+    dl+=`<h3>${fmt(dates[d])}（${DAYS_JP[d]}）</h3>`;
     dp.forEach(p=>{
       const full=p.bk>=p.cap&&p.cap<99;
       const few=p.cap<99&&(p.cap-p.bk)<=1&&!full;
       const tagC=full?'tag-full':few?'tag-few':'tag-ok';
       const tagT=full?'満員':few?'残りわずか':'空きあり';
-      const idx=WEEK_PROGS.indexOf(p);
+      const idx=ALL_PROGS.indexOf(p);
       dl+=`<div class="mini-card" onclick="openSheet(${idx})">
         <div class="em">${p.emoji}</div>
         <div class="info">
@@ -233,12 +191,29 @@ function render(){
   document.getElementById('dayList').innerHTML=dl||'<p style="color:var(--muted);font-size:.85rem;text-align:center;padding:20px">この週のプログラムはありません</p>';
 }
 
+  const progs = ALL_PROGS.filter(p=>dkeys.includes(p.date));
+  const totalH = HOURS.length * PH;
+
+  let html = '<div></div>';
+  dates.forEach((d,i)=>{
+    const today2 = d.toDateString()===new Date(2026,3,8).toDateString();
+    html+=`<div class="ch ${today2?'today':''}"><div class="dow">${DAYS_JP[i]}</div><div class="dt">${fmt(d)}</div></div>`;
+  });
+  HOURS.forEach(h=>{
+    html+=`<div class="time-col" style="height:${PH}px">${h}:00</div>`;
+    for(let d=0;d<5;d++){
+      html+=`<div class="day-col" style="height:${PH}px"></div>`;
+    }
+  });
+  document.getElementById('calGrid').innerHTML = html;
+
 function openSheet(idx){
-  const p=WEEK_PROGS[idx];
+  const p=ALL_PROGS[idx];
   selectedProg=p;
   const full=p.bk>=p.cap&&p.cap<99;
   document.getElementById('sTitle').textContent=`${p.emoji} ${p.name}`;
   document.getElementById('sInfo').innerHTML=`
+    <div><span>日付</span>${p.date.slice(5).replace('-','/')}（${DAYS_JP[p.day]}）</div>
     <div><span>時間</span>${p.sh}:${String(p.sm).padStart(2,'0')}〜${p.eh}:${String(p.em).padStart(2,'0')}</div>
     <div><span>定員</span>${p.cap<99?p.cap+'組':'予約不要'}</div>
     ${p.cap<99?`<div><span>残り</span>${full?'満員':p.cap-p.bk+'組'}</div>`:''}`;
@@ -246,7 +221,7 @@ function openSheet(idx){
   const btn=document.getElementById('sBtn');
   if(p.type==='y'||p.cap>=99){ btn.textContent='予約不要で参加できます'; btn.style.background='var(--muted)'; }
   else if(full){ btn.textContent='満員のため予約できません'; btn.style.background='#ccc'; }
-  else{ btn.textContent='この日程で予約する'; btn.style.background='var(--green)'; }
+  else{ btn.textContent='この日程で予約する'; btn.style.background='#dccfe6'; }
   document.getElementById('sheetBg').classList.add('open');
 }
 
@@ -254,9 +229,7 @@ function handleBook(){
   if(!selectedProg||selectedProg.type==='y'||selectedProg.cap>=99){ closeSheet(); return; }
   if(selectedProg.bk>=selectedProg.cap) return;
   closeSheet();
-  // user_program.htmlへ遷移（プログラムIDと日付をパラメータで渡す）
-  const date = ['4/6','4/7','4/8','4/9','4/10','4/13','4/14','4/15','4/16','4/17','4/20','4/21','4/22','4/23','4/24','4/27','4/28','4/29','4/30'][weekOffset*5+selectedProg.day]||'';
-  location.href = 'user_program.html?prog='+encodeURIComponent(selectedProg.name)+'&date='+encodeURIComponent(selectedProg.date||date);
+  location.href = 'user_program.html?prog='+encodeURIComponent(selectedProg.name)+'&date='+encodeURIComponent(selectedProg.date);
 }
 
 function closeSheet(){ document.getElementById('sheetBg').classList.remove('open'); }
