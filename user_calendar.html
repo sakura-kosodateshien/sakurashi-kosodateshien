@@ -87,7 +87,6 @@ main{padding:12px 14px 60px;max-width:480px;margin:0 auto}
 <div class="legend">
   <div class="li"><div class="ld" style="background:#C0DD97;border:.5px solid #639922"></div>支援P</div>
   <div class="li"><div class="ld" style="background:#B5D4F4;border:.5px solid #378ADD"></div>託児</div>
-  <div class="li"><div class="ld" style="background:#FFE082;border:.5px solid #FFB300"></div>自由遊び</div>
   <div class="li"><div class="ld" style="background:#F7C1C1;border:.5px solid #E24B4A"></div>満員</div>
 </div>
 
@@ -125,11 +124,8 @@ let selectedProg = null;
 // 4月プログラムデータ（確定版）
 const ALL_PROGS = [
   // ── 4/1〜4/3（4月第1週・水木金）────────────────────────────
-  {date:"2026-04-01",name:"自由遊び",emoji:"🎈",type:"y",day:2,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
   {date:"2026-04-01",name:"託児",emoji:"👶",type:"t",day:2,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。満6か月〜満3歳未満。"},
-  {date:"2026-04-02",name:"自由遊び",emoji:"🎈",type:"y",day:3,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
   {date:"2026-04-02",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
-  {date:"2026-04-03",name:"自由遊び",emoji:"🎈",type:"y",day:4,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
   {date:"2026-04-03",name:"託児",emoji:"👶",type:"t",day:4,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
   // ── 4/6週 ───────────────────────────────────────────────────
   {date:"2026-04-06",name:"ランチひろば",emoji:"🍱",type:"s",day:0,sh:12,sm:0,eh:14,em:0,cap:4,bk:0,note:"各2〜4組貸し切り。お弁当持参。"},
@@ -176,7 +172,6 @@ const ALL_PROGS = [
   {date:"2026-04-28",name:"ベビーマッサージ",emoji:"👐",type:"s",day:1,sh:9,sm:30,eh:10,em:0,cap:3,bk:0,note:"満6か月〜1歳半対象。要予約3組。"},
   {date:"2026-04-28",name:"はじめてアート",emoji:"🎏",type:"s",day:1,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"こいのぼり制作。予約不要。9:00〜14:00でいつでも。"},
   {date:"2026-04-28",name:"託児",emoji:"👶",type:"t",day:1,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
-  {date:"2026-04-30",name:"自由遊び",emoji:"🎈",type:"y",day:3,sh:9,sm:0,eh:14,em:0,cap:99,bk:0,note:"予約不要。"},
   {date:"2026-04-30",name:"託児",emoji:"👶",type:"t",day:3,sh:9,sm:0,eh:14,em:0,cap:2,bk:0,note:"9:00〜14:00（連続2時間まで）。"},
 ];
 
@@ -212,8 +207,8 @@ function render(){
     gh+=`<div class="day-col" style="height:${totalH}px;position:relative">`;
     HOURS.forEach((_,i)=>{ if(i>0) gh+=`<div class="hr" style="top:${i*PH}px"></div>`; });
 
-    // 描画順：託児→自由遊び→支援P（前面）
-    const order = ['t','y','s'];
+    // 描画順：託児→支援P（前面）
+    const order = ['t','s'];
     order.forEach(type=>{
       dayProgs.filter(p=>p.type===type).forEach(p=>{
         const top=((p.sh-9)+(p.sm/60))*PH;
@@ -228,25 +223,20 @@ function render(){
         const sTotal = sProgs.length;
         let posStyle = '';
         if(type==='t'){
-          // 託児は左半分
-          posStyle = 'left:1px;width:48%;';
-        } else if(type==='y'){
-          // 自由遊びは左半分（託児がある場合）、なければ全幅
-          const hasTochi = dayProgs.some(q=>q.type==='t');
-          posStyle = hasTochi ? 'left:1px;width:48%;' : 'left:1px;right:2px;';
+          // 託児は左半分（支援Pがある場合）、なければ全幅
+          const hasSup = dayProgs.some(q=>q.type==='s');
+          posStyle = hasSup ? 'left:1px;width:48%;' : 'left:1px;right:2px;';
         } else if(type==='s'){
           const hasTochi = dayProgs.some(q=>q.type==='t');
           const sProgs = dayProgs.filter(q=>q.type==='s');
           const sIdx = sProgs.indexOf(p);
           const sTotal = sProgs.length;
           if(hasTochi){
-            // 託児あり：右半分を最大2列
             const cols = Math.min(sTotal, 2);
             const col = sIdx % cols;
             const uw = 50 / cols;
             posStyle = `left:${50 + col*uw}%;width:${uw - 0.5}%;`;
           } else {
-            // 託児なし：全幅を最大3列
             const cols = Math.min(sTotal, 3);
             const col = sIdx % cols;
             const uw = 98 / cols;
