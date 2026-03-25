@@ -403,6 +403,21 @@ async function applyChanges(){
           changeNote: '追加'
         });
       }
+      if(c.type === 'block'){
+        // 託児の特定日時をブロック
+        const tochiProg = PROGS.find(p => p.id === 'tochi');
+        if(tochiProg){
+          tochiProg.slots.forEach(s => {
+            const dateMatch = !c.blockDate ||
+              s.date.includes(c.blockDate.replace(/（.+?）/,'').trim()) ||
+              c.blockDate.includes(s.date.replace(/（.+?）/,'').trim());
+            if(!dateMatch) return;
+            s.full = true;
+            s.cancelled = true;
+            s.changeNote = (c.blockTime ? c.blockTime+' ' : '') + (c.note || '受付停止');
+          });
+        }
+      }
     });
   } catch(e){
     console.warn('changes読み込みエラー:', e.message);

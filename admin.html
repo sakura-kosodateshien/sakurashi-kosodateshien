@@ -271,9 +271,20 @@
   // 変更タイプに応じた追加入力欄の切り替え
   window.onChangeType = function(){
     const t = document.getElementById('chgType').value;
-    document.getElementById('chgTimeRow').style.display = t==='time' ? 'flex' : 'none';
-    document.getElementById('chgCapRow').style.display  = t==='cap'  ? 'flex' : 'none';
-    document.getElementById('chgAddRow').style.display  = t==='add'  ? 'block': 'none';
+    document.getElementById('chgTimeRow').style.display  = t==='time'  ? 'flex'  : 'none';
+    document.getElementById('chgCapRow').style.display   = t==='cap'   ? 'flex'  : 'none';
+    document.getElementById('chgAddRow').style.display   = t==='add'   ? 'block' : 'none';
+    document.getElementById('chgBlockRow').style.display = t==='block' ? 'block' : 'none';
+    // ブロックの場合は対象をtochi固定に
+    if(t==='block'){
+      const sel = document.getElementById('chgTarget');
+      // tochi系のIDを探して選択
+      for(let o of sel.options){
+        if(o.value.includes('tochi') || o.text.includes('託児')){
+          sel.value = o.value; break;
+        }
+      }
+    }
   };
 
   // 変更を登録
@@ -307,6 +318,15 @@
       };
       if(!data.newSlot.date||!data.newSlot.time){ alert('追加日程を入力してください'); return; }
     }
+    if(type==='block'){
+      data.blockDate = document.getElementById('chgBlockDate').value.trim();
+      data.blockTime = document.getElementById('chgBlockTime').value.trim();
+      // ブロックは対象IDを「tochi-block」として保存
+      data.targetId = 'tochi';
+      data.targetLabel = data.blockDate
+        ? (data.blockDate + ' 託児ブロック')
+        : '託児ルーム 全日ブロック';
+    }
 
     const btn = document.getElementById('chgSaveBtn');
     btn.disabled=true; btn.textContent='登録中…';
@@ -336,8 +356,8 @@
         return;
       }
 
-      const typeLabel = {cancel:'⚠️ 中止', time:'🔔 時間変更', cap:'👥 定員変更', add:'🆕 追加'};
-      const typeBadge = {cancel:'badge-cancel', time:'badge-change', cap:'badge-cap', add:'badge-add'};
+      const typeLabel = {cancel:'⚠️ 中止', time:'🔔 時間変更', cap:'👥 定員変更', add:'🆕 追加', block:'🚫 日程ブロック'};
+      const typeBadge = {cancel:'badge-cancel', time:'badge-change', cap:'badge-cap', add:'badge-add', block:'badge-block'};
 
       document.getElementById('chgList').innerHTML = changes.map(c=>`
         <div class="chg-card">
@@ -346,10 +366,12 @@
             <span class="chg-prog">${c.targetLabel||c.targetId}</span>
             <button class="chg-del" onclick="deleteChange('${c.id}')">削除</button>
           </div>
-          ${c.newTime ? `<div class="chg-detail">新しい時間：${c.newTime}</div>` : ''}
-          ${c.newCap  ? `<div class="chg-detail">新しい定員：${c.newCap}組</div>` : ''}
-          ${c.newSlot ? `<div class="chg-detail">追加日程：${c.newSlot.date}　${c.newSlot.time}</div>` : ''}
-          ${c.note    ? `<div class="chg-detail">📝 ${c.note}</div>` : ''}
+          ${c.newTime   ? `<div class="chg-detail">新しい時間：${c.newTime}</div>` : ''}
+          ${c.newCap    ? `<div class="chg-detail">新しい定員：${c.newCap}組</div>` : ''}
+          ${c.newSlot   ? `<div class="chg-detail">追加日程：${c.newSlot.date}　${c.newSlot.time}</div>` : ''}
+          ${c.blockDate ? `<div class="chg-detail">ブロック日：${c.blockDate}</div>` : ''}
+          ${c.blockTime ? `<div class="chg-detail">ブロック時間：${c.blockTime}</div>` : ''}
+          ${c.note      ? `<div class="chg-detail">📝 ${c.note}</div>` : ''}
           <div class="chg-notify" id="notify-${c.id}">
             <button class="btn-notify" onclick="showNotifyText('${c.id}')">📢 通知文を生成</button>
           </div>
@@ -496,7 +518,7 @@
   .badge-cancel{background:#fce4ec;color:#c62828}
   .badge-change{background:#fff8e1;color:#e65100}
   .badge-cap{background:#e8eaf6;color:#3949ab}
-  .badge-add{background:#e8f5e9;color:#2e7d32}
+  .badge-block{background:#fce4ec;color:#880e4f}
   .chg-detail{font-size:.82rem;color:var(--muted);margin-bottom:3px}
   .chg-del{padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;
     background:#fff;color:#dc2626;font-size:.72rem;cursor:pointer;font-family:inherit}
@@ -723,6 +745,7 @@
             <option value="time">🔔 時間変更</option>
             <option value="cap">👥 定員変更</option>
             <option value="add">🆕 枠を追加</option>
+            <option value="block">🚫 日程ブロック（託児）</option>
           </select>
         </div>
         <div class="form-row" id="chgTimeRow" style="display:none">
@@ -743,9 +766,20 @@
             <input type="text" id="chgAddTime" placeholder="例：10:00〜11:00">
           </div>
         </div>
+        <!-- 日程ブロック用入力 -->
+        <div id="chgBlockRow" style="display:none">
+          <div class="form-row">
+            <label>ブロック日付</label>
+            <input type="text" id="chgBlockDate" placeholder="例：4/10（金）　※空欄で全日ブロック">
+          </div>
+          <div class="form-row">
+            <label>ブロック時間帯</label>
+            <input type="text" id="chgBlockTime" placeholder="例：9:00〜11:00　※空欄で終日ブロック">
+          </div>
+        </div>
         <div class="form-row">
           <label>備考・理由</label>
-          <input type="text" id="chgNote" placeholder="例：講師都合により中止、会場設備工事のため時間変更">
+          <input type="text" id="chgNote" placeholder="例：講師都合により中止、スタッフ不在のため">
         </div>
         <button class="btn btn-primary" id="chgSaveBtn" onclick="saveChange()" style="margin-top:4px">変更を登録する</button>
       </form>
