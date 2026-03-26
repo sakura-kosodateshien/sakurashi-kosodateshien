@@ -257,8 +257,10 @@ const liffInitPromise = (async()=>{
 // LINE トークに予約確認メッセージを送信
 async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraLabel){
   await liffInitPromise;
+  const dbg = `[DEBUG]\nisInClient: ${liff.isInClient()}\nisLoggedIn: ${liff.isLoggedIn()}\nliffReady: ${liffReady}`;
+  alert(dbg);
   if(!liffReady){
-    console.warn('LINE送信スキップ: LINEアプリ内ブラウザではありません');
+    alert('スキップ: LINEアプリ内ブラウザではありません');
     return;
   }
   try{
@@ -267,7 +269,10 @@ async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraL
         text:`✅ 予約が完了しました\n\n📋 ${progName}\n📅 ${dateLabel}　${time}${hasExtra?'\n📅 '+extraLabel+'（2枠目）':''}\n👤 ${name}\n\nご来場をお待ちしています🌿\nアンファンひのきさくら 子育て支援センター ひのきっこ` }
     ];
     await liff.sendMessages(msg);
-  }catch(e){ console.warn('LINE送信エラー:', e.message); }
+    alert('LINE送信成功！');
+  }catch(e){
+    alert('LINE送信エラー: ' + e.message);
+  }
 }
 
 function toDateKey(dateStr) {
