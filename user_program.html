@@ -233,6 +233,10 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
         <div style="font-size:.82rem;font-weight:700;color:#5a3f78;margin-bottom:8px">🎒 託児のお持ち物をご確認ください</div>
         <img src="img_tochi_checklist.png" alt="託児持ち物リスト" style="width:100%;border-radius:8px">
       </div>
+      <div id="lineAlert" style="display:none;margin-top:12px;background:#fff3e0;border:1.5px solid #ffb74d;border-radius:12px;padding:12px 14px;text-align:left">
+        <div style="font-size:.82rem;font-weight:700;color:#e65100;margin-bottom:4px">📣 LINE連携のお願い</div>
+        <div style="font-size:.78rem;color:#7d5a00;line-height:1.7">LINEの「会員QR」を一度開くと予約確認・リマインダーが届くようになります。<br>リッチメニューの <strong>「会員QR」</strong> をタップしてご登録ください。</div>
+      </div>
       <button class="btn-back" onclick="closeModal()">閉じる</button>
     </div>
   </div>
@@ -850,6 +854,17 @@ async function submitBooking(){
     document.getElementById('successView').style.display = 'block';
     // 託児予約の場合は持ち物リストを表示
     document.getElementById('tochiChecklist').style.display = p.id==='tochi' ? 'block' : 'none';
+    // LINE連携状況を確認してアラート表示
+    try{
+      await liffInitPromise;
+      if(liffReady){
+        const profile = await liff.getProfile();
+        const q = await getDocs(query(collection(db,'users'), where('lineUserId','==',profile.userId)));
+        document.getElementById('lineAlert').style.display = q.empty ? 'block' : 'none';
+      } else {
+        document.getElementById('lineAlert').style.display = 'none';
+      }
+    }catch(e){ document.getElementById('lineAlert').style.display = 'none'; }
 
     // LINEトークに自動送信
     const extraSel3  = document.getElementById('tochiExtraSelect');

@@ -189,6 +189,14 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 const PH=28, HOURS=[9,10,11,12,13,14], DAYS_JP=["月","火","水","木","金"];
 const BASE=new Date(2026,3,6);
 let weekOffset=0, viewMode='all', liveBookings=[], selectedProg=null, unsubFn=null;
+let usersCache = {}; // tel -> {lineUserId}
+async function loadUsersCache(){
+  if(!window._fbGetUsers) return;
+  try{
+    const snap = await window._fbGetUsers();
+    snap.docs.forEach(d=>{ const u=d.data(); if(u.tel) usersCache[u.tel]=u; });
+  }catch(e){ console.warn('users読み込み失敗:', e.message); }
+}
 
 const ALL_PROGS=[
   // 4/1-4/3
@@ -386,10 +394,11 @@ function openPanel(id){
   } else {
     bks.forEach((b,i)=>{
       const isPending=b.status==='pending';
+      const isLineLinked = b.tel && usersCache[b.tel] && usersCache[b.tel].lineUserId;
       list+=`<div class="bk-row" id="bkrow-${b.fbId}" style="${b.note?'border-color:#ffb74d;background:#fffdf7':''}">
         <div class="bk-num">${i+1}</div>
         <div style="flex:1">
-          <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''}</div>
+          <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''} ${isLineLinked?'<span style="font-size:.62rem;background:#e8f5e9;color:#2d6a4f;border-radius:20px;padding:1px 6px;font-weight:700">LINE連携済</span>':'<span style="font-size:.62rem;background:#fce4ec;color:#c62828;border-radius:20px;padding:1px 6px;font-weight:700">⚠️ LINE未連携</span>'}</div>
           <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''}</div>
           ${b.note?`<div class="bk-note"><span class="bk-note-icon">⚠️</span><span><strong>備考あり：</strong>${b.note}</span></div>`:''}
         </div>
@@ -564,8 +573,10 @@ try{
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window._fbAddDoc=(data)=>addDoc(collection(db,'bookings'),data);
   window._fbTimestamp=()=>Timestamp.now();
+  window._fbGetUsers=()=>getDocs(collection(db,'users'));
   window.firebase_loaded=true;
   if(window.loadFirebase) window.loadFirebase();
+  loadUsersCache();
 }catch(e){ console.warn('Firebase読み込み失敗（オフラインモード）:', e.message); }
 </script>
 </body>

@@ -103,8 +103,9 @@
         });
       }
 
+      const noLine = !user.lineUserId;
       showState('checkin', user.name, { months, visitType, bookings, visitId: visitRef.id,
-        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' }) });
+        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' }), noLine });
       setTimeout(() => showState('ready'), 5000);
 
     } catch(e) {
@@ -225,7 +226,9 @@
       subEl.innerHTML = `
         <div class="info-row">${typeLabel}　お子さん ${sub.months}ヶ月</div>
         ${bkHtml}
-        <div class="info-row">入室 ${sub.time}</div>`;
+        <div class="info-row">入室 ${sub.time}</div>
+        ${sub.noLine ? '<div style="margin-top:8px;background:#fff3e0;border-radius:8px;padding:8px 10px;font-size:.78rem;color:#e65100;font-weight:700">📣 LINE未連携です。会員QRからLINE登録をお願いします</div>' : ''}
+        `;
       return;
     }
     if (state === 'checkout') {
