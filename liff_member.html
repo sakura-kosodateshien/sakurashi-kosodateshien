@@ -200,6 +200,7 @@ let currentUid = '';
 function showMember(user){
   currentUid = user.uid;
   document.getElementById('loading').style.display='none';
+  document.getElementById('unregCard').style.display='none';
   document.getElementById('memberCard').style.display='block';
   document.getElementById('mName').textContent = user.name + ' さん';
   document.getElementById('mUid').textContent  = 'ID: ' + user.uid;
