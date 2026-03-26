@@ -209,7 +209,8 @@
           </div>
         </div>
         <span class="member-badge ${u.lineUserId?'':'no-line'}">${u.lineUserId?'✅ LINE連携':'未連携'}</span>
-        <button onclick="editMember('${u.id}')" style="margin-left:8px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
+        <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:8px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
+        <button onclick="editMember('${u.id}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
         <button onclick="deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
       </div>`).join('');
   }
@@ -223,6 +224,50 @@
       renderMembers(allMembers);
       alert('削除しました');
     }catch(e){ alert('削除エラー: '+e.message); }
+  };
+
+  // ── 会員別予約一覧 ──────────────────────────────────────────────────
+  window.showMemberBookings = async function(uid, name){
+    document.getElementById('bookingModalName').textContent = name + ' さんの予約一覧';
+    document.getElementById('bookingModalList').innerHTML =
+      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中...</div>';
+    document.getElementById('bookingModal').style.display = 'flex';
+    try{
+      const snap = await getDocs(query(
+        collection(db,'bookings'),
+        where('name','==',name),
+        orderBy('date','asc')
+      ));
+      const bookings = snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(!bookings.length){
+        document.getElementById('bookingModalList').innerHTML =
+          '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">予約がありません</div>';
+        return;
+      }
+      const statusLabel = {confirmed:'✅ 予約確定', pending:'⏳ 確認中', cancelled:'❌ キャンセル'};
+      const statusColor = {confirmed:'#e8f5e9', pending:'#fff8e1', cancelled:'#fce4ec'};
+      const statusText  = {confirmed:'#2d6a4f', pending:'#7d5a00', cancelled:'#c62828'};
+      document.getElementById('bookingModalList').innerHTML = bookings.map(b=>{
+        const st = b.status||'pending';
+        return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fafafa">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-weight:700;font-size:.9rem;color:var(--text)">${b.progName||b.progId||'-'}</div>
+            <span style="font-size:.72rem;padding:3px 9px;border-radius:20px;font-weight:700;background:${statusColor[st]};color:${statusText[st]}">${statusLabel[st]||st}</span>
+          </div>
+          <div style="font-size:.8rem;color:var(--muted);line-height:1.8">
+            📅 ${b.dateLabel||b.date||'-'}　${b.time||''}
+            ${b.note ? '<br>📝 ' + b.note : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      document.getElementById('bookingModalList').innerHTML =
+        '<div style="padding:16px;color:#c0392b;font-size:.85rem">読み込みエラー: '+e.message+'</div>';
+    }
+  };
+
+  window.closeBookingModal = function(){
+    document.getElementById('bookingModal').style.display = 'none';
   };
 
   // ── 会員編集 ────────────────────────────────────────────────────────
@@ -879,6 +924,17 @@ document.addEventListener('click', e=>{
   }
 });
 </script>
+<!-- 会員別予約モーダル -->
+<div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)closeBookingModal()">
+  <div style="background:#fff;border-radius:16px;padding:24px 20px;width:min(480px,94%);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 id="bookingModalName" style="font-size:.95rem;font-weight:700;color:#5a3f78">📋 予約一覧</h3>
+      <button onclick="closeBookingModal()" style="border:none;background:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
+    </div>
+    <div id="bookingModalList" style="overflow-y:auto;flex:1"></div>
+  </div>
+</div>
+
 <!-- 会員編集モーダル -->
 <div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:24px 20px;width:min(420px,92%);box-shadow:0 4px 24px rgba(0,0,0,.2)">
