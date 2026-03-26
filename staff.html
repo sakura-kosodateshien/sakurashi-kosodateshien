@@ -129,6 +129,46 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
   <div class="li"><div class="ld" style="background:#F7C1C1;border:.5px solid #E24B4A"></div>満員</div>
 </div>
 
+<!-- 電話予約追加モーダル -->
+<div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeAddModal()">
+  <div style="background:#fff;border-radius:16px;padding:22px 18px;width:min(420px,94%);max-height:88vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 id="addModalTitle" style="font-size:.95rem;font-weight:700;color:var(--green)">📞 電話予約を追加</h3>
+      <button onclick="closeAddModal()" style="border:none;background:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="addModalProg" style="font-size:.78rem;color:var(--muted);background:#f0faf4;border-radius:8px;padding:8px 10px;margin-bottom:14px"></div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">保護者氏名 <span style="color:#c62828">*</span></label>
+      <input id="addName" type="text" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">ふりがな</label>
+      <input id="addKana" type="text" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">お子さんの月齢 <span style="color:#c62828">*</span></label>
+      <select id="addAge" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box;background:#fff">
+        <option value="">選択してください</option>
+        <option>0〜5か月</option><option>6〜11か月</option><option>1才0か月〜</option>
+        <option>1才6か月〜</option><option>2才0か月〜</option><option>2才6か月〜</option>
+        <option>3才〜</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">連絡先（携帯番号） <span style="color:#c62828">*</span></label>
+      <input id="addTel" type="tel" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:.72rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px">備考・アレルギー等</label>
+      <textarea id="addNote" rows="2" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeAddModal()" style="flex:1;padding:10px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:.88rem;font-family:inherit;cursor:pointer;color:var(--muted)">キャンセル</button>
+      <button onclick="submitAddBooking()" id="addSubmitBtn" style="flex:2;padding:10px;border:none;border-radius:10px;background:var(--green);color:#fff;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer">予約を追加する</button>
+    </div>
+  </div>
+</div>
+
 <div class="panel-bg" id="panelBg">
   <div class="panel">
     <div class="panel-head">
@@ -407,7 +447,60 @@ window.confirmBooking=function(fbId, progId){
 };
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
-function openAddModal(){ alert('電話予約追加機能は準備中です'); }
+function openAddModal(){
+  if(!selectedProg){ alert('プログラムを選択してください'); return; }
+  const p = selectedProg;
+  document.getElementById('addModalTitle').textContent = '📞 電話予約を追加';
+  document.getElementById('addModalProg').textContent = p.emoji+' '+p.name+'　'+formatDate(p.date)+'　'+p.sh+':00〜'+p.eh+':'+(p.em||'00');
+  document.getElementById('addName').value = '';
+  document.getElementById('addKana').value = '';
+  document.getElementById('addAge').value = '';
+  document.getElementById('addTel').value = '';
+  document.getElementById('addNote').value = '';
+  document.getElementById('addModal').style.display = 'flex';
+}
+
+function closeAddModal(){
+  document.getElementById('addModal').style.display = 'none';
+}
+
+async function submitAddBooking(){
+  const name = document.getElementById('addName').value.trim();
+  const kana = document.getElementById('addKana').value.trim();
+  const age  = document.getElementById('addAge').value;
+  const tel  = document.getElementById('addTel').value.trim();
+  const note = document.getElementById('addNote').value.trim();
+
+  if(!name){ alert('保護者氏名を入力してください'); return; }
+  if(!age){  alert('月齢を選択してください'); return; }
+  if(!tel){  alert('連絡先を入力してください'); return; }
+  if(!window._fbAddDoc){ alert('Firebase接続中です。しばらくお待ちください。'); return; }
+
+  const p = selectedProg;
+  const btn = document.getElementById('addSubmitBtn');
+  btn.disabled = true; btn.textContent = '追加中...';
+
+  try{
+    await window._fbAddDoc({
+      progId:    p.id,
+      progName:  p.name,
+      date:      p.date,
+      dateLabel: formatDate(p.date),
+      time:      p.sh+':00〜'+p.eh+':'+(p.em?String(p.em).padStart(2,'0'):'00'),
+      name, kana, age, childCount:'1',
+      tel, note,
+      tochi: false, tochiTime: '',
+      status: 'confirmed',
+      bookedAt: window._fbTimestamp ? window._fbTimestamp() : new Date()
+    });
+    closeAddModal();
+    alert('予約を追加しました');
+  }catch(e){
+    alert('追加エラー: '+e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = '予約を追加する';
+  }
+}
 document.getElementById('panelBg').addEventListener('click',e=>{ if(e.target===document.getElementById('panelBg')) closePanel(); });
 
 // ── Firebase連携（非同期・失敗しても表示は維持）────────────────────
@@ -469,6 +562,8 @@ try{
   window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('status','==','pending'),where('date','>=','2026-04-01')));
   window._fbOnSnapshot=onSnapshot;
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
+  window._fbAddDoc=(data)=>addDoc(collection(db,'bookings'),data);
+  window._fbTimestamp=()=>Timestamp.now();
   window.firebase_loaded=true;
   if(window.loadFirebase) window.loadFirebase();
 }catch(e){ console.warn('Firebase読み込み失敗（オフラインモード）:', e.message); }
