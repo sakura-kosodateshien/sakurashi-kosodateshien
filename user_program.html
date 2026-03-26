@@ -259,7 +259,7 @@ async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraL
   try{
     const msg = [
       { type:'text',
-        text:`✅ 予約が完了しました\n\n📋 ${progName}\n📅 ${dateLabel}　${time}${hasExtra?'\n📅 '+extraLabel+'（2枠目）':''}\n👤 ${name}\n\nご来場をお待ちしています🌿\n陽の木さくら保育園 子育て支援センター` }
+        text:`✅ 予約が完了しました\n\n📋 ${progName}\n📅 ${dateLabel}　${time}${hasExtra?'\n📅 '+extraLabel+'（2枠目）':''}\n👤 ${name}\n\nご来場をお待ちしています🌿\nアンファンひのきさくら 子育て支援センター ひのきっこ` }
     ];
     await liff.sendMessages(msg);
   }catch(e){ console.warn('LINE送信エラー:', e.message); }
