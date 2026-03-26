@@ -61,6 +61,8 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .bk-num{width:20px;height:20px;border-radius:50%;background:#f0faf4;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--green);flex-shrink:0}
 .bk-name{font-weight:500}
 .bk-info{font-size:.72rem;color:var(--muted)}
+.bk-note{font-size:.75rem;color:#7d3c00;background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:4px 8px;margin-top:4px;display:flex;align-items:flex-start;gap:4px}
+.bk-note-icon{flex-shrink:0}
 .bk-stat{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:700}
 .s-ok{background:#e8f5e9;color:#2e7d32}
 .avail-info{background:#f0faf4;border-radius:8px;padding:8px 10px;font-size:.78rem;margin-bottom:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
@@ -317,8 +319,9 @@ function render(){
         const uw=98/cols;
         pos=`left:${1+col*uw}%;width:${uw-0.5}%;`;
       }
+      const hasNote = bks.some(b=>b.note);
       g+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${pos}" onclick="openPanel('${p.id}')">
-        <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}</div>
+        <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}${hasNote?' 📝':''}</div>
         <div style="font-size:.58rem;opacity:.9">${pendCnt>0?p.name+' +'+pendCnt+'未確認':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
       </div>`;
     });
@@ -343,11 +346,12 @@ function openPanel(id){
   } else {
     bks.forEach((b,i)=>{
       const isPending=b.status==='pending';
-      list+=`<div class="bk-row" id="bkrow-${b.fbId}">
+      list+=`<div class="bk-row" id="bkrow-${b.fbId}" style="${b.note?'border-color:#ffb74d;background:#fffdf7':''}">
         <div class="bk-num">${i+1}</div>
         <div style="flex:1">
           <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''}</div>
-          <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''} ${b.note?'📝'+b.note:''}</div>
+          <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''}</div>
+          ${b.note?`<div class="bk-note"><span class="bk-note-icon">⚠️</span><span><strong>備考あり：</strong>${b.note}</span></div>`:''}
         </div>
         <span class="bk-stat ${isPending?'s-pending':'s-ok'}">${isPending?'⏳ 確認待ち':'確定'}</span>
         ${isPending?`<button class="confirm-btn" onclick="confirmBooking('${b.fbId}','${p.id}')">✅ 確認</button>`:''}
