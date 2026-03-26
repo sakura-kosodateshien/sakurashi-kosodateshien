@@ -254,7 +254,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
     },
     {
       id:"sample6", name:"託児ルーム", emoji:"👶", cat:"reserve", cats:["reserve","tochi"],
-      age:"年齢設定なし", cap:"各2名", fee:"無料", items:"オムツ・着替え・水分",
+      age:"年齢設定なし", cap:"各2名", fee:"無料", items:"おむつ３枚・おしりふき・帽子・水分（水またはお茶）・着替え１組・靴・タオルケット（寝てしまった時に）\n＊お預かりできないもの：ミルクや食べ物・薬品類・貴重品類・抱っこ紐等・ご自宅から持ってきた玩具",
       text:"初めてで不安な方は1時間〜でもOKです！\n利用の理由は問いません💛\n最大2時間以内なので、お迎えが遅れないようにご注意ください。\n\n※事前の予約は1家庭2枠のみ出来ます。\n託児利用後に、次回分の予約可能となっています！月に4枠ご利用可能です。",
       img:"img_tochi.jpg", imgs:["img_tochi_checklist.png"], youtube:"",
       order:6, createdAt: new Date()
@@ -349,7 +349,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
         p.age   ? `<tr><th>対象</th><td>${p.age}</td></tr>` : '',
         p.cap   ? `<tr><th>定員</th><td>${p.cap}</td></tr>` : '',
         p.fee   ? `<tr><th>費用</th><td>${p.fee}</td></tr>` : '',
-        p.items ? `<tr><th>持ち物</th><td>${p.items}</td></tr>` : '',
+        p.items ? `<tr><th>持ち物</th><td style="white-space:pre-wrap">${p.items}</td></tr>` : '',
       ].filter(Boolean).join('');
       const tableHtml = rows ? `<table class="info-table">${rows}</table>` : '';
 
