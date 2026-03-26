@@ -235,10 +235,11 @@
     try{
       const snap = await getDocs(query(
         collection(db,'bookings'),
-        where('name','==',name),
-        orderBy('date','asc')
+        where('name','==',name)
       ));
-      const bookings = snap.docs.map(d=>({id:d.id,...d.data()}));
+      // クライアント側でdateソート（Firestoreインデックス不要）
+      const bookings = snap.docs.map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
       if(!bookings.length){
         document.getElementById('bookingModalList').innerHTML =
           '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">予約がありません</div>';
