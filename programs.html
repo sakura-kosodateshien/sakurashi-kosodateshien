@@ -256,7 +256,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
       id:"sample6", name:"託児ルーム", emoji:"👶", cat:"reserve", cats:["reserve","tochi"],
       age:"年齢設定なし", cap:"各2名", fee:"無料", items:"オムツ・着替え・水分",
       text:"初めてで不安な方は1時間〜でもOKです！\n利用の理由は問いません💛\n最大2時間以内なので、お迎えが遅れないようにご注意ください。\n\n※事前の予約は1家庭2枠のみ出来ます。\n託児利用後に、次回分の予約可能となっています！月に4枠ご利用可能です。",
-      img:"img_tochi.jpg", imgs:[], youtube:"",
+      img:"img_tochi.jpg", imgs:["img_tochi_checklist.png"], youtube:"",
       order:6, createdAt: new Date()
     },
     {
@@ -341,7 +341,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
       // サブ画像ギャラリー
       const imgs = Array.isArray(p.imgs) ? p.imgs.filter(Boolean) : [];
       const galleryHtml = imgs.length
-        ? `<div class="gallery">${imgs.map(u=>`<img src="${u}" alt="" onclick="openLb('${u}')" onerror="this.parentElement.removeChild(this)">`).join('')}</div>`
+        ? `<div class="gallery">${imgs.map(u=>`<img src="${u}" alt="" onclick="openLb('${u}')" style="aspect-ratio:auto;object-fit:contain;background:#f5f0f8" onerror="this.parentElement.removeChild(this)">`).join('')}</div>`
         : '';
 
       // 詳細テーブル

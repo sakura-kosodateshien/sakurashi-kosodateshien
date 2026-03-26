@@ -229,6 +229,10 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
       <h3>予約リクエストを送信しました</h3>
       <div class="sv-detail" id="svDetail"></div>
       <p>担当者が内容を確認後、LINEの「会員QR」→「予約確認」タブに予約が表示されます。</p>
+      <div id="tochiChecklist" style="display:none;margin-top:14px;background:#ede6f4;border-radius:12px;padding:12px 14px;text-align:left">
+        <div style="font-size:.82rem;font-weight:700;color:#5a3f78;margin-bottom:8px">🎒 託児のお持ち物をご確認ください</div>
+        <img src="img_tochi_checklist.png" alt="託児持ち物リスト" style="width:100%;border-radius:8px">
+      </div>
       <button class="btn-back" onclick="closeModal()">閉じる</button>
     </div>
   </div>
@@ -844,6 +848,8 @@ async function submitBooking(){
 
     document.getElementById('formView').style.display   = 'none';
     document.getElementById('successView').style.display = 'block';
+    // 託児予約の場合は持ち物リストを表示
+    document.getElementById('tochiChecklist').style.display = p.id==='tochi' ? 'block' : 'none';
 
     // LINEトークに自動送信
     const extraSel3  = document.getElementById('tochiExtraSelect');
