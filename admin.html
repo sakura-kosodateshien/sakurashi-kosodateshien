@@ -209,7 +209,7 @@
           </div>
         </div>
         <span class="member-badge ${u.lineUserId?'':'no-line'}">${u.lineUserId?'✅ LINE連携':'未連携'}</span>
-        <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:8px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
+        <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}','${(u.tel||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:8px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
         <button onclick="editMember('${u.id}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
         <button onclick="deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
       </div>`).join('');
@@ -227,7 +227,7 @@
   };
 
   // ── 会員別予約一覧 ──────────────────────────────────────────────────
-  window.showMemberBookings = async function(uid, name){
+  window.showMemberBookings = async function(uid, name, tel){
     document.getElementById('bookingModalName').textContent = name + ' さんの予約一覧';
     document.getElementById('bookingModalList').innerHTML =
       '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中...</div>';
@@ -235,7 +235,7 @@
     try{
       const snap = await getDocs(query(
         collection(db,'bookings'),
-        where('name','==',name)
+        where('tel','==',tel)
       ));
       // クライアント側でdateソート（Firestoreインデックス不要）
       const bookings = snap.docs.map(d=>({id:d.id,...d.data()}))
