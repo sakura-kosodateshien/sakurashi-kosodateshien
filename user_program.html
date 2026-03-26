@@ -246,16 +246,21 @@ const db  = getFirestore(app);
 
 const LIFF_ID = '2009587361-VFUaeLMj';
 let liffReady = false;
-(async()=>{
+const liffInitPromise = (async()=>{
   try{
     await liff.init({ liffId: LIFF_ID });
     liffReady = liff.isInClient();
-  }catch(e){ console.warn('LIFF初期化:', e.message); }
+    console.log('LIFF初期化完了 isInClient:', liffReady);
+  }catch(e){ console.warn('LIFF初期化エラー:', e.message); }
 })();
 
 // LINE トークに予約確認メッセージを送信
 async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraLabel){
-  if(!liffReady) return;
+  await liffInitPromise;
+  if(!liffReady){
+    console.warn('LINE送信スキップ: LINEアプリ内ブラウザではありません');
+    return;
+  }
   try{
     const msg = [
       { type:'text',
