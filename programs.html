@@ -225,7 +225,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
   // ── サンプルデータ（Firebase未接続時のフォールバック） ──────────────────
   const SAMPLE = [
     {
-      id:"sample1", name:"プラパン工房", emoji:"🎨", cat:"reserve",
+      id:"sample1", name:"プラパン工房", emoji:"🎨", cat:"reserve", cats:["reserve","baby","tochi"],
       age:"年齢設定なし", cap:"各2組", fee:"無料", items:"なし",
       text:"お子さんの足型・手形を残すキーホルダーをプラバンで作成♪動物やキャラクターにして名前・日付もデザインして入れてみましょう♪\n\n託児付きのプログラムなので、ゆっくり作業に集中できます。",
       img:"img_pulapan.jpg", imgs:[], youtube:"",
@@ -239,7 +239,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
       order:2, createdAt: new Date()
     },
     {
-      id:"sample3", name:"ベビーフォト", emoji:"📸", cat:"reserve",
+      id:"sample3", name:"ベビーフォト", emoji:"📸", cat:"reserve", cats:["reserve","baby"],
       age:"年齢設定なし", cap:"各3組", fee:"無料", items:"なし",
       text:"スマホで簡単！赤ちゃんを可愛く撮るコツ講座＆撮影会。月齢フォト、ハーフバースデイ、毎日の何気ない姿をもっと可愛く残したい！そんなパパ・ママの願いを叶える撮影体験会を開催します。\n\nセンターで用意した季節感たっぷりのフォトブースや可愛い撮影小物をお使いいただけます。",
       img:"img_photo.png", imgs:[], youtube:"",
@@ -260,7 +260,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
       order:6, createdAt: new Date()
     },
     {
-      id:"sample7", name:"ベビーマッサージ", emoji:"👐", cat:"reserve",
+      id:"sample7", name:"ベビーマッサージ", emoji:"👐", cat:"reserve", cats:["reserve","baby"],
       age:"満6か月〜1才半", cap:"各3組", fee:"無料", items:"バスタオル（赤ちゃんの下に敷く用）",
       text:"現役保育士によるベビーマッサージ。オイル不使用なので手ぶらでOK！（バスタオルのみご持参ください）\n\n赤ちゃんとのスキンシップを楽しみながら、成長・発達を促します。初めての方もお気軽にどうぞ♪",
       img:"img_massage.jpg", imgs:[], youtube:"",
@@ -308,7 +308,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
   function renderProgs() {
     const filtered = currentCat === 'all'
       ? allProgs
-      : allProgs.filter(p => p.cat === currentCat);
+      : allProgs.filter(p => (p.cats || [p.cat]).includes(currentCat));
 
     const grid = document.getElementById('progGrid');
     if (!filtered.length) {
@@ -317,8 +317,9 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
     }
 
     grid.innerHTML = filtered.map(p => {
-      const catLabel = {reserve:'要予約',free:'予約不要',tochi:'託児付き',baby:'ベビー向け'}[p.cat] || '';
-      const isFree = p.cat === 'free';
+      const catMap = {reserve:'要予約',free:'予約不要',tochi:'託児付き',baby:'ベビー向け'};
+      const catLabels = (p.cats || [p.cat]).map(c => catMap[c]).filter(Boolean);
+      const isFree = (p.cats || [p.cat]).includes('free');
 
       // メイン画像
       const imgHtml = p.img
@@ -366,7 +367,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
             </div>
           </div>
           <div class="tag-row">
-            <span class="tag ${isFree?'free':'req'}">${catLabel}</span>
+            ${catLabels.map(l => `<span class="tag ${isFree?'free':'req'}">${l}</span>`).join('')}
             ${p.cap?`<span class="tag">${p.cap}</span>`:''}
             ${p.fee==='無料'?`<span class="tag free">無料</span>`:''}
           </div>
