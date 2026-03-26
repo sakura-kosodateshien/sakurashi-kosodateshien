@@ -256,23 +256,9 @@ const liffInitPromise = (async()=>{
 
 // LINE トークに予約確認メッセージを送信
 async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraLabel){
-  await liffInitPromise;
-  const dbg = `[DEBUG]\nisInClient: ${liff.isInClient()}\nisLoggedIn: ${liff.isLoggedIn()}\nliffReady: ${liffReady}`;
-  alert(dbg);
-  if(!liffReady){
-    alert('スキップ: LINEアプリ内ブラウザではありません');
-    return;
-  }
-  try{
-    const msg = [
-      { type:'text',
-        text:`✅ 予約が完了しました\n\n📋 ${progName}\n📅 ${dateLabel}　${time}${hasExtra?'\n📅 '+extraLabel+'（2枠目）':''}\n👤 ${name}\n\nご来場をお待ちしています🌿\nアンファンひのきさくら 子育て支援センター ひのきっこ` }
-    ];
-    await liff.sendMessages(msg);
-    alert('LINE送信成功！');
-  }catch(e){
-    alert('LINE送信エラー: ' + e.message);
-  }
+  // リッチメニュー起動のLIFFではsendMessagesは動作しないため現在は無効
+  // 将来Messaging API Push送信で実装予定
+  return;
 }
 
 function toDateKey(dateStr) {
