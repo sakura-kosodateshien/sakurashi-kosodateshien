@@ -212,7 +212,25 @@ const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
 function changeWeek(d){ weekOffset+=d; initFirebase(); }
 function setView(v,el){ viewMode=v; document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active'); render(); }
 
-function getBks(prog){ return liveBookings.filter(b=>b.date===prog.date&&b.status!=='cancelled'&&(b.progId===prog.id||b.progName===prog.name||(b.progName||'').includes(prog.name.split(' ')[0]))); }
+// ガントチャート名 → 予約フォームprogName の対応マップ
+const PROG_NAME_MAP = {
+  '英語 7か月〜1才': '英語・知育',
+  '英語 1才〜3才':   '英語・知育',
+  '知育 1才〜3才':   '英語・知育',
+  '知育 7か月〜1才': '英語・知育',
+  '託児':            '託児ルーム',
+};
+function getBks(prog){
+  const aliases = [prog.name, PROG_NAME_MAP[prog.name]].filter(Boolean);
+  return liveBookings.filter(b =>
+    b.date === prog.date &&
+    b.status !== 'cancelled' &&
+    (b.progId === prog.id ||
+     aliases.includes(b.progName) ||
+     aliases.some(a => (b.progName||'').includes(a.split(' ')[0]))
+    )
+  );
+}
 
 // ── 未確認バナー更新 ─────────────────────────────────────────────────
 function updatePendingBanner(){
