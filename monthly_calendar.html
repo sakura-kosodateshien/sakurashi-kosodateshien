@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4月カレンダー | ひのきっこ</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:#f5f0fa;min-height:100vh}
+header{background:#dccfe6;padding:12px 16px;display:flex;align-items:center;position:sticky;top:0;z-index:10}
+header a{color:#3d2a55;text-decoration:none;font-size:.85rem;font-weight:700;margin-right:auto}
+header h1{font-size:.95rem;font-weight:700;color:#3d2a55;position:absolute;left:50%;transform:translateX(-50%)}
+.tab-bar{display:flex;background:#fff;border-bottom:2px solid #dccfe6;position:sticky;top:52px;z-index:9}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:.82rem;font-weight:700;color:#9b87b0;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
+.tab.active{color:#5a3f78;border-bottom-color:#5a3f78}
+.panel{display:none;padding:12px}
+.panel.active{display:block}
+.cal-img{width:100%;border-radius:12px;box-shadow:0 2px 16px rgba(90,63,120,.12);display:block}
+.reserve-btn{display:block;margin:16px auto 0;max-width:360px;padding:13px;background:#dccfe6;color:#3d2a55;font-size:.95rem;font-weight:700;font-family:inherit;border:none;border-radius:14px;cursor:pointer;text-align:center;text-decoration:none}
+.reserve-btn:hover{background:#c9b8e0}
+</style>
+</head>
+<body>
+<header>
+  <a href="user_program.html">← 戻る</a>
+  <h1>📅 4月カレンダー</h1>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('cal',this)">📅 月カレンダー</div>
+  <div class="tab" onclick="switchTab('detail',this)">📋 プログラム詳細</div>
+</div>
+
+<div class="panel active" id="panelCal">
+  <img src="calendar_april.png" alt="4月カレンダー" class="cal-img">
+</div>
+
+<div class="panel" id="panelDetail">
+  <img src="calendar_april2.png" alt="4月プログラム詳細" class="cal-img">
+</div>
+
+<a href="user_program.html" class="reserve-btn">🌿 予約はこちら</a>
+
+<script>
+function switchTab(id, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('active');
+}
+</script>
+</body>
+</html>
