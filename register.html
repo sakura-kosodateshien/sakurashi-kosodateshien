@@ -30,6 +30,27 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
+  // ── LIFF初期化・lineUserId取得 ─────────────────────────────────────
+  let _lineUserId = '';
+  async function initLiff() {
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      await liff.init({ liffId: '2009587361-fY64rJtv' });
+      if (liff.isLoggedIn()) {
+        const profile = await liff.getProfile();
+        _lineUserId = profile.userId;
+      }
+    } catch(e) {
+      console.warn('LIFF初期化失敗（LINE外からのアクセス）:', e.message);
+    }
+  }
+  initLiff();
+
   // ── ユニークID生成 ──────────────────────────────────────────────────
   function generateUID() {
     return 'U' + Date.now().toString(36).toUpperCase()
@@ -56,6 +77,7 @@
     const uid = generateUID();
     const data = {
       uid, name, kana, childDob, tel, lang,
+      lineUserId: _lineUserId,
       registeredAt: new Date().toISOString(),
       active: true
     };

@@ -343,6 +343,11 @@ window.openCancel=function(id,name,date,needReason){
     }catch(e){ alert('キャンセルに失敗しました: '+e.message); }
   };
 };
+window.openLinkModal = ()=>{
+  document.getElementById('linkErr').textContent='';
+  document.getElementById('linkTel').value='';
+  document.getElementById('linkModal').classList.add('open');
+};
 window.closeLinkModal = ()=>{ document.getElementById('linkModal').classList.remove('open'); };
 
 window.execLink = async ()=>{
