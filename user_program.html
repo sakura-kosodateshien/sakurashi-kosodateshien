@@ -508,7 +508,7 @@ function render(){
     const availText = allFull ? '満員' : someAvail ? '残りわずか' : '空きあり';
     html += `<div class="prog-group">
       <div class="prog-head ${isOpen?'open':''}" onclick="toggleProg('${p.id}')">
-        <div class="prog-emoji">${ICONS[p.id] || p.emoji}</div>
+        <div class="prog-emoji" data-pid="${p.id}"></div>
         <div class="prog-meta">
           <div class="prog-name">${p.name}</div>
           <div class="prog-cap">${p.capLabel}</div>
