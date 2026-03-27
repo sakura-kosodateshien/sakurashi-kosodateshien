@@ -610,7 +610,9 @@ function openModal(progId, slotIdx){
   const displayName = s.label ? s.label.split('　')[0] : p.name;
   document.getElementById('mTitle').textContent  = `${p.emoji} ${displayName}`;
   const capText = isLunch ? p.capLabel : (p.cap<10 ? p.cap+'組' : '制限なし');
-  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}`;
+  const ageTarget = s.label ? s.label.split('　')[1] || '' : '';
+  const detailAge = ageTarget ? `　${ageTarget}` : '';
+  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}${detailAge}`;
   document.getElementById('mDesc').textContent   = p.note;
   document.getElementById('mProgLink').href = `programs.html`;
   const nameLabel = document.querySelector('#formView .form-row label');
