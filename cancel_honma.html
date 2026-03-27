@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<title>予約キャンセル（管理用）</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  projectId:"sakurashi-kosodateshien"
+});
+const db = getFirestore(app);
+
+document.getElementById('runBtn').onclick = async () => {
+  const tel = '08070942750';
+  const log = document.getElementById('log');
+  log.textContent = '検索中...\n';
+  try {
+    const snap = await getDocs(query(collection(db,'bookings'), where('tel','==',tel)));
+    let cancelled = 0;
+    for (const d2 of snap.docs) {
+      const b = d2.data();
+      const st = b.status;
+      if (st === 'confirmed' || st === 'pending') {
+        await updateDoc(doc(db,'bookings',d2.id), { status:'cancelled' });
+        log.textContent += `✅ キャンセル: ${b.progName||b.progId} ${b.date}\n`;
+        cancelled++;
+      } else {
+        log.textContent += `⏭ スキップ(${st}): ${b.progName||b.progId} ${b.date}\n`;
+      }
+    }
+    log.textContent += `\n完了: ${cancelled}件をキャンセルにしました`;
+    document.getElementById('runBtn').disabled = true;
+  } catch(e) {
+    log.textContent += 'エラー: ' + e.message;
+  }
+};
+</script>
+</head><body style="font-family:sans-serif;padding:20px;max-width:480px">
+<h2>ほんま さんの予約を一括キャンセル</h2>
+<p style="color:#c62828;font-size:.85rem">tel: 08070942750 に紐づく confirmed/pending の予約をすべてキャンセルにします</p>
+<button id="runBtn" style="margin:16px 0;padding:10px 20px;background:#c62828;color:#fff;border:none;cursor:pointer;font-size:.9rem">実行する</button>
+<pre id="log" style="background:#f5f5f5;padding:12px;font-size:.8rem;white-space:pre-wrap"></pre>
+</body></html>
