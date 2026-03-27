@@ -143,13 +143,10 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
         <a id="mProgLink" href="" target="_blank" style="display:inline-block;margin-top:6px;font-size:.72rem;color:var(--lav-dark);text-decoration:underline">🔗 プログラム紹介を見る</a>
       </div>
       <div class="form-row">
-        <label>保護者氏名<span class="req">*</span></label>
-        <input type="text" placeholder="山田 花子" id="fName">
+        <label>保護者名（ひらがな）<span class="req">*</span></label>
+        <input type="text" placeholder="やまだ はなこ" id="fName" inputmode="hiragana">
       </div>
-      <div class="form-row">
-        <label>ふりがな</label>
-        <input type="text" placeholder="やまだ はなこ" id="fKana">
-      </div>
+      <input type="hidden" id="fKana" value="">
       <div class="form-row2">
         <div class="form-row" style="margin-bottom:0">
           <label>お子さんの月齢<span class="req">*</span></label>
@@ -761,7 +758,7 @@ async function submitBooking(){
   const tochi      = document.getElementById('fTochi').value === 'yes';
   const tochiTime  = document.getElementById('fTochiTime').value.trim();
 
-  if(!name){ alert('保護者氏名を入力してください'); return; }
+  if(!name){ alert('保護者名（ひらがな）を入力してください'); return; }
   if(!age){  alert('お子さんの月齢を選択してください'); return; }
   if(!tel){  alert('連絡先を入力してください'); return; }
   if(tochi && !childName){ alert('お子さんの名前（ひらがな）を入力してください'); return; }
@@ -814,7 +811,7 @@ async function submitBooking(){
       date:       dateK,
       dateLabel:  s.date,
       time:       s.time,
-      name, kana, childName, age, childCount, tel, note,
+      name, kana: name, childName, age, childCount, tel, note,
       tochi,
       tochiTime:  tochi ? tochiTime : '',
       status:     'pending',
@@ -848,7 +845,7 @@ async function submitBooking(){
     }
 
     // キャッシュに保存（次回自動入力用）
-    localStorage.setItem('hinokikko_user', JSON.stringify({name, kana, tel, age, childCount}));
+    localStorage.setItem('hinokikko_user', JSON.stringify({name, kana: name, tel, age, childCount}));
 
     // 完了画面
     const extraSel2 = document.getElementById('tochiExtraSelect');
