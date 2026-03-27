@@ -40,7 +40,7 @@ main{padding:16px 14px 80px;max-width:480px;margin:0 auto}
 .prog-head{padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid transparent;transition:background .15s}
 .prog-head:hover{background:var(--lav-light)}
 .prog-head.open{border-bottom:1px solid var(--border)}
-.prog-emoji{font-size:1rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.85}
+.prog-emoji{width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:1}
 .prog-meta{flex:1}
 .prog-name{font-size:.88rem;font-weight:700;letter-spacing:.02em}
 .prog-cap{font-size:.67rem;color:var(--muted);margin-top:2px;letter-spacing:.01em}
@@ -278,6 +278,79 @@ async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraL
   // 将来Messaging API Push送信で実装予定
   return;
 }
+
+
+// ── SVG線画アイコン（2px stroke, #5a3f78） ─────────────────────────
+const ICONS = {
+  lunch: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="12" width="18" height="11" rx="1"/>
+    <path d="M5 12c0-2 1.5-4 9-4s9 2 9 4"/>
+    <line x1="14" y1="8" x2="14" y2="12"/>
+    <line x1="9"  y1="16" x2="19" y2="16"/>
+    <line x1="9"  y1="19" x2="19" y2="19"/>
+  </svg>`,
+
+  photo: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="8" width="22" height="15" rx="2"/>
+    <circle cx="14" cy="15.5" r="4"/>
+    <path d="M10 8l2-3h4l2 3"/>
+    <circle cx="21" cy="11" r="1" fill="#5a3f78" stroke="none"/>
+  </svg>`,
+
+  pulapan: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 20L5 23l3-3"/>
+    <path d="M8 20l10-10"/>
+    <path d="M18 10l2-2a2 2 0 012 2l-2 2z"/>
+    <path d="M10 14l4 4"/>
+    <path d="M6 24c1-1 3-1 3 1"/>
+  </svg>`,
+
+  yoga: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="14" cy="6" r="2.5"/>
+    <path d="M14 9v7"/>
+    <path d="M14 13l-5 4"/>
+    <path d="M14 13l5 4"/>
+    <path d="M9 17l-2 4"/>
+    <path d="M19 17l2 4"/>
+    <line x1="7" y1="21" x2="11" y2="21"/>
+    <line x1="17" y1="21" x2="21" y2="21"/>
+  </svg>`,
+
+  massage: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 20V13a2 2 0 012-2h0a2 2 0 012 2v3"/>
+    <path d="M12 16v-4a2 2 0 012-2h0a2 2 0 012 2v4"/>
+    <path d="M16 16v-3a2 2 0 012-2h0a2 2 0 012 2v5c0 3-2 5-6 5H12c-2 0-4-2-4-4v-1"/>
+    <path d="M8 14v-3a2 2 0 00-2-2h0"/>
+  </svg>`,
+
+  eigo: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 5h10a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z"/>
+    <path d="M18 7h2a2 2 0 012 2v12a2 2 0 01-2 2h-2"/>
+    <line x1="8" y1="10" x2="15" y2="10"/>
+    <line x1="8" y1="14" x2="15" y2="14"/>
+    <line x1="8" y1="18" x2="12" y2="18"/>
+  </svg>`,
+
+  hattatsu: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 6h18a1 1 0 011 1v11a1 1 0 01-1 1H8l-4 4V7a1 1 0 011-1z"/>
+    <line x1="9"  y1="11" x2="19" y2="11"/>
+    <line x1="9"  y1="15" x2="15" y2="15"/>
+  </svg>`,
+
+  tanjou: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="14" width="20" height="10" rx="1"/>
+    <path d="M4 14c0-3 4-3 4-6"/>
+    <path d="M12 14c0-3 4-3 4-6"/>
+    <path d="M20 14c0-3 4-3 4-6"/>
+    <line x1="4"  y1="18" x2="24" y2="18"/>
+    <path d="M9 6c0-1.5 2-1.5 2 0s2 1.5 2 0"/>
+  </svg>`,
+
+  tochi: `<svg viewBox="0 0 28 28" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="14" cy="8" r="4"/>
+    <path d="M7 24c0-4 3-7 7-7s7 3 7 7"/>
+  </svg>`,
+};
 
 function toDateKey(dateStr) {
   const m = dateStr.match(/(\d+)\/(\d+)/);
