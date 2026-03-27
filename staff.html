@@ -399,6 +399,7 @@ function openPanel(id){
         <div class="bk-num">${i+1}</div>
         <div style="flex:1">
           <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''} ${isLineLinked?'<span style="font-size:.62rem;background:#e8f5e9;color:#2d6a4f;border-radius:20px;padding:1px 6px;font-weight:700">LINE連携済</span>':'<span style="font-size:.62rem;background:#fce4ec;color:#c62828;border-radius:20px;padding:1px 6px;font-weight:700">⚠️ LINE未連携</span>'}</div>
+          ${b.childName?`<div class="bk-info" style="color:#5a3f78;font-weight:600">👶 ${b.childName}</div>`:''}
           <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''}</div>
           ${b.note?`<div class="bk-note"><span class="bk-note-icon">⚠️</span><span><strong>備考あり：</strong>${b.note}</span></div>`:''}
         </div>

@@ -265,6 +265,7 @@
           </div>
           <div style="font-size:.8rem;color:var(--muted);line-height:1.8">
             📅 ${b.dateLabel||b.date||'-'}　${b.time||''}
+            ${b.childName ? '<br>👶 お子さんの名前：' + b.childName : ''}
             ${b.note ? '<br>📝 ' + b.note : ''}
           </div>
         </div>`;

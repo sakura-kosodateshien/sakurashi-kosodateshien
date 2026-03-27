@@ -177,6 +177,12 @@ main{padding:12px 14px 80px;max-width:480px;margin:0 auto}
         <input type="tel" placeholder="090-0000-0000" id="fTel">
       </div>
 
+      <!-- 託児専用：お子さんの名前（ひらがな） -->
+      <div class="form-row" id="childNameRow" style="display:none">
+        <label>お子さんの名前（ひらがな）<span class="req">*</span></label>
+        <input type="text" placeholder="例：はなこ" id="fChildName" inputmode="hiragana">
+      </div>
+
       <!-- 託児専用：時間ピッカー（託児プログラム時のみ表示） -->
       <div id="tochiTimePickerWrap" style="display:none">
         <div class="tochi-time-wrap">
@@ -585,6 +591,7 @@ function openModal(progId, slotIdx){
   document.getElementById('tochiTimePickerWrap').style.display = isTochi ? 'block' : 'none';
   if(isTochi){
     document.getElementById('fTochi').value = 'yes';
+    document.getElementById('childNameRow').style.display = 'block';
     initTochiTimePicker(s.date);
     const otherSlots = p.slots.filter((_,i) => i !== slotIdx && !p.slots[i].full);
     let opts = '<option value="">追加しない（1枠のみ）</option>';
@@ -596,6 +603,8 @@ function openModal(progId, slotIdx){
     document.getElementById('tochiExtra2Wrap').style.display = 'none';
   } else {
     document.getElementById('fTochi').value = 'no';
+    document.getElementById('childNameRow').style.display = 'none';
+    document.getElementById('fChildName').value = '';
   }
 
   // フォームリセット → キャッシュから復元
@@ -744,6 +753,7 @@ function toggleTochiTime(){} // 後方互換（空関数）
 async function submitBooking(){
   const name       = document.getElementById('fName').value.trim();
   const kana       = document.getElementById('fKana').value.trim();
+  const childName  = document.getElementById('fChildName').value.trim();
   const age        = document.getElementById('fAge').value;
   const childCount = document.getElementById('fChildCount').value;
   const tel        = document.getElementById('fTel').value.trim();
@@ -754,6 +764,7 @@ async function submitBooking(){
   if(!name){ alert('保護者氏名を入力してください'); return; }
   if(!age){  alert('お子さんの月齢を選択してください'); return; }
   if(!tel){  alert('連絡先を入力してください'); return; }
+  if(tochi && !childName){ alert('お子さんの名前（ひらがな）を入力してください'); return; }
 
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
@@ -803,7 +814,7 @@ async function submitBooking(){
       date:       dateK,
       dateLabel:  s.date,
       time:       s.time,
-      name, kana, age, childCount, tel, note,
+      name, kana, childName, age, childCount, tel, note,
       tochi,
       tochiTime:  tochi ? tochiTime : '',
       status:     'pending',
