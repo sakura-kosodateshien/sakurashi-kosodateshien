@@ -288,7 +288,7 @@ function toDateKey(dateStr) {
 
 const PROGS = [
   {id:"lunch", name:"ランチひろば", emoji:"🍱", bg:"#e8f5e9",
-   cap:1, capLabel:"貸切1枠（代表者のみ申込）",
+   cap:1, capLabel:"貸切1グループ（親子2〜4組）",
    note:"お持参のお弁当を食べながらおしゃべり。離乳食の悩みも相談できます♪",
    slots:[
      {date:"4/6（月）",  time:"12:00〜14:00", bk:0, full:false},
@@ -575,6 +575,18 @@ function openModal(progId, slotIdx){
   document.getElementById('mDetail').textContent = `${s.date}　${s.time}　定員${p.cap<10?p.cap+'組':'制限なし'}`;
   document.getElementById('mDesc').textContent   = p.note;
   document.getElementById('mProgLink').href = `programs.html`;
+
+  // ランチひろば専用：ラベル・プレースホルダー切り替え
+  const isLunch = p.id === 'lunch';
+  const nameLabel = document.querySelector('#formView .form-row label');
+  if(nameLabel) nameLabel.innerHTML = isLunch
+    ? '代表保護者名（ひらがな）<span class="req">*</span>'
+    : '保護者名（ひらがな）<span class="req">*</span>';
+  const noteLabel = document.querySelector('#fNote').previousElementSibling;
+  if(noteLabel && noteLabel.tagName==='LABEL') noteLabel.textContent = isLunch ? '備考・親子組数' : '備考・アレルギー等';
+  document.getElementById('fNote').placeholder = isLunch
+    ? '親子組数、連絡事項などご記入ください'
+    : 'アレルギーや当日の連絡事項などあればご記入ください';
 
   // 託児専用フォーム切り替え
   const isTochi = p.id === 'tochi';
