@@ -220,9 +220,9 @@
           </div>
         </div>
         <span class="member-badge ${u.lineUserId?'':'no-line'}">${u.lineUserId?'✅ LINE連携':'未連携'}</span>
-        <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}','${(u.tel||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:8px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
-        <button onclick="editMember('${u.id}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
-        <button onclick="deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:8px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
+        <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}','${(u.tel||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:2px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
+        <button onclick="editMember('${u.id}')" style="margin-left:4px;padding:4px 10px;border-radius:2px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
+        <button onclick="deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:2px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
       </div>`).join('');
   }
 
@@ -265,10 +265,10 @@
       document.getElementById('bookingModalList').innerHTML = bookings.map(b=>{
         const st = b.status||'pending';
         const canCancel = st !== 'cancelled';
-        return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fafafa">
+        return `<div style="border:1.5px solid var(--border);border-radius:2px;padding:12px 14px;margin-bottom:10px;background:#fafafa">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <div style="font-weight:700;font-size:.9rem;color:var(--text)">${b.progName||b.progId||'-'}</div>
-            <span style="font-size:.72rem;padding:3px 9px;border-radius:20px;font-weight:700;background:${statusColor[st]};color:${statusText[st]}">${statusLabel[st]||st}</span>
+            <span style="font-size:.72rem;padding:3px 9px;border-radius:2px;font-weight:700;background:${statusColor[st]};color:${statusText[st]}">${statusLabel[st]||st}</span>
           </div>
           <div style="font-size:.8rem;color:var(--muted);line-height:1.8">
             📅 ${b.dateLabel||b.date||'-'}　${b.time||''}
@@ -276,7 +276,7 @@
             ${b.note ? '<br>📝 ' + b.note : ''}
           </div>
           ${canCancel ? `<div style="text-align:right;margin-top:8px">
-            <button onclick="cancelBooking('${b.id}','${(b.progName||b.progId||'').replace(/'/g,'')}','${b.dateLabel||b.date||''}')" style="padding:4px 12px;border-radius:8px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">❌ キャンセルにする</button>
+            <button onclick="cancelBooking('${b.id}','${(b.progName||b.progId||'').replace(/'/g,'')}','${b.dateLabel||b.date||''}')" style="padding:4px 12px;border-radius:2px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">❌ キャンセルにする</button>
           </div>` : ''}
         </div>`;
       }).join('');
@@ -585,8 +585,8 @@
   }
   .login-card {
     background: #fff;
-    border-radius: 16px;
-    box-shadow: var(--shadow);
+    border-radius:2px;
+    
     padding: 36px 32px;
     width: min(360px, 100%);
     text-align: center;
@@ -596,7 +596,7 @@
   .login-card input {
     width: 100%; padding: 11px 14px;
     border: 1.5px solid var(--border);
-    border-radius: 10px; font-size: 1rem;
+    border-radius:2px; font-size: 1rem;
     font-family: inherit; outline: none;
     margin-bottom: 12px;
   }
@@ -607,11 +607,11 @@
   .member-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:.5px solid var(--border);font-size:.84rem;transition:background .1s}
   .member-row:last-child{border-bottom:none}
   .member-row:hover{background:#f8faf8}
-  .member-num{width:24px;height:24px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--green);flex-shrink:0}
+  .member-num{width:24px;height:24px;border-radius:2px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:var(--green);flex-shrink:0}
   .member-name{font-weight:700;min-width:80px}
   .member-kana{font-size:.72rem;color:var(--muted)}
   .member-info{flex:1;font-size:.75rem;color:var(--muted);line-height:1.6}
-  .member-badge{font-size:.65rem;padding:2px 7px;border-radius:20px;font-weight:700;background:var(--light);color:var(--green);white-space:nowrap}
+  .member-badge{font-size:.65rem;padding:2px 7px;border-radius:2px;font-weight:700;background:var(--light);color:var(--green);white-space:nowrap}
   .member-badge.no-line{background:#fce4ec;color:#c62828}
   .main-tab{padding:10px 20px;font-size:.88rem;font-weight:700;font-family:inherit;
     background:none;border:none;border-bottom:3px solid transparent;
@@ -621,32 +621,32 @@
   .main-panel.active{display:block}
 
   /* 変更管理 */
-  .chg-form-card{background:#fff;border-radius:12px;padding:18px 20px;
-    box-shadow:var(--shadow);margin-bottom:20px}
+  .chg-form-card{background:#fff;border-radius:2px;padding:18px 20px;
+    margin-bottom:20px}
   .chg-form-card h3{font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:14px}
   .form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
   .form-row label{font-size:.78rem;font-weight:700;color:var(--muted);min-width:80px}
   .form-row select,.form-row input,.form-row textarea{
     flex:1;padding:9px 12px;border:1.5px solid var(--border);
-    border-radius:8px;font-size:.88rem;font-family:inherit;outline:none}
+    border-radius:2px;font-size:.88rem;font-family:inherit;outline:none}
   .form-row select:focus,.form-row input:focus{border-color:var(--mint)}
-  .chg-list-card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:var(--shadow)}
+  .chg-list-card{background:#fff;border-radius:2px;padding:18px 20px;}
   .chg-list-card h3{font-size:.95rem;font-weight:700;margin-bottom:14px}
-  .chg-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+  .chg-card{border:1px solid var(--border);border-radius:2px;padding:12px 14px;margin-bottom:8px}
   .chg-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .chg-prog{flex:1;font-size:.88rem;font-weight:700}
-  .chg-badge{font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .chg-badge{font-size:.7rem;padding:2px 8px;border-radius:2px;font-weight:700;white-space:nowrap}
   .badge-cancel{background:#fce4ec;color:#c62828}
   .badge-change{background:#fff8e1;color:#e65100}
   .badge-cap{background:#e8eaf6;color:#3949ab}
   .badge-block{background:#fce4ec;color:#880e4f}
   .chg-detail{font-size:.82rem;color:var(--muted);margin-bottom:3px}
-  .chg-del{padding:3px 10px;border-radius:6px;border:1px solid #fca5a5;
+  .chg-del{padding:3px 10px;border-radius:2px;border:1px solid #fca5a5;
     background:#fff;color:#dc2626;font-size:.72rem;cursor:pointer;font-family:inherit}
   .chg-notify{margin-top:8px}
-  .btn-notify{padding:6px 12px;border-radius:8px;border:1px solid var(--border);
+  .btn-notify{padding:6px 12px;border-radius:2px;border:1px solid var(--border);
     background:#fff;font-size:.78rem;font-family:inherit;cursor:pointer;color:var(--green);font-weight:700}
-  .notify-text{margin-top:8px;background:#f0faf4;border-radius:8px;padding:12px;
+  .notify-text{margin-top:8px;background:#f0faf4;border-radius:2px;padding:12px;
     font-size:.8rem;white-space:pre-wrap;line-height:1.7;cursor:pointer;
     border:1px dashed var(--mint)}
   .notify-text::after{content:" （タップでコピー）";font-size:.72rem;color:var(--muted)}
@@ -654,25 +654,25 @@
   /* フィルタバー */
   .filter-bar {
     background: #fff;
-    border-radius: 12px;
+    border-radius:2px;
     padding: 14px 18px;
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    box-shadow: var(--shadow);
+    
     margin-bottom: 20px;
   }
   .filter-bar label { font-size: .82rem; font-weight: 700; color: var(--muted); }
   .filter-bar select, .filter-bar input {
     padding: 8px 12px;
     border: 1.5px solid var(--border);
-    border-radius: 8px;
+    border-radius:2px;
     font-size: .9rem;
     font-family: inherit;
     outline: none;
   }
-  .btn { padding: 9px 18px; border-radius: 8px; font-family: inherit;
+  .btn { padding: 9px 18px; border-radius:2px; font-family: inherit;
          font-size: .88rem; font-weight: 700; cursor: pointer; border: none; }
   .btn-primary { background:#dccfe6; color: #fff; }
   .btn-csv     { background: var(--warm); color: #fff; }
@@ -686,9 +686,9 @@
   }
   .s-card {
     background: #fff;
-    border-radius: 12px;
+    border-radius:2px;
     padding: 16px 18px;
-    box-shadow: var(--shadow);
+    
     border-top: 4px solid;
   }
   .s-card.total    { border-color: var(--green); }
@@ -702,8 +702,8 @@
   /* テーブル */
   .table-wrap {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    border-radius:2px;
+    
     overflow: hidden;
     margin-bottom: 20px;
   }
@@ -736,15 +736,15 @@
   /* 市報告テキスト */
   .report-box {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    border-radius:2px;
+    
     padding: 18px;
     margin-bottom: 20px;
   }
   .report-box h3 { color: var(--green); font-size: .9rem; margin-bottom: 10px; }
   textarea {
     width: 100%; border: 1.5px solid var(--border);
-    border-radius: 8px; padding: 12px; font-family: monospace;
+    border-radius:2px; padding: 12px; font-family: monospace;
     font-size: .85rem; color: var(--text); background: #f8fdf9;
     outline: none; resize: vertical;
   }
@@ -921,12 +921,12 @@
         <h3 style="margin-bottom:0">👥 会員一覧</h3>
         <input type="text" id="memberSearch" placeholder="名前・電話番号で検索"
           oninput="filterMembers()"
-          style="flex:1;min-width:160px;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;outline:none">
+          style="flex:1;min-width:160px;padding:7px 12px;border:1.5px solid var(--border);border-radius:2px;font-size:.85rem;font-family:inherit;outline:none">
         <span id="memberCount" style="font-size:.78rem;color:var(--muted);white-space:nowrap"></span>
         <button class="btn btn-csv" onclick="exportMemberCSV()" style="white-space:nowrap">📥 CSV</button>
       </div>
     </div>
-    <div style="background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(45,106,79,.10);overflow:hidden">
+    <div style="background:#fff;border-radius:2px;overflow:hidden">
       <div id="memberList" style="min-height:100px">
         <div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中…</div>
       </div>
@@ -956,7 +956,7 @@ document.addEventListener('click', e=>{
 </script>
 <!-- 会員別予約モーダル -->
 <div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)closeBookingModal()">
-  <div style="background:#fff;border-radius:16px;padding:24px 20px;width:min(480px,94%);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.2)">
+  <div style="background:#fff;border-radius:2px;padding:24px 20px;width:min(480px,94%);max-height:80vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h3 id="bookingModalName" style="font-size:.95rem;font-weight:700;color:#5a3f78">📋 予約一覧</h3>
       <button onclick="closeBookingModal()" style="border:none;background:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
@@ -967,28 +967,28 @@ document.addEventListener('click', e=>{
 
 <!-- 会員編集モーダル -->
 <div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:16px;padding:24px 20px;width:min(420px,92%);box-shadow:0 4px 24px rgba(0,0,0,.2)">
+  <div style="background:#fff;border-radius:2px;padding:24px 20px;width:min(420px,92%)">
     <h3 style="font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:16px">✏️ 会員情報を編集</h3>
     <input type="hidden" id="editUid">
     <div style="margin-bottom:10px">
       <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">氏名<span style="color:#c62828">*</span></label>
-      <input type="text" id="editName" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+      <input type="text" id="editName" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:2px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
     </div>
     <div style="margin-bottom:10px">
       <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">ふりがな</label>
-      <input type="text" id="editKana" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+      <input type="text" id="editKana" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:2px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
     </div>
     <div style="margin-bottom:10px">
       <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">電話番号</label>
-      <input type="tel" id="editTel" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+      <input type="tel" id="editTel" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:2px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
     </div>
     <div style="margin-bottom:18px">
       <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px">子どもの生年月日</label>
-      <input type="date" id="editDob" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+      <input type="date" id="editDob" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:2px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
     </div>
     <div style="display:flex;gap:10px">
-      <button onclick="closeEditModal()" style="flex:1;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:.88rem;font-family:inherit;cursor:pointer;color:var(--muted)">キャンセル</button>
-      <button onclick="saveMember()" style="flex:2;padding:11px;border:none;border-radius:10px;background:var(--green);color:#fff;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer">保存する</button>
+      <button onclick="closeEditModal()" style="flex:1;padding:11px;border:1.5px solid var(--border);border-radius:2px;background:#fff;font-size:.88rem;font-family:inherit;cursor:pointer;color:var(--muted)">キャンセル</button>
+      <button onclick="saveMember()" style="flex:2;padding:11px;border:none;border-radius:2px;background:var(--green);color:#fff;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer">保存する</button>
     </div>
   </div>
 </div>
