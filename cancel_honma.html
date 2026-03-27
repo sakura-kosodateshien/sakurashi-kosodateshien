@@ -2,7 +2,7 @@
 <title>予約キャンセル（管理用）</title>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc }
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -11,34 +11,46 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-document.getElementById('runBtn').onclick = async () => {
-  const tel = '08070942750';
+// 起動時に全件表示
+window.addEventListener('load', async () => {
   const log = document.getElementById('log');
-  log.textContent = '検索中...\n';
-  try {
+  log.textContent = '読み込み中...\n';
+  const tels = ['08070942750','08070942751'];
+  for(const tel of tels){
     const snap = await getDocs(query(collection(db,'bookings'), where('tel','==',tel)));
-    let cancelled = 0;
-    for (const d2 of snap.docs) {
+    snap.docs.forEach(d2 => {
       const b = d2.data();
-      const st = b.status;
-      if (st === 'confirmed' || st === 'pending') {
+      log.textContent += `[${b.status}] ${b.progName||b.progId} ${b.date} tel:${b.tel} id:${d2.id}\n`;
+    });
+  }
+  if(log.textContent === '読み込み中...\n') log.textContent = '予約なし';
+});
+
+document.getElementById('cancelBtn').onclick = async () => {
+  const log = document.getElementById('log');
+  log.textContent = '処理中...\n';
+  const tels = ['08070942750','08070942751'];
+  let count = 0;
+  for(const tel of tels){
+    const snap = await getDocs(query(collection(db,'bookings'), where('tel','==',tel)));
+    for(const d2 of snap.docs){
+      const b = d2.data();
+      if(b.status === 'confirmed' || b.status === 'pending'){
         await updateDoc(doc(db,'bookings',d2.id), { status:'cancelled' });
-        log.textContent += `✅ キャンセル: ${b.progName||b.progId} ${b.date}\n`;
-        cancelled++;
-      } else {
-        log.textContent += `⏭ スキップ(${st}): ${b.progName||b.progId} ${b.date}\n`;
+        log.textContent += `✅ キャンセル: ${b.progName||b.progId} ${b.date} (${d2.id})\n`;
+        count++;
       }
     }
-    log.textContent += `\n完了: ${cancelled}件をキャンセルにしました`;
-    document.getElementById('runBtn').disabled = true;
-  } catch(e) {
-    log.textContent += 'エラー: ' + e.message;
   }
+  log.textContent += `\n完了: ${count}件キャンセル`;
+  document.getElementById('cancelBtn').disabled = true;
 };
 </script>
-</head><body style="font-family:sans-serif;padding:20px;max-width:480px">
-<h2>ほんま さんの予約を一括キャンセル</h2>
-<p style="color:#c62828;font-size:.85rem">tel: 08070942750 に紐づく confirmed/pending の予約をすべてキャンセルにします</p>
-<button id="runBtn" style="margin:16px 0;padding:10px 20px;background:#c62828;color:#fff;border:none;cursor:pointer;font-size:.9rem">実行する</button>
-<pre id="log" style="background:#f5f5f5;padding:12px;font-size:.8rem;white-space:pre-wrap"></pre>
+</head><body style="font-family:sans-serif;padding:20px;max-width:600px">
+<h2>ほんま さん 予約確認・キャンセル</h2>
+<p style="color:#666;font-size:.85rem">tel: 08070942750 / 08070942751 の予約を表示します</p>
+<button id="cancelBtn" style="margin:16px 0;padding:10px 20px;background:#c62828;color:#fff;border:none;cursor:pointer;font-size:.9rem">
+  pending/confirmed をすべてキャンセルにする
+</button>
+<pre id="log" style="background:#f5f5f5;padding:12px;font-size:.78rem;white-space:pre-wrap;min-height:100px"></pre>
 </body></html>
