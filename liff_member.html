@@ -288,8 +288,8 @@ async function loadBookings(uid){
       const isToday=b.date===today;
       const cs=getCancelStatus(b.date);
       let cancelBtn='';
-      if(cs==='today'){
-        cancelBtn=`<button class="bk-cancel-btn bk-cancel-tel" onclick="cancelTel()">📞 電話でキャンセル</button>`;
+      if(cs==='today' || cs==='comment'){
+        cancelBtn=`<button class="bk-cancel-btn bk-cancel-tel" onclick="cancelTelAlert()">📞 電話でキャンセル</button>`;
       } else {
         const late=cs==='comment';
         cancelBtn=`<button class="bk-cancel-btn" onclick="openCancel('${b.id}','${(b.progName||'').replace(/'/g,"\\'")}','${b.date}',${late})">${late?'⚠️ キャンセル':'キャンセル'}</button>`;
@@ -316,6 +316,9 @@ function reloadPage(btn){
 }
 
 window.cancelTel=()=>{ if(confirm('043-310-5757 に電話しますか？')) location.href='tel:0433105757'; };
+window.cancelTelAlert=()=>{
+  alert('キャンセル期限（2日前14:00）を過ぎています。\nお電話（043-310-5757）にてご連絡ください。');
+};
 
 window.openCancel=function(id,name,date,needReason){
   const modal=document.getElementById('cancelModal');
