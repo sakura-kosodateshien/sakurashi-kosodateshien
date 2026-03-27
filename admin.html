@@ -240,6 +240,9 @@
   // ── 会員別予約一覧 ──────────────────────────────────────────────────
   window.showMemberBookings = async function(uid, name, tel){
     document.getElementById('bookingModalName').textContent = name + ' さんの予約一覧';
+    document.getElementById('bookingModal').dataset.tel  = tel;
+    document.getElementById('bookingModal').dataset.name = name;
+    document.getElementById('bookingModal').dataset.uid  = uid;
     document.getElementById('bookingModalList').innerHTML =
       '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中...</div>';
     document.getElementById('bookingModal').style.display = 'flex';
@@ -261,6 +264,7 @@
       const statusText  = {confirmed:'#2d6a4f', pending:'#7d5a00', cancelled:'#c62828'};
       document.getElementById('bookingModalList').innerHTML = bookings.map(b=>{
         const st = b.status||'pending';
+        const canCancel = st !== 'cancelled';
         return `<div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fafafa">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <div style="font-weight:700;font-size:.9rem;color:var(--text)">${b.progName||b.progId||'-'}</div>
@@ -271,12 +275,25 @@
             ${b.childName ? '<br>👶 お子さんの名前：' + b.childName : ''}
             ${b.note ? '<br>📝 ' + b.note : ''}
           </div>
+          ${canCancel ? `<div style="text-align:right;margin-top:8px">
+            <button onclick="cancelBooking('${b.id}','${(b.progName||b.progId||'').replace(/'/g,'')}','${b.dateLabel||b.date||''}')" style="padding:4px 12px;border-radius:8px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">❌ キャンセルにする</button>
+          </div>` : ''}
         </div>`;
       }).join('');
     }catch(e){
       document.getElementById('bookingModalList').innerHTML =
         '<div style="padding:16px;color:#c0392b;font-size:.85rem">読み込みエラー: '+e.message+'</div>';
     }
+  };
+
+  // ── 予約キャンセル ────────────────────────────────────────────────
+  window.cancelBooking = async function(bookingId, progName, dateLabel){
+    if(!confirm(`「${progName}　${dateLabel}」の予約をキャンセルにしますか？\n（履歴は残ります）`)) return;
+    try{
+      await updateDoc(doc(db,'bookings',bookingId), { status:'cancelled' });
+      const modal = document.getElementById('bookingModal');
+      window.showMemberBookings(modal.dataset.uid, modal.dataset.name, modal.dataset.tel);
+    }catch(e){ alert('キャンセルに失敗しました: '+e.message); }
   };
 
   window.closeBookingModal = function(){
