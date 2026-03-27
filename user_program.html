@@ -572,7 +572,8 @@ function openModal(progId, slotIdx){
   tochiExtraSlots = [];
 
   document.getElementById('mTitle').textContent  = `${p.emoji} ${p.name}`;
-  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　定員${p.cap<10?p.cap+'組':'制限なし'}`;
+  const capText = isLunch ? p.capLabel : (p.cap<10 ? p.cap+'組' : '制限なし');
+  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}`;
   document.getElementById('mDesc').textContent   = p.note;
   document.getElementById('mProgLink').href = `programs.html`;
 
