@@ -14,52 +14,52 @@
 <title>会員証 | ひのきっこ</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;background:#fdf8f2;min-height:100vh;color:#1a2e22}
-header{background:#2d6a4f;padding:16px 20px;text-align:center}
+body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;background:#fdf8f2;min-height:100vh;color:#2d1f3d}
+header{background:#5a3f78;padding:16px 20px;text-align:center}
 header .en{font-size:.68rem;letter-spacing:.2em;color:rgba(60,40,80,.55);margin-bottom:4px}
 header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 .wrap{width:min(380px,92vw);margin:24px auto;padding:0 16px}
 .card{background:#fff;border-radius:16px;padding:24px 20px;box-shadow:0 4px 16px rgba(0,0,0,.08);margin-bottom:16px}
 .icon{font-size:2.4rem;text-align:center;margin-bottom:12px}
 .msg{font-size:.95rem;text-align:center;margin-bottom:8px;font-weight:700}
-.sub{font-size:.82rem;color:#6b8f71;text-align:center;line-height:1.6;margin-bottom:20px}
-.btn{display:block;width:100%;padding:13px;background:#2d6a4f;color:#fff;border:none;border-radius:12px;font-size:.92rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
-.btn-sub{display:block;width:100%;padding:11px;background:#fff;color:#6b8f71;border:1px solid #dceee2;border-radius:12px;font-size:.85rem;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
-.divider{border-top:1px solid #dceee2;margin:16px 0}
-.small{font-size:.76rem;color:#6b8f71;text-align:center;margin-bottom:10px}
-#loading{text-align:center;padding:40px 20px;color:#6b8f71}
+.sub{font-size:.82rem;color:#7d6b99;text-align:center;line-height:1.6;margin-bottom:20px}
+.btn{display:block;width:100%;padding:13px;background:#5a3f78;color:#fff;border:none;border-radius:12px;font-size:.92rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
+.btn-sub{display:block;width:100%;padding:11px;background:#fff;color:#7d6b99;border:1px solid #dccfe6;border-radius:12px;font-size:.85rem;font-family:inherit;cursor:pointer;text-decoration:none;text-align:center;margin-bottom:8px}
+.divider{border-top:1px solid #dccfe6;margin:16px 0}
+.small{font-size:.76rem;color:#7d6b99;text-align:center;margin-bottom:10px}
+#loading{text-align:center;padding:40px 20px;color:#7d6b99}
 #memberCard{display:none}
 #qrArea{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:16px}
-#qrcode{background:#fff;padding:14px;border-radius:12px;border:1.5px solid #dceee2}
-.qr-note{background:#f0faf4;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#6b8f71;line-height:1.7;width:100%;text-align:center}
+#qrcode{background:#fff;padding:14px;border-radius:12px;border:1.5px solid #dccfe6}
+.qr-note{background:#f5f0fa;border-radius:10px;padding:10px 14px;font-size:.76rem;color:#7d6b99;line-height:1.7;width:100%;text-align:center}
 .member-name{font-size:1.3rem;font-weight:700;text-align:center;margin-bottom:4px}
-.member-uid{font-size:.68rem;color:#6b8f71;text-align:center;margin-bottom:16px;font-family:monospace}
-.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #dceee2;font-size:.84rem}
+.member-uid{font-size:.68rem;color:#7d6b99;text-align:center;margin-bottom:16px;font-family:monospace}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid #dccfe6;font-size:.84rem}
 .info-row:last-child{border-bottom:none}
-.info-label{color:#6b8f71;font-size:.76rem}
+.info-label{color:#7d6b99;font-size:.76rem}
 /* モーダル */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px}
 .modal h3{font-size:.95rem;font-weight:700;margin-bottom:8px}
-.modal p{font-size:.82rem;color:#6b8f71;margin-bottom:16px;line-height:1.6}
-.modal input{width:100%;padding:10px 12px;border:1.5px solid #dceee2;border-radius:10px;font-size:.9rem;font-family:inherit;margin-bottom:12px;outline:none}
+.modal p{font-size:.82rem;color:#7d6b99;margin-bottom:16px;line-height:1.6}
+.modal input{width:100%;padding:10px 12px;border:1.5px solid #dccfe6;border-radius:10px;font-size:.9rem;font-family:inherit;margin-bottom:12px;outline:none}
 .modal-actions{display:flex;gap:8px}
-.btn-cancel-modal{flex:1;padding:11px;border:1px solid #dceee2;border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:#6b8f71}
-.btn-ok-modal{flex:2;padding:11px;border:none;border-radius:10px;background:#2d6a4f;color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
+.btn-cancel-modal{flex:1;padding:11px;border:1px solid #dccfe6;border-radius:10px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:#7d6b99}
+.btn-ok-modal{flex:2;padding:11px;border:none;border-radius:10px;background:#5a3f78;color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
 /* タブ */
-.tabs{display:flex;border-bottom:1px solid #dceee2;margin-bottom:16px}
-.tab-btn{flex:1;padding:10px 4px;font-size:.8rem;font-weight:700;font-family:inherit;background:#fff;border:none;border-bottom:2.5px solid transparent;color:#6b8f71;cursor:pointer}
-.tab-btn.active{color:#2d6a4f;border-bottom-color:#2d6a4f}
+.tabs{display:flex;border-bottom:1px solid #dccfe6;margin-bottom:16px}
+.tab-btn{flex:1;padding:10px 4px;font-size:.8rem;font-weight:700;font-family:inherit;background:#fff;border:none;border-bottom:2.5px solid transparent;color:#7d6b99;cursor:pointer}
+.tab-btn.active{color:#5a3f78;border-bottom-color:#5a3f78}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 /* 予約カード */
-.bk-card{border:1px solid #dceee2;border-radius:10px;padding:12px 14px;margin-bottom:8px}
-.bk-date{font-size:.76rem;color:#6b8f71;margin-bottom:3px}
+.bk-card{border:1px solid #dccfe6;border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.bk-date{font-size:.76rem;color:#7d6b99;margin-bottom:3px}
 .bk-prog{font-size:.92rem;font-weight:700;margin-bottom:2px}
-.bk-time{font-size:.76rem;color:#6b8f71;margin-bottom:6px}
+.bk-time{font-size:.76rem;color:#7d6b99;margin-bottom:6px}
 .bk-footer{display:flex;align-items:center;justify-content:space-between}
-.badge-ok{background:#e8f5e9;color:#2e7d32;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
+.badge-ok{background:#ede6f4;color:#5a3f78;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .badge-today{background:#fff8e1;color:#e65100;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 
 /* 更新ボタン */
@@ -70,10 +70,10 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 .badge-pend{background:#f3e5f5;color:#7b1fa2;font-size:.68rem;padding:2px 8px;border-radius:20px;font-weight:700}
 .bk-cancel-btn{font-size:.72rem;padding:4px 10px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit}
 .bk-cancel-tel{border-color:#93c5fd;color:#1d4ed8}
-.empty-msg{text-align:center;color:#6b8f71;font-size:.85rem;padding:20px 0}
+.empty-msg{text-align:center;color:#7d6b99;font-size:.85rem;padding:20px 0}
 /* キャンセルモーダル */
 .cm-note{font-size:.78rem;color:#c2410c;background:#fff7ed;border-radius:8px;padding:10px 12px;margin-bottom:12px;line-height:1.65;border:1px solid #fed7aa}
-.cm-textarea{width:100%;padding:10px 12px;border:1px solid #dceee2;border-radius:10px;font-size:.88rem;font-family:inherit;resize:vertical;min-height:70px;outline:none;margin-bottom:12px}
+.cm-textarea{width:100%;padding:10px 12px;border:1px solid #dccfe6;border-radius:10px;font-size:.88rem;font-family:inherit;resize:vertical;min-height:70px;outline:none;margin-bottom:12px}
 .btn-cancel-red{flex:2;padding:11px;border:none;border-radius:10px;background:#dc2626;color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer}
 </style>
 </head>
@@ -92,7 +92,7 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
   <div id="memberCard">
     <div class="card" style="padding:0;overflow:hidden">
       <!-- 会員ヘッダー -->
-      <div style="background:linear-gradient(135deg,#2d6a4f,#40916c);padding:18px 20px;text-align:center;color:#fff">
+      <div style="background:linear-gradient(135deg,#5a3f78,#7b5ea7);padding:18px 20px;text-align:center;color:#fff">
         <div style="font-size:.72rem;opacity:.65;letter-spacing:.1em;margin-bottom:4px">MEMBER CARD</div>
         <div class="member-name" id="mName" style="color:#fff;margin-bottom:2px"></div>
         <div class="member-uid" id="mUid" style="color:rgba(255,255,255,.5)"></div>
@@ -109,8 +109,8 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
           <div id="qrcode"></div>
           <div class="qr-note">センター受付のタブレットにかざしてください</div>
         </div>
-        <div id="todayBk" style="display:none;background:#e8f5e9;border-radius:10px;padding:10px 12px;font-size:.8rem">
-          <div style="font-weight:700;color:#2d6a4f;font-size:.76rem;margin-bottom:5px">📋 本日の予約</div>
+        <div id="todayBk" style="display:none;background:#ede6f4;border-radius:10px;padding:10px 12px;font-size:.8rem">
+          <div style="font-weight:700;color:#5a3f78;font-size:.76rem;margin-bottom:5px">📋 本日の予約</div>
           <div id="todayBkList"></div>
         </div>
       </div>
@@ -155,7 +155,7 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
     <h3 id="cmTitle">キャンセル確認</h3>
     <div class="cm-note" id="cmNote" style="display:none"></div>
     <div id="cmReasonWrap" style="display:none">
-      <label style="font-size:.75rem;font-weight:700;color:#6b8f71;display:block;margin-bottom:5px">キャンセル理由（必須）</label>
+      <label style="font-size:.75rem;font-weight:700;color:#7d6b99;display:block;margin-bottom:5px">キャンセル理由（必須）</label>
       <textarea class="cm-textarea" id="cmReason" placeholder="例：体調不良のため"></textarea>
     </div>
     <div class="modal-actions">
@@ -212,7 +212,7 @@ function showMember(user){
   new QRCode(document.getElementById('qrcode'),{
     text: user.uid,
     width:200, height:200,
-    colorDark:'#1a3a2a', colorLight:'#ffffff',
+    colorDark:'#3d2a55', colorLight:'#ffffff',
     correctLevel: QRCode.CorrectLevel.L
   });
   loadBookings(user.uid);
@@ -275,7 +275,7 @@ async function loadBookings(uid){
     if(todayBks.length){
       document.getElementById('todayBk').style.display='block';
       document.getElementById('todayBkList').innerHTML=todayBks.map(b=>
-        `<div style="display:flex;gap:8px;padding:3px 0"><span style="flex:1;font-weight:500">${b.progName||b.progId}</span><span style="font-size:.73rem;color:#6b8f71">${b.time||''}</span></div>`
+        `<div style="display:flex;gap:8px;padding:3px 0"><span style="flex:1;font-weight:500">${b.progName||b.progId}</span><span style="font-size:.73rem;color:#7d6b99">${b.time||''}</span></div>`
       ).join('');
     }
 
