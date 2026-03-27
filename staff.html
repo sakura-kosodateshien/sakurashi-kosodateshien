@@ -85,7 +85,7 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 <body>
 <header style="position:relative">
   <a href="index.html">← 戻る</a>
-  <h1>🗂️ 予約管理</h1>
+  <h1>予約管理</h1>
   <div style="display:flex;align-items:center;gap:6px">
     <a href="admin.html" style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:2px;text-decoration:none;font-weight:700">📊 ログイン</a>
     <button onclick="reloadPage(this)" title="更新" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;border-radius:50%;color:#fff;opacity:.8;line-height:1">↻</button>
@@ -389,8 +389,8 @@ function render(){
       }
       const hasNote = bks.some(b=>b.note);
       g+=`<div class="${cls}" style="top:${top}px;height:${ht}px;${pos}" onclick="openPanel('${p.id}')">
-        <div style="font-size:.63rem">${pendCnt>0?'⏳ ':p.name}${hasNote?' 📝':''}</div>
-        <div style="font-size:.58rem;opacity:.9">${pendCnt>0?p.name+' +'+pendCnt+'未確認':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
+        <div style="font-size:.63rem">${pendCnt>0?'⏳ '+p.name:p.name}${hasNote?' 📝':''}</div>
+        <div style="font-size:.58rem;opacity:.9">${pendCnt>0?'+'+pendCnt+'未確認':p.cap<99?cnt+'/'+p.cap+'組':cnt+'名'}</div>
       </div>`;
     });
     g+='</div>';
@@ -402,7 +402,7 @@ function openPanel(id){
   const p=ALL_PROGS.find(x=>x.id===id); if(!p) return;
   selectedProg=p;
   const bks=getBks(p); const cnt=bks.length;
-  document.getElementById('pTitle').textContent=p.emoji+' '+p.name;
+  document.getElementById('pTitle').textContent=p.name;
   document.getElementById('pTime').textContent=p.date.slice(5).replace('-','/')+'　'+p.sh+':'+String(p.sm).padStart(2,'0')+'〜'+p.eh+':'+String(p.em).padStart(2,'0');
   document.getElementById('pAvail').innerHTML=
     `<span>定員 ${p.cap<99?p.cap+'組':'制限なし'}</span>
@@ -481,7 +481,7 @@ function openAddModal(){
   if(!selectedProg){ alert('プログラムを選択してください'); return; }
   const p = selectedProg;
   document.getElementById('addModalTitle').textContent = '📞 電話予約を追加';
-  document.getElementById('addModalProg').textContent = p.emoji+' '+p.name+'　'+formatDate(p.date)+'　'+p.sh+':00〜'+p.eh+':'+(p.em||'00');
+  document.getElementById('addModalProg').textContent = p.name+'　'+formatDate(p.date)+'　'+p.sh+':00〜'+p.eh+':'+(p.em||'00');
   document.getElementById('addName').value = '';
   document.getElementById('addKana').value = '';
   document.getElementById('addAge').value = '';
