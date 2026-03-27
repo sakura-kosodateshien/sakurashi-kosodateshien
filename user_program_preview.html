@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3PVH1LLJFM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-3PVH1LLJFM');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プログラム予約 | ひのきっこ</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --lav:#dccfe6;--lav-light:#f3eef9;--lav-dark:#5a3f78;--lav-mid:#c9b8e0;
+  --text:#2a1f38;--muted:#8a7a9a;--border:#e0d8ec;--bg:#f8f5fb;--white:#fff;
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+header{background:var(--lav);padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;border-bottom:1px solid var(--lav-mid)}
+header a{color:rgba(61,42,85,.6);text-decoration:none;font-size:.82rem;letter-spacing:.02em}
+header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:center;letter-spacing:.05em}
+
+/* 更新ボタン */
+.reload-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;padding:6px;border-radius:2px;transition:transform .4s;color:rgba(61,42,85,.6);opacity:.8}
+.reload-btn.spinning{animation:spin .6s linear infinite}
+@keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}
+.month-bar{background:var(--white);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px}
+.month-bar select{border:1px solid var(--border);border-radius:2px;padding:6px 10px;font-size:.83rem;font-family:inherit;color:var(--text);background:#fff;outline:none}
+.month-bar .count{margin-left:auto;font-size:.73rem;color:var(--muted)}
+
+main{padding:16px 14px 80px;max-width:480px;margin:0 auto}
+
+/* プログラムカード：フラット */
+.prog-group{margin-bottom:4px;background:var(--white);border:1px solid var(--border);overflow:hidden}
+.prog-head{padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid transparent;transition:background .15s}
+.prog-head:hover{background:var(--lav-light)}
+.prog-head.open{border-bottom:1px solid var(--border)}
+.prog-emoji{font-size:1rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.85}
+.prog-meta{flex:1}
+.prog-name{font-size:.88rem;font-weight:700;letter-spacing:.02em}
+.prog-cap{font-size:.67rem;color:var(--muted);margin-top:2px;letter-spacing:.01em}
+.prog-avail{font-size:.67rem;font-weight:700;padding:3px 10px;letter-spacing:.03em;border:1px solid}
+.avail-ok{background:transparent;color:var(--lav-dark);border-color:var(--lav-mid)}
+.avail-some{background:transparent;color:#9a6f00;border-color:#d4b84a}
+.avail-full{background:transparent;color:#b0192a;border-color:#e8a0a8}
+.chevron{color:var(--muted);transition:transform .2s;font-size:.78rem;font-style:normal}
+.chevron.open{transform:rotate(90deg)}
+
+.slots{display:none;padding:0 14px 12px}
+.slots.open{display:block}
+.slot{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;background:transparent}
+.slot:last-child{border-bottom:none;padding-bottom:0}
+.slot:hover:not(.full){background:var(--lav-light);margin:0 -14px;padding-left:14px;padding-right:14px}
+.slot.full{opacity:.5;cursor:default}
+.slot-left{flex:1}
+.slot-date{font-size:.86rem;font-weight:700;letter-spacing:.02em}
+.slot-time{font-size:.73rem;color:var(--muted);margin-top:2px}
+.slot-avail{font-size:.67rem;font-weight:700;padding:2px 8px;border:1px solid;letter-spacing:.03em;white-space:nowrap}
+.slot-avail-ok{background:transparent;color:var(--lav-dark);border-color:var(--lav-mid)}
+.slot-avail-some{background:transparent;color:#9a6f00;border-color:#d4b84a}
+.slot-avail-full{background:transparent;color:#b0192a;border-color:#e8a0a8}
+.btn-reserve{font-size:.73rem;padding:6px 14px;border-radius:2px;border:none;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;letter-spacing:.03em;transition:opacity .15s}
+.btn-reserve:active{opacity:.7}
+.btn-ok{background:var(--lav-dark);color:#fff}
+.btn-full{background:var(--border);color:var(--muted);cursor:default}
+
+/* モーダル */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(20,10,30,.45);z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:0;padding:20px 18px 36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;border-top:2px solid var(--lav-dark)}
+.modal-prog-info{background:var(--lav-light);padding:10px 12px;margin-bottom:16px;border-left:3px solid var(--lav-dark)}
+.modal-prog-info .mp-name{font-size:.93rem;font-weight:700;letter-spacing:.02em}
+.modal-prog-info .mp-detail{font-size:.73rem;color:var(--muted);margin-top:3px}
+.modal-prog-info .mp-note{font-size:.73rem;color:var(--muted);margin-top:4px;line-height:1.65}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:4px;letter-spacing:.04em;text-transform:none}
+.form-row label .req{color:#c0192a;margin-left:2px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:2px;font-size:.88rem;font-family:inherit;outline:none;color:var(--text);background:#fff}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--lav-dark)}
+.form-row textarea{resize:vertical;min-height:56px}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.notice-box{background:var(--lav-light);padding:10px 12px;font-size:.72rem;color:#5a4a6a;line-height:1.7;margin-bottom:14px;border-left:2px solid var(--lav-mid)}
+.notice-box strong{color:var(--lav-dark)}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.btn-cancel{flex:1;padding:12px;border:1px solid var(--border);border-radius:2px;background:#fff;font-family:inherit;font-size:.86rem;cursor:pointer;color:var(--muted)}
+.btn-submit{flex:2;padding:12px;border:none;border-radius:2px;background:var(--lav-dark);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;letter-spacing:.03em}
+.success-view{display:none;text-align:center;padding:28px 16px 36px}
+.success-view .sv-icon{font-size:2rem;margin-bottom:12px}
+.success-view h3{font-size:.96rem;font-weight:700;margin-bottom:8px;letter-spacing:.03em}
+.success-view p{font-size:.8rem;color:var(--muted);line-height:1.8}
+.success-view .sv-detail{background:var(--lav-light);padding:12px 14px;margin:14px 0;font-size:.8rem;text-align:left;line-height:1.85;border-left:2px solid var(--lav-mid)}
+.btn-back{width:100%;padding:12px;border:1px solid var(--border);border-radius:2px;background:#fff;font-family:inherit;font-size:.88rem;cursor:pointer;color:var(--muted);margin-top:4px}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--lav-dark);color:#fff;padding:10px 20px;border-radius:2px;font-size:.82rem;opacity:0;transition:all .3s;z-index:300;white-space:nowrap;letter-spacing:.03em}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.change-badge{display:inline-block;font-size:.67rem;padding:2px 8px;font-weight:700;margin-top:3px;border:1px solid}
+.badge-cancel{background:transparent;color:#b0192a;border-color:#e8a0a8}
+.badge-change{background:transparent;color:#9a5500;border-color:#d4a040}
+.badge-add{background:transparent;color:var(--lav-dark);border-color:var(--lav-mid)}
+
+/* 託児時間ピッカー */
+.tochi-time-wrap{margin-bottom:12px}
+.tochi-time-wrap label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.03em}
+.tochi-time-grid{display:flex;flex-wrap:wrap;gap:5px}
+.tochi-slot{font-size:.73rem;padding:5px 9px;border-radius:2px;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:inherit;color:var(--text);transition:all .12s;user-select:none}
+.tochi-slot.selected{background:var(--lav-dark);color:#fff;border-color:var(--lav-dark)}
+.tochi-slot.disabled{opacity:.3;cursor:default;background:#f5f5f5;pointer-events:none}
+.tochi-slot-note{font-size:.69rem;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<header style="position:relative">
+  <a href="index.html">← 戻る</a>
+  <h1>プログラム予約</h1>
+  <button class="reload-btn" onclick="reloadPage(this)" title="更新">↻</button>
+</header>
+
+<div class="month-bar">
+  <span style="font-size:.85rem;font-weight:700">2026年</span>
+  <select id="monthSel" onchange="filterMonth()">
+    <option value="4" selected>4月</option>
+    <option value="5">5月</option>
+  </select>
+</div>
+
+<main id="main"></main>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <!-- フォーム画面 -->
+    <div id="formView">
+      <div class="modal-prog-info" id="mProgInfo">
+        <div class="mp-name" id="mTitle"></div>
+        <div class="mp-detail" id="mDetail"></div>
+        <div class="mp-note" id="mDesc"></div>
+        <a id="mProgLink" href="" target="_blank" style="display:inline-block;margin-top:6px;font-size:.72rem;color:var(--lav-dark);text-decoration:underline">🔗 プログラム紹介を見る</a>
+      </div>
+      <div class="form-row">
+        <label>保護者名（ひらがな）<span class="req">*</span></label>
+        <input type="text" placeholder="やまだ はなこ" id="fName" inputmode="hiragana">
+      </div>
+      <input type="hidden" id="fKana" value="">
+      <div class="form-row2">
+        <div class="form-row" style="margin-bottom:0">
+          <label>お子さんの月齢<span class="req">*</span></label>
+          <select id="fAge">
+            <option value="">選択してください</option>
+            <option>0〜5ヶ月</option>
+            <option>6〜11ヶ月</option>
+            <option>1才</option>
+            <option>1才6ヶ月〜</option>
+            <option>2才</option>
+            <option>2才6ヶ月〜</option>
+            <option id="fAge3">3才</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>お子さんの人数</label>
+          <select id="fChildCount">
+            <option>1人</option>
+            <option>2人</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>連絡先（携帯番号）<span class="req">*</span></label>
+        <input type="tel" placeholder="090-0000-0000" id="fTel">
+      </div>
+
+      <!-- 託児専用：お子さんの名前（ひらがな） -->
+      <div class="form-row" id="childNameRow" style="display:none">
+        <label>お子さんの名前（ひらがな）<span class="req">*</span></label>
+        <input type="text" placeholder="例：はなこ" id="fChildName" inputmode="hiragana">
+      </div>
+
+      <!-- 託児専用：時間ピッカー（託児プログラム時のみ表示） -->
+      <div id="tochiTimePickerWrap" style="display:none">
+        <div class="tochi-time-wrap">
+          <label>希望時間を選んでください<span class="req">*</span>（連続2時間以内）</label>
+          <div id="tochiDateLabel" style="font-size:.8rem;font-weight:700;color:var(--lav-dark);margin-bottom:6px"></div>
+          <div class="tochi-time-grid" id="tochiTimeGrid"></div>
+          <div class="tochi-slot-note" id="tochiSlotNote">開始時間をタップしてください</div>
+        </div>
+        <div class="form-row" id="tochiExtraRow" style="display:none">
+          <label>2枠目も一緒に予約しますか？<span style="font-size:.68rem;color:var(--muted);margin-left:4px">（月4枠まで・1回2枠まで）</span></label>
+          <select id="tochiExtraSelect" onchange="onTochiExtraChange()">
+            <option value="">追加しない（1枠のみ）</option>
+          </select>
+        </div>
+        <!-- 2枠目の時間ピッカー -->
+        <div id="tochiExtra2Wrap" style="display:none">
+          <div class="tochi-time-wrap">
+            <label>2枠目の希望時間<span class="req">*</span></label>
+            <div id="tochiDateLabel2" style="font-size:.8rem;font-weight:700;color:var(--lav-dark);margin-bottom:6px"></div>
+            <div class="tochi-time-grid" id="tochiTimeGrid2"></div>
+            <div class="tochi-slot-note" id="tochiSlotNote2">開始時間をタップしてください</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通常プログラム：非表示フィールド（submit用） -->
+      <input type="hidden" id="fTochi" value="no">
+      <input type="hidden" id="fTochiTime" value="">
+
+      <div class="form-row" id="tochiRow" style="display:none"><!-- 後方互換用（非表示） --></div>
+      <div class="form-row" id="tochiTimeRow" style="display:none"><!-- 後方互換用（非表示） --></div>
+
+      <div class="form-row">
+        <label>備考、連絡事項</label>
+        <textarea rows="2" placeholder="事前に園に連絡しておきたいことなどご記入ください" id="fNote"></textarea>
+      </div>
+      <div class="notice-box">
+        <strong>キャンセルについて</strong><br>
+        2日前まではLINEの「会員QR」→「予約確認」からキャンセルできます。<br>
+        それ以降のキャンセルはお電話（043-310-5757）でご連絡ください。
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">閉じる</button>
+        <button class="btn-submit" onclick="submitBooking()">予約を送信する</button>
+      </div>
+    </div>
+    <!-- 完了画面 -->
+    <div class="success-view" id="successView">
+      <div class="sv-icon">✅</div>
+      <h3>予約リクエストを送信しました</h3>
+      <div class="sv-detail" id="svDetail"></div>
+      <p>担当者が内容を確認後、LINEの「会員QR」→「予約確認」タブに予約が表示されます。</p>
+      <div id="tochiChecklist" style="display:none;margin-top:14px;background:#ede6f4;border-radius:12px;padding:12px 14px;text-align:left">
+        <div style="font-size:.82rem;font-weight:700;color:#5a3f78;margin-bottom:8px">🎒 託児の持ち物をご確認ください</div>
+        <img src="img_tochi_checklist.png" alt="託児持ち物リスト" style="width:100%;border-radius:8px">
+      </div>
+      <div id="lineAlert" style="display:none;margin-top:12px;background:#fff3e0;border:1.5px solid #ffb74d;border-radius:12px;padding:12px 14px;text-align:left">
+        <div style="font-size:.82rem;font-weight:700;color:#e65100;margin-bottom:4px">📣 LINE連携のお願い</div>
+        <div style="font-size:.78rem;color:#7d5a00;line-height:1.7">LINEの「会員QR」を一度開くと予約確認・リマインダーが届くようになります。<br>リッチメニューの <strong>「会員QR」</strong> をタップしてご登録ください。</div>
+      </div>
+      <button class="btn-back" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 予約リクエストを送信しました</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+const LIFF_ID = '2009587361-VFUaeLMj';
+let liffReady = false;
+const liffInitPromise = (async()=>{
+  try{
+    await liff.init({ liffId: LIFF_ID });
+    liffReady = liff.isInClient();
+    console.log('LIFF初期化完了 isInClient:', liffReady);
+  }catch(e){ console.warn('LIFF初期化エラー:', e.message); }
+})();
+
+// LINE トークに予約確認メッセージを送信
+async function sendLineMessage(progName, dateLabel, time, name, hasExtra, extraLabel){
+  // リッチメニュー起動のLIFFではsendMessagesは動作しないため現在は無効
+  // 将来Messaging API Push送信で実装予定
+  return;
+}
+
+function toDateKey(dateStr) {
+  const m = dateStr.match(/(\d+)\/(\d+)/);
+  if (!m) return dateStr;
+  return `2026-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+}
+
+const PROGS = [
+  {id:"lunch", name:"ランチひろば", emoji:"🍱", bg:"#e8f5e9",
+   cap:1, capLabel:"貸切1グループ（親子2〜4組）",
+   note:"お持参のお弁当を食べながらおしゃべり。離乳食の悩みも相談できます♪",
+   slots:[
+     {date:"4/6（月）",  time:"12:00〜14:00", bk:0, full:false},
+     {date:"4/8（水）",  time:"12:00〜14:00", bk:0, full:false},
+     {date:"4/21（火）", time:"12:00〜14:00", bk:0, full:false},
+     {date:"4/23（木）", time:"12:00〜14:00", bk:0, full:false},
+   ]},
+  {id:"photo", name:"ベビーフォト", emoji:"📸", bg:"#fce4ec",
+   cap:3, capLabel:"各3組程度・2組から貸し切り",
+   note:"スマホで簡単！赤ちゃんを可愛く撮るコツ講座＆撮影会。季節感たっぷりのフォトブースや可愛い撮影小物をご用意。手ぶら感覚でOK♪",
+   slots:[
+     {date:"4/20（月）", time:"10:00〜11:00", bk:0, full:false},
+     {date:"4/27（月）", time:"10:00〜11:00", bk:0, full:false},
+   ]},
+  {id:"pulapan", name:"プラパン工房", emoji:"🎨", bg:"#e8eaf6",
+   cap:2, capLabel:"各2組・託児付き",
+   note:"お子さんの足型・手形を残すキーホルダーをプラバンで作成♪",
+   slots:[
+     {date:"4/15（水）", time:"10:00〜11:00", bk:0, full:false},
+   ]},
+  {id:"yoga", name:"リラックスヨガ", emoji:"🧘", bg:"#e0f2f1",
+   cap:4, capLabel:"先着4組・託児付き",
+   note:"子育てママのための保育士付き託児ヨガ。タオル・水分をご持参ください。",
+   slots:[
+     {date:"4/22（水）", time:"11:00〜11:30", bk:0, full:false},
+   ]},
+  {id:"massage", name:"ベビーマッサージ", emoji:"👐", bg:"#fff3e0",
+   cap:3, capLabel:"各3組",
+   note:"満6か月〜1才半対象。現役保育士によるベビーマッサージ。オイル不使用なので手ぶらでOK！",
+   slots:[
+     {date:"4/13（月）", time:"9:30〜10:00", bk:0, full:false},
+     {date:"4/28（火）", time:"9:30〜10:00", bk:0, full:false},
+   ]},
+  {id:"eigo", name:"英語・知育", emoji:"📚", bg:"#e8f5e9",
+   cap:6, capLabel:"各6組",
+   note:"1才児はどちらでも選べます。",
+   slots:[
+     {date:"4/7（火）",  time:"12:00〜12:30", bk:0, full:false, label:"英語　対象：7か月〜1才"},
+     {date:"4/9（木）",  time:"12:00〜12:30", bk:0, full:false, label:"知育　対象：1才〜3才"},
+     {date:"4/14（火）", time:"12:00〜12:30", bk:0, full:false, label:"英語　対象：1才〜3才"},
+     {date:"4/16（木）", time:"12:00〜12:30", bk:0, full:false, label:"知育　対象：7か月〜1才"},
+   ]},
+  {id:"hattatsu", name:"発達相談", emoji:"💬", bg:"#f3e5f5",
+   cap:99, capLabel:"要予約・作業療法士",
+   note:"発育・歩行・体幹・発達の悩みを作業療法士の先生に相談できます。",
+   slots:[
+     {date:"4/13（月）", time:"11:00〜12:00", bk:0, full:false},
+     {date:"4/27（月）", time:"11:00〜12:00", bk:0, full:false},
+   ]},
+  {id:"tanjou", name:"お誕生日会", emoji:"🎂", bg:"#fff8e1",
+   cap:99, capLabel:"要予約・4月生まれ集まれ！",
+   note:"保育園のお友達と一緒にお祝いしましょう！",
+   slots:[
+     {date:"4/17（金）", time:"9:30〜10:30", bk:0, full:false},
+   ]},
+  {id:"tochi", name:"託児ルーム", emoji:"👶", bg:"#e3f2fd",
+   cap:2, capLabel:"定員2名・月〜金 9:00〜14:00（2時間まで）",
+   note:"満6か月〜3歳未満。費用無料。希望の利用時間をご記入ください。",
+   slots:[
+     {date:"4/1（水）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/2（木）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/3（金）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/6（月）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/7（火）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/8（水）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/9（木）",  time:"希望時間を入力", bk:0, full:false},
+     {date:"4/10（金）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/13（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/14（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/15（水）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/16（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/17（金）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/20（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/21（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/22（水）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/23（木）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/24（金）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/27（月）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/28（火）", time:"希望時間を入力", bk:0, full:false},
+     {date:"4/30（木）", time:"希望時間を入力", bk:0, full:false},
+   ]},
+];
+
+let openId = null;
+let selectedSlot = null;
+
+// ── bookings/ を読み込んでbk・fullをPROGSに反映 ──────────────────
+async function applyBookings(){
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'bookings'),
+      where('date', '>=', '2026-04-01'),
+      where('date', '<=', '2026-04-30')
+    ));
+    // progId×date ごとに confirmed+pending をカウント
+    const counts = {};
+    snap.docs.forEach(d => {
+      const b = d.data();
+      if(b.status === 'cancelled') return;
+      const key = (b.progId || '') + '|' + (b.date || '');
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    // PROGSの各スロットに反映
+    PROGS.forEach(p => {
+      p.slots.forEach(s => {
+        if(s.cancelled) return; // 中止済みはスキップ
+        const dateKey = toDateKey(s.date);
+        const key = p.id + '|' + dateKey;
+        const bk = counts[key] || 0;
+        s.bk = bk;
+        // 定員に達したら即満員
+        if(p.cap < 99 && bk >= p.cap) s.full = true;
+      });
+    });
+  } catch(e) {
+    console.warn('bookings読み込みエラー:', e.message);
+  }
+}
+
+// ── changes/ を読み込んでPROGSに反映 ─────────────────────────────
+async function applyChanges(){
+  try {
+    const snap = await getDocs(collection(db, 'changes'));
+    if(snap.empty) return;
+
+    snap.docs.forEach(d => {
+      const c = d.data();
+      if(!c.targetId) return;
+
+      // 対象プログラムを検索（id or 日付+名前で照合）
+      const prog = PROGS.find(p =>
+        p.id === c.targetId ||
+        p.slots.some(s => toDateKey(s.date) === c.targetDate)
+      );
+      if(!prog) return;
+
+      if(c.type === 'cancel'){
+        // プログラム中止：該当スロットをfull+cancelledに
+        prog.slots.forEach(s => {
+          if(!c.targetDate || toDateKey(s.date) === c.targetDate){
+            s.full = true;
+            s.cancelled = true;
+            s.changeNote = c.note || '中止';
+          }
+        });
+      }
+      if(c.type === 'time'){
+        // 時間変更
+        prog.slots.forEach(s => {
+          if(!c.targetDate || toDateKey(s.date) === c.targetDate){
+            s.time = c.newTime || s.time;
+            s.changed = true;
+            s.changeNote = c.note || `時間変更：${c.newTime}`;
+          }
+        });
+      }
+      if(c.type === 'cap'){
+        // 定員変更
+        if(c.newCap !== undefined) prog.cap = c.newCap;
+        prog.capLabel = prog.capLabel.replace(/\d+組/, c.newCap+'組');
+      }
+      if(c.type === 'add'){
+        // プログラム追加
+        if(c.newSlot) prog.slots.push({
+          date: c.newSlot.date,
+          time: c.newSlot.time,
+          bk: 0, full: false, added: true,
+          changeNote: '追加'
+        });
+      }
+      if(c.type === 'block'){
+        // 託児の特定日時をブロック
+        const tochiProg = PROGS.find(p => p.id === 'tochi');
+        if(tochiProg){
+          tochiProg.slots.forEach(s => {
+            const dateMatch = !c.blockDate ||
+              s.date.includes(c.blockDate.replace(/（.+?）/,'').trim()) ||
+              c.blockDate.includes(s.date.replace(/（.+?）/,'').trim());
+            if(!dateMatch) return;
+            s.full = true;
+            s.cancelled = true;
+            s.changeNote = (c.blockTime ? c.blockTime+' ' : '') + (c.note || '受付停止');
+          });
+        }
+      }
+    });
+  } catch(e){
+    console.warn('changes読み込みエラー:', e.message);
+  }
+}
+
+function filterMonth(){ render(); }
+
+function render(){
+  const avail = prog => prog.slots.some(s=>!s.full);
+  let html = '';
+  let okCount = 0;
+  PROGS.forEach(p=>{
+    const hasAvail = avail(p);
+    if(hasAvail) okCount++;
+    const isOpen = openId === p.id;
+    const allFull = p.slots.every(s=>s.full);
+    const someAvail = hasAvail && p.slots.some(s=>s.bk>0);
+    const availClass = allFull ? 'avail-full' : someAvail ? 'avail-some' : 'avail-ok';
+    const availText = allFull ? '満員' : someAvail ? '残りわずか' : '空きあり';
+    html += `<div class="prog-group">
+      <div class="prog-head ${isOpen?'open':''}" onclick="toggleProg('${p.id}')">
+        <div class="prog-emoji" style="background:${p.bg}">${p.emoji}</div>
+        <div class="prog-meta">
+          <div class="prog-name">${p.name}</div>
+          <div class="prog-cap">${p.capLabel}</div>
+        </div>
+        <span class="prog-avail ${availClass}">${availText}</span>
+        <span class="chevron ${isOpen?'open':''}">›</span>
+      </div>
+      <div class="slots ${isOpen?'open':''}">`;
+    p.slots.forEach((s,si)=>{
+      // 空き状況テキストバッジ（ドット廃止）
+      let availBadge = '';
+      if(s.cancelled){
+        availBadge = '';
+      } else if(s.full){
+        availBadge = `<span class="slot-avail slot-avail-full">満員</span>`;
+      } else if(p.cap < 99 && s.bk === p.cap - 1 && s.bk > 0){
+        availBadge = `<span class="slot-avail slot-avail-some">残りわずか</span>`;
+      } else {
+        availBadge = `<span class="slot-avail slot-avail-ok">空きあり</span>`;
+      }
+
+      // 変更バッジ
+      let changeBadge = '';
+      if(s.cancelled) changeBadge = `<span class="change-badge badge-cancel">⚠️ ${s.changeNote||'中止'}</span>`;
+      else if(s.changed) changeBadge = `<span class="change-badge badge-change">🔔 ${s.changeNote||'変更あり'}</span>`;
+      else if(s.added)   changeBadge = `<span class="change-badge badge-add">🆕 追加</span>`;
+
+      html += `<div class="slot ${s.full?'full':''}" onclick="${s.full||s.cancelled?'':'openModal(\''+p.id+'\','+si+')'}">
+        <div class="slot-left">
+          <div class="slot-date">${s.date}</div>
+          ${s.label ? `<div class="slot-time" style="color:var(--lav-dark);font-weight:700">${s.label}</div>` : ''}
+          <div class="slot-time">${s.time}</div>
+          ${changeBadge}
+        </div>
+        ${availBadge}
+        <button class="${s.full||s.cancelled?'btn-reserve btn-full':'btn-reserve btn-ok'}" ${s.full||s.cancelled?'disabled':''}>
+          ${s.cancelled ? '中止' : s.full ? '満員' : '予約する'}
+        </button>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById('main').innerHTML = html;
+}
+
+
+function reloadPage(btn){
+  btn.classList.add('spinning');
+  setTimeout(()=>{ location.reload(); },300);
+}
+
+function toggleProg(id){
+  openId = openId === id ? null : id;
+  render();
+}
+
+// 託児付きプログラムのID
+const TOCHI_PROGS = ['pulapan','yoga','tochi'];
+
+// ── 託児の上限チェック ────────────────────────────────────────────────
+async function checkTochiLimits(tel, dateKey) {
+  if (!tel) return { ok: true };
+  try {
+    // telだけで絞り込み → JS側でフィルタ（複合インデックス不要）
+    const snap = await getDocs(query(
+      collection(db, 'bookings'),
+      where('tel', '==', tel)
+    ));
+    const all = snap.docs.map(d => d.data());
+
+    // 当月・託児・有効な予約のみ抽出
+    const monthBookings = all.filter(b =>
+      b.date >= '2026-04-01' &&
+      b.date <= '2026-04-30' &&
+      (b.progId === 'tochi' || b.tochi === true) &&
+      (b.status === 'confirmed' || b.status === 'pending')
+    );
+    const monthCount = monthBookings.length;
+
+    // 月4枠上限チェック
+    if (monthCount >= 4) {
+      return { ok: false, msg: '今月の託児予約上限（4枠）に達しています。\n利用完了後に次の予約が可能です。' };
+    }
+
+    // 同日予約チェック
+    const sameDay = monthBookings.find(b => b.date === dateKey);
+    if (sameDay) {
+      return { ok: false, msg: 'この日はすでに託児の予約があります。\n（1日1枠まで）' };
+    }
+
+    return { ok: true, remaining: 4 - monthCount };
+  } catch(e) {
+    console.warn('上限チェックエラー:', e.message);
+    // エラー時は安全側に倒してブロック
+    return { ok: false, msg: '予約の確認中にエラーが発生しました。\nしばらくしてから再度お試しください。' };
+  }
+}
+
+// ── 託児複数枠選択状態 ────────────────────────────────────────────────
+let tochiExtraSlots = []; // 2枠目の日程
+
+function openModal(progId, slotIdx){
+  const p = PROGS.find(x=>x.id===progId);
+  const s = p.slots[slotIdx];
+  selectedSlot = {prog:p, slot:s};
+  tochiExtraSlots = [];
+
+  // ランチひろば専用：ラベル・プレースホルダー切り替え
+  const isLunch = p.id === 'lunch';
+
+  const displayName = s.label ? s.label.split('　')[0] : p.name;
+  document.getElementById('mTitle').textContent  = `${p.emoji} ${displayName}`;
+  const capText = isLunch ? p.capLabel : (p.cap<10 ? p.cap+'組' : '制限なし');
+  const ageTarget = s.label ? s.label.split('　')[1] || '' : '';
+  const detailAge = ageTarget ? `　${ageTarget}` : '';
+  document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}${detailAge}`;
+  document.getElementById('mDesc').textContent   = p.note;
+  document.getElementById('mProgLink').href = `programs.html`;
+  const nameLabel = document.querySelector('#formView .form-row label');
+  if(nameLabel) nameLabel.innerHTML = isLunch
+    ? '代表保護者名（ひらがな）<span class="req">*</span>'
+    : '保護者名（ひらがな）<span class="req">*</span>';
+  const noteLabel = document.querySelector('#fNote').previousElementSibling;
+  if(noteLabel && noteLabel.tagName==='LABEL') noteLabel.textContent = isLunch ? '備考・親子組数' : '備考、連絡事項';
+  document.getElementById('fNote').placeholder = isLunch
+    ? '親子組数、連絡事項などご記入ください'
+    : '事前に園に連絡しておきたいことなどご記入ください';
+
+  // 託児専用フォーム切り替え
+  const isTochi = p.id === 'tochi';
+  const hasTochi = TOCHI_PROGS.includes(p.id);
+
+  // 月齢の「3才」→託児は「満3才未満」に
+  const age3opt = document.getElementById('fAge3');
+  if(age3opt) age3opt.textContent = isTochi ? '満3才未満' : '3才';
+
+  // 託児時間ピッカー表示
+  document.getElementById('tochiTimePickerWrap').style.display = isTochi ? 'block' : 'none';
+  if(isTochi){
+    document.getElementById('fTochi').value = 'yes';
+    document.getElementById('childNameRow').style.display = 'block';
+    initTochiTimePicker(s.date);
+    const otherSlots = p.slots.filter((_,i) => i !== slotIdx && !p.slots[i].full);
+    let opts = '<option value="">追加しない（1枠のみ）</option>';
+    otherSlots.forEach((os) => {
+      opts += `<option value="${os.date||os.dateKey||''}">${os.date}　${os.time}</option>`;
+    });
+    document.getElementById('tochiExtraSelect').innerHTML = opts;
+    document.getElementById('tochiExtraRow').style.display = otherSlots.length ? 'block' : 'none';
+    document.getElementById('tochiExtra2Wrap').style.display = 'none';
+  } else {
+    document.getElementById('fTochi').value = 'no';
+    document.getElementById('childNameRow').style.display = 'none';
+    document.getElementById('fChildName').value = '';
+  }
+
+  // フォームリセット → キャッシュから復元
+  const cache = JSON.parse(localStorage.getItem('hinokikko_user')||'{}');
+  document.getElementById('fName').value      = cache.name      || '';
+  document.getElementById('fKana').value      = cache.kana      || '';
+  document.getElementById('fTel').value       = cache.tel       || '';
+  document.getElementById('fAge').value       = cache.age       || '';
+  document.getElementById('fChildCount').value= cache.childCount|| '1人';
+  document.getElementById('fNote').value      = '';
+  document.getElementById('fTochiTime').value = '';
+
+  document.getElementById('formView').style.display   = 'block';
+  document.getElementById('successView').style.display = 'none';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('open');
+}
+
+// ── 託児時間ピッカー ────────────────────────────────────────────────
+const TOCHI_TIMES = ['9:00','9:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00'];
+let tochiSelectedStart  = null;
+let tochiSelectedEnd    = null;
+let tochiSelectedStart2 = null;
+let tochiSelectedEnd2   = null;
+
+function initTochiTimePicker(dateLabel){
+  tochiSelectedStart  = null;
+  tochiSelectedEnd    = null;
+  tochiSelectedStart2 = null;
+  tochiSelectedEnd2   = null;
+  document.getElementById('fTochiTime').value = '';
+  // 日付ラベル表示
+  const dl = document.getElementById('tochiDateLabel');
+  if(dl) dl.textContent = '📅 ' + (dateLabel||'');
+  renderTochiPicker();
+}
+
+function renderTochiPicker(){
+  const grid = document.getElementById('tochiTimeGrid');
+  const note = document.getElementById('tochiSlotNote');
+  if(!grid) return;
+  grid.innerHTML = TOCHI_TIMES.map((t,i) => {
+    const isEndOnly = t === '14:00';
+    let cls = 'tochi-slot';
+    if(tochiSelectedStart !== null && tochiSelectedEnd !== null){
+      if(i >= tochiSelectedStart && i <= tochiSelectedEnd) cls += ' selected';
+    } else if(tochiSelectedStart !== null && i === tochiSelectedStart){
+      cls += ' selected';
+    }
+    if(isEndOnly && tochiSelectedStart === null) cls += ' disabled';
+    return `<button type="button" class="${cls}" onclick="onTochiSlotClick(${i})">${t}</button>`;
+  }).join('');
+  if(tochiSelectedStart === null){
+    note.textContent = '開始時間をタップしてください';
+  } else if(tochiSelectedEnd === null){
+    note.textContent = `開始：${TOCHI_TIMES[tochiSelectedStart]}　→ 終了時間を選んでください（最大2時間）`;
+  } else {
+    const timeStr = TOCHI_TIMES[tochiSelectedStart]+'〜'+TOCHI_TIMES[tochiSelectedEnd];
+    note.textContent = '✅ '+timeStr+' を選択しました';
+    document.getElementById('fTochiTime').value = timeStr;
+  }
+}
+
+window.onTochiSlotClick = function(idx){
+  const t = TOCHI_TIMES[idx];
+  if(tochiSelectedStart === null){
+    if(t === '14:00') return;
+    tochiSelectedStart = idx; tochiSelectedEnd = null;
+  } else if(tochiSelectedEnd === null){
+    if(idx <= tochiSelectedStart){ tochiSelectedStart = (t==='14:00')?null:idx; tochiSelectedEnd=null; }
+    else {
+      if(idx - tochiSelectedStart > 4){ alert('2時間以内で選択してください。'); return; }
+      tochiSelectedEnd = idx;
+    }
+  } else {
+    tochiSelectedStart = (t==='14:00')?null:idx; tochiSelectedEnd=null;
+  }
+  renderTochiPicker();
+};
+
+// ── 2枠目時間ピッカー ─────────────────────────────────────────────
+function renderTochiPicker2(dateLabel){
+  const grid = document.getElementById('tochiTimeGrid2');
+  const note = document.getElementById('tochiSlotNote2');
+  const dl   = document.getElementById('tochiDateLabel2');
+  if(!grid) return;
+  if(dl) dl.textContent = '📅 ' + (dateLabel||'');
+  grid.innerHTML = TOCHI_TIMES.map((t,i) => {
+    const isEndOnly = t === '14:00';
+    let cls = 'tochi-slot';
+    if(tochiSelectedStart2 !== null && tochiSelectedEnd2 !== null){
+      if(i >= tochiSelectedStart2 && i <= tochiSelectedEnd2) cls += ' selected';
+    } else if(tochiSelectedStart2 !== null && i === tochiSelectedStart2){
+      cls += ' selected';
+    }
+    if(isEndOnly && tochiSelectedStart2 === null) cls += ' disabled';
+    return `<button type="button" class="${cls}" onclick="onTochiSlotClick2(${i})">${t}</button>`;
+  }).join('');
+  if(tochiSelectedStart2 === null){
+    note.textContent = '開始時間をタップしてください';
+  } else if(tochiSelectedEnd2 === null){
+    note.textContent = `開始：${TOCHI_TIMES[tochiSelectedStart2]}　→ 終了時間を選んでください（最大2時間）`;
+  } else {
+    const timeStr = TOCHI_TIMES[tochiSelectedStart2]+'〜'+TOCHI_TIMES[tochiSelectedEnd2];
+    note.textContent = '✅ '+timeStr+' を選択しました';
+  }
+}
+
+window.onTochiSlotClick2 = function(idx){
+  const t = TOCHI_TIMES[idx];
+  if(tochiSelectedStart2 === null){
+    if(t === '14:00') return;
+    tochiSelectedStart2 = idx; tochiSelectedEnd2 = null;
+  } else if(tochiSelectedEnd2 === null){
+    if(idx <= tochiSelectedStart2){ tochiSelectedStart2=(t==='14:00')?null:idx; tochiSelectedEnd2=null; }
+    else {
+      if(idx - tochiSelectedStart2 > 4){ alert('2時間以内で選択してください。'); return; }
+      tochiSelectedEnd2 = idx;
+    }
+  } else {
+    tochiSelectedStart2=(t==='14:00')?null:idx; tochiSelectedEnd2=null;
+  }
+  renderTochiPicker2();
+};
+
+// 2枠目選択変更時
+window.onTochiExtraChange = function(){
+  const sel = document.getElementById('tochiExtraSelect');
+  const wrap = document.getElementById('tochiExtra2Wrap');
+  if(sel.selectedIndex > 0){
+    const dateLabel = sel.options[sel.selectedIndex].text.split('　')[0];
+    tochiSelectedStart2 = null; tochiSelectedEnd2 = null;
+    wrap.style.display = 'block';
+    renderTochiPicker2(dateLabel);
+  } else {
+    wrap.style.display = 'none';
+    tochiSelectedStart2 = null; tochiSelectedEnd2 = null;
+  }
+};
+
+function toggleTochiTime(){} // 後方互換（空関数）
+
+async function submitBooking(){
+  const name       = document.getElementById('fName').value.trim();
+  const kana       = document.getElementById('fKana').value.trim();
+  const childName  = document.getElementById('fChildName').value.trim();
+  const age        = document.getElementById('fAge').value;
+  const childCount = document.getElementById('fChildCount').value;
+  const tel        = document.getElementById('fTel').value.trim();
+  const note       = document.getElementById('fNote').value.trim();
+  const tochi      = document.getElementById('fTochi').value === 'yes';
+  const tochiTime  = document.getElementById('fTochiTime').value.trim();
+
+  if(!name){ alert('保護者名（ひらがな）を入力してください'); return; }
+  if(!age){  alert('お子さんの月齢を選択してください'); return; }
+  if(!tel){  alert('連絡先を入力してください'); return; }
+  if(tochi && !childName){ alert('お子さんの名前（ひらがな）を入力してください'); return; }
+
+  const p = selectedSlot.prog;
+  const s = selectedSlot.slot;
+
+  // ── 託児の場合：上限チェック ────────────────────────────────────────
+  if (p.id === 'tochi') {
+    // 時間ピッカーのバリデーション
+    const tochiTimeVal = document.getElementById('fTochiTime').value;
+    if(!tochiTimeVal){ alert('希望時間を選択してください'); return; }
+
+    const dateK = toDateKey(s.date);
+
+    // 2枠目選択確認
+    const extraSel = document.getElementById('tochiExtraSelect');
+    const extraIdx = extraSel ? extraSel.selectedIndex : 0;
+    const hasExtra = extraSel && extraIdx > 0;
+
+    // 2枠目選択時の時間バリデーション
+    if(hasExtra){
+      if(tochiSelectedStart2 === null || tochiSelectedEnd2 === null){
+        alert('2枠目の希望時間を選択してください'); return;
+      }
+    }
+
+    const reserveCount = hasExtra ? 2 : 1;
+
+    // 月残り枠チェック
+    const check = await checkTochiLimits(tel, dateK);
+    if (!check.ok) { alert(check.msg); return; }
+
+    // 2枠予約しようとしているのに残り1枠の場合
+    if (hasExtra && check.remaining < 2) {
+      alert(`今月の残り枠は${check.remaining}枠です。\n1枠のみ予約してください。`);
+      return;
+    }
+  }
+
+  const btn = document.querySelector('.btn-submit');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
+
+  try {
+    const dateK = toDateKey(s.date);
+    const baseData = {
+      progId:     p.id,
+      progName:   p.name,
+      date:       dateK,
+      dateLabel:  s.date,
+      time:       s.time,
+      name, kana: name, childName, age, childCount, tel, note,
+      tochi,
+      tochiTime:  tochi ? tochiTime : '',
+      status:     'pending',
+      bookedAt:   Timestamp.now()
+    };
+
+    // 1枠目を保存
+    await addDoc(collection(db, 'bookings'), baseData);
+
+    // 2枠目（託児のみ）
+    if (p.id === 'tochi') {
+      const extraSel = document.getElementById('tochiExtraSelect');
+      if (extraSel && extraSel.selectedIndex > 0) {
+        const extraSlotIdx = extraSel.selectedIndex - 1;
+        const extraSlots   = p.slots.filter((_,i) => i !== p.slots.indexOf(s) && !p.slots[p.slots.indexOf(s)].full);
+        if (extraSlots[extraSlotIdx]) {
+          const es = extraSlots[extraSlotIdx];
+          const extra2Time = (tochiSelectedStart2 !== null && tochiSelectedEnd2 !== null)
+            ? TOCHI_TIMES[tochiSelectedStart2]+'〜'+TOCHI_TIMES[tochiSelectedEnd2]
+            : '';
+          await addDoc(collection(db, 'bookings'), {
+            ...baseData,
+            date:      toDateKey(es.date),
+            dateLabel: es.date,
+            time:      extra2Time || es.time,
+            tochiTime: extra2Time,
+            bookedAt:  Timestamp.now()
+          });
+        }
+      }
+    }
+
+    // キャッシュに保存（次回自動入力用）
+    localStorage.setItem('hinokikko_user', JSON.stringify({name, kana: name, tel, age, childCount}));
+
+    // 完了画面
+    const extraSel2 = document.getElementById('tochiExtraSelect');
+    const hasExtra2 = p.id==='tochi' && extraSel2 && extraSel2.selectedIndex > 0;
+    document.getElementById('svDetail').innerHTML =
+      '<div>📋 <strong>'+p.emoji+' '+p.name+'</strong></div>'+
+      '<div>📅 '+s.date+'　'+s.time+'</div>'+
+      (hasExtra2 ? '<div>📅 '+extraSel2.options[extraSel2.selectedIndex].text+'（2枠目）</div>' : '')+
+      '<div>👤 '+name+'（'+age+'）</div>'+
+      '<div>📱 '+tel+'</div>'+
+      (tochi ? '<div>👶 託児希望時間：'+(tochiTime||'時間未定')+'</div>' : '');
+
+    document.getElementById('formView').style.display   = 'none';
+    document.getElementById('successView').style.display = 'block';
+    // 託児予約の場合は持ち物リストを表示
+    document.getElementById('tochiChecklist').style.display = p.id==='tochi' ? 'block' : 'none';
+    // LINE連携状況を確認してアラート表示
+    try{
+      await liffInitPromise;
+      if(liffReady){
+        const profile = await liff.getProfile();
+        const q = await getDocs(query(collection(db,'users'), where('lineUserId','==',profile.userId)));
+        document.getElementById('lineAlert').style.display = q.empty ? 'block' : 'none';
+      } else {
+        document.getElementById('lineAlert').style.display = 'none';
+      }
+    }catch(e){ document.getElementById('lineAlert').style.display = 'none'; }
+
+    // LINEトークに自動送信
+    const extraSel3  = document.getElementById('tochiExtraSelect');
+    const hasExtra3  = p.id==='tochi' && extraSel3 && extraSel3.selectedIndex > 0;
+    const extraLabel = hasExtra3 ? extraSel3.options[extraSel3.selectedIndex].text : '';
+    await sendLineMessage(p.name, s.date, s.time, name, hasExtra3, extraLabel);
+
+  } catch(e) {
+    console.error('予約保存エラー:', e);
+    alert('送信に失敗しました。通信状況を確認してください。\n' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '予約を送信する';
+  }
+}
+
+// グローバル公開（module内のため）
+window.filterMonth   = filterMonth;
+window.toggleProg    = toggleProg;
+window.openModal     = openModal;
+window.closeModal    = closeModal;
+window.toggleTochiTime = toggleTochiTime;
+window.submitBooking = submitBooking;
+
+document.getElementById('modalBg').addEventListener('click', e => {
+  if(e.target === document.getElementById('modalBg')) closeModal();
+});
+
+// まず即時描画（Firebaseなしでも表示）
+render();
+
+// changes/ → bookings/ の順で読み込んで再描画
+applyChanges().then(() => applyBookings()).then(() => {
+  render();
+  const params = new URLSearchParams(location.search);
+  const progName = params.get('prog');
+  if(progName){
+    const p = PROGS.find(x=>x.name.includes(progName)||progName.includes(x.name.split(' ')[0]));
+    if(p){
+      openId = p.id;
+      render();
+      const si = p.slots.findIndex(s=>!s.full);
+      if(si>=0) setTimeout(()=>openModal(p.id, si), 300);
+    }
+  }
+}).catch(() => {}); // エラー時は初期描画済みなのでそのまま
+</script>
+</body>
+</html>
