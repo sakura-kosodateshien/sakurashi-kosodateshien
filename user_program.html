@@ -40,18 +40,7 @@ main{padding:16px 14px 80px;max-width:480px;margin:0 auto}
 .prog-head{padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid transparent;transition:background .15s}
 .prog-head:hover{background:var(--lav-light)}
 .prog-head.open{border-bottom:1px solid var(--border)}
-/* プログラムアイコン（絵文字CSS） */
-.prog-emoji{font-size:1.2rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.prog-emoji::before{content:''}
-.prog-emoji[data-pid="lunch"]::before{content:'🍴'}
-.prog-emoji[data-pid="photo"]::before{content:'📷'}
-.prog-emoji[data-pid="pulapan"]::before{content:'✂️'}
-.prog-emoji[data-pid="yoga"]::before{content:'🧘'}
-.prog-emoji[data-pid="massage"]::before{content:'🤲'}
-.prog-emoji[data-pid="eigo"]::before{content:'📖'}
-.prog-emoji[data-pid="hattatsu"]::before{content:'💬'}
-.prog-emoji[data-pid="tanjou"]::before{content:'🎁'}
-.prog-emoji[data-pid="tochi"]::before{content:'👶'}
+.prog-emoji{display:none}
 .prog-meta{flex:1}
 .prog-name{font-size:.88rem;font-weight:700;letter-spacing:.02em}
 .prog-cap{font-size:.67rem;color:var(--muted);margin-top:2px;letter-spacing:.01em}
@@ -508,7 +497,6 @@ function render(){
     const availText = allFull ? '満員' : someAvail ? '残りわずか' : '空きあり';
     html += `<div class="prog-group">
       <div class="prog-head ${isOpen?'open':''}" onclick="toggleProg('${p.id}')">
-        <div class="prog-emoji" data-pid="${p.id}"></div>
         <div class="prog-meta">
           <div class="prog-name">${p.name}</div>
           <div class="prog-cap">${p.capLabel}</div>
