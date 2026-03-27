@@ -283,29 +283,49 @@ function getBks(prog){
 }
 
 // ── 未確認バナー更新 ─────────────────────────────────────────────────
-function updatePendingBanner(){
-  // 4月以降のpendingのみ対象
-  const allPending=liveBookings.filter(b=>b.status==='pending' && b.date>='2026-04-01');
+async function updatePendingBanner(){
   const banner=document.getElementById('pendingBanner');
-  if(!allPending.length){banner.classList.remove('show');return;}
-  banner.classList.add('show');
-  document.getElementById('pendingCount').textContent='未確認 '+allPending.length+'件';
-  const weekMap={};
-  allPending.forEach(b=>{
-    const bDate=new Date(b.date+'T00:00:00');
-    const diffDays=Math.round((bDate-BASE)/(24*3600*1000));
-    const wOff=Math.max(0,Math.floor(diffDays/7)); // マイナスは0に
-    const wStart=new Date(BASE); wStart.setDate(BASE.getDate()+wOff*7);
-    const label=fmt(wStart)+'週';
-    if(!weekMap[wOff]) weekMap[wOff]={label,count:0};
-    weekMap[wOff].count++;
-  });
-  let html='';
-  Object.keys(weekMap).sort((a,b)=>a-b).forEach(off=>{
-    const w=weekMap[off];
-    html+=`<button class="pending-week-btn" onclick="jumpToWeek(${off})">${w.label}（${w.count}件）</button>`;
-  });
-  document.getElementById('pendingWeeks').innerHTML=html;
+  try{
+    // Firestoreから直接取得（ローカルキャッシュに依存しない）
+    if(!window._fbQueryPending){ banner.classList.remove('show'); return; }
+    const snap = await window._fbQueryPending();
+    const allPending = snap.docs.map(d=>({fbId:d.id,...d.data()}))
+      .filter(b=>b.date>='2026-04-01');
+    // liveBookingsも同期
+    allPending.forEach(b=>{
+      const idx = liveBookings.findIndex(x=>x.fbId===b.fbId);
+      if(idx>=0) liveBookings[idx]=b; 
+    });
+    // liveBookingsのうちFirestoreにないpendingはconfirmedに修正
+    liveBookings = liveBookings.map(b=>{
+      if(b.status==='pending' && !allPending.find(x=>x.fbId===b.fbId)){
+        return Object.assign({},b,{status:'confirmed'});
+      }
+      return b;
+    });
+    if(!allPending.length){banner.classList.remove('show');return;}
+    banner.classList.add('show');
+    document.getElementById('pendingCount').textContent='未確認 '+allPending.length+'件';
+    const weekMap={};
+    allPending.forEach(b=>{
+      const bDate=new Date(b.date+'T00:00:00');
+      const diffDays=Math.round((bDate-BASE)/(24*3600*1000));
+      const wOff=Math.max(0,Math.floor(diffDays/7));
+      const wStart=new Date(BASE); wStart.setDate(BASE.getDate()+wOff*7);
+      const label=fmt(wStart)+'週';
+      if(!weekMap[wOff]) weekMap[wOff]={label,count:0};
+      weekMap[wOff].count++;
+    });
+    let html='';
+    Object.keys(weekMap).sort((a,b)=>a-b).forEach(off=>{
+      const w=weekMap[off];
+      html+=`<button class="pending-week-btn" onclick="jumpToWeek(${off})">${w.label}（${w.count}件）</button>`;
+    });
+    document.getElementById('pendingWeeks').innerHTML=html;
+  }catch(e){
+    console.warn('pendingBanner更新エラー:',e.message);
+    banner.classList.remove('show');
+  }
 }
 window.jumpToWeek=function(off){ weekOffset=parseInt(off); initFirebase(); };
 
