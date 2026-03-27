@@ -14,7 +14,7 @@
 <title>管理ダッシュボード | 子育て支援センター</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, updateDoc, Timestamp }
+  import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, updateDoc, writeBatch, Timestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -222,18 +222,31 @@
         <span class="member-badge ${u.lineUserId?'':'no-line'}">${u.lineUserId?'✅ LINE連携':'未連携'}</span>
         <button onclick="showMemberBookings('${u.id}','${(u.name||'').replace(/'/g,'')}','${(u.tel||'').replace(/'/g,'')}')" style="margin-left:8px;padding:4px 10px;border-radius:2px;border:1.5px solid #c9b8e0;background:#ede6f4;font-size:.72rem;cursor:pointer;font-family:inherit;color:#5a3f78">📋 予約</button>
         <button onclick="editMember('${u.id}')" style="margin-left:4px;padding:4px 10px;border-radius:2px;border:1.5px solid var(--border);background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:var(--green)">✏️ 編集</button>
-        <button onclick="deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:2px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
+        <button onclick=" deleteMember('${u.id}','${(u.name||'').replace(/'/g,'')}','${(u.tel||'').replace(/'/g,'')}')" style="margin-left:4px;padding:4px 10px;border-radius:2px;border:1.5px solid #fce4ec;background:#fff;font-size:.72rem;cursor:pointer;font-family:inherit;color:#c62828">🗑 削除</button>
       </div>`).join('');
   }
 
   // ── 会員削除 ────────────────────────────────────────────────────────
-  window.deleteMember = async function(uid, name){
-    if(!confirm(`「${name}」さんの会員情報を削除しますか？\nこの操作は元に戻せません。`)) return;
+  window.deleteMember = async function(uid, name, tel){
+    if(!confirm(`「${name}」さんの会員情報を削除しますか？\n今後の予約もすべてキャンセルになります。\nこの操作は元に戻せません。`)) return;
     try{
+      // telで紐づく予約をすべてキャンセル
+      if(tel){
+        const bSnap = await getDocs(query(collection(db,'bookings'), where('tel','==',tel)));
+        const batch = writeBatch(db);
+        bSnap.docs.forEach(d => {
+          const st = d.data().status;
+          if(st === 'confirmed' || st === 'pending'){
+            batch.update(doc(db,'bookings',d.id), { status:'cancelled' });
+          }
+        });
+        await batch.commit();
+      }
+      // 会員削除
       await deleteDoc(doc(db,'users',uid));
       allMembers = allMembers.filter(u=>u.id!==uid);
       renderMembers(allMembers);
-      alert('削除しました');
+      alert('削除しました（予約もキャンセルにしました）');
     }catch(e){ alert('削除エラー: '+e.message); }
   };
 
