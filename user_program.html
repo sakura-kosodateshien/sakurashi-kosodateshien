@@ -571,14 +571,14 @@ function openModal(progId, slotIdx){
   selectedSlot = {prog:p, slot:s};
   tochiExtraSlots = [];
 
+  // ランチひろば専用：ラベル・プレースホルダー切り替え
+  const isLunch = p.id === 'lunch';
+
   document.getElementById('mTitle').textContent  = `${p.emoji} ${p.name}`;
   const capText = isLunch ? p.capLabel : (p.cap<10 ? p.cap+'組' : '制限なし');
   document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}`;
   document.getElementById('mDesc').textContent   = p.note;
   document.getElementById('mProgLink').href = `programs.html`;
-
-  // ランチひろば専用：ラベル・プレースホルダー切り替え
-  const isLunch = p.id === 'lunch';
   const nameLabel = document.querySelector('#formView .form-row label');
   if(nameLabel) nameLabel.innerHTML = isLunch
     ? '代表保護者名（ひらがな）<span class="req">*</span>'
