@@ -31,7 +31,7 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
 .card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,var(--lav-dark))}
 .card:hover{transform:translateY(-2px);}
 .card-row{display:flex;align-items:center;gap:12px}
-.card-icon{font-size:1.5rem;width:40px;height:40px;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--lav-light)}
+.card-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .card-meta{flex:1}
 .card-title{font-size:.95rem;font-weight:700;color:var(--text)}
 .card-desc{font-size:.75rem;color:var(--muted);margin-top:3px;line-height:1.5}
@@ -61,21 +61,40 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
   <div class="section-label">利用者向け</div>
   <a href="user_program.html" class="card user1">
     <div class="card-row">
-      <div class="card-icon">📋</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="6" y="4" width="20" height="24" rx="1"/>
+  <line x1="11" y1="11" x2="21" y2="11"/>
+  <line x1="11" y1="16" x2="21" y2="16"/>
+  <line x1="11" y1="21" x2="17" y2="21"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">プログラム別予約</div><div class="card-desc">参加したいプログラムを選んで空き確認・予約。スマホ向き。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
   <a href="user_calendar.html" class="card user2">
     <div class="card-row">
-      <div class="card-icon">📅</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="7" width="24" height="21" rx="1"/>
+  <line x1="4" y1="13" x2="28" y2="13"/>
+  <line x1="11" y1="4" x2="11" y2="10"/>
+  <line x1="21" y1="4" x2="21" y2="10"/>
+  <rect x="8" y="17" width="4" height="4" rx="0.5"/>
+  <rect x="14" y="17" width="4" height="4" rx="0.5"/>
+  <rect x="20" y="17" width="4" height="4" rx="0.5"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">週カレンダー表示</div><div class="card-desc">今週の全プログラムを時間軸で一覧。「いつ来ようか」を決めるのに便利。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
   <a href="programs.html" class="card user3">
     <div class="card-row">
-      <div class="card-icon">🎨</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="6" width="24" height="20" rx="1"/>
+  <rect x="8" y="10" width="8" height="8" rx="1"/>
+  <line x1="19" y1="11" x2="24" y2="11"/>
+  <line x1="19" y1="15" x2="24" y2="15"/>
+  <line x1="8"  y1="22" x2="24" y2="22"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">プログラム紹介</div><div class="card-desc">画像・テキスト・YouTube動画で各プログラムを詳しく紹介。</div></div>
       <div class="card-arrow">›</div>
     </div>
@@ -84,14 +103,25 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
   <div class="section-label">スタッフ向け</div>
   <a href="staff.html" class="card staff1">
     <div class="card-row">
-      <div class="card-icon">🗂️</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="6" y1="6" x2="6" y2="26"/>
+  <line x1="6" y1="26" x2="26" y2="26"/>
+  <rect x="9"  y="9"  width="10" height="4" rx="1"/>
+  <rect x="14" y="15" width="9"  height="4" rx="1"/>
+  <rect x="9"  y="21" width="6"  height="3" rx="1"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">予約管理（ガントチャート）</div><div class="card-desc">時間軸×曜日で予約・託児を一覧。残枠・予約者をタップで確認。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
   <a href="admin.html" class="card staff2">
     <div class="card-row">
-      <div class="card-icon">📊</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="5" y1="27" x2="27" y2="27"/>
+  <rect x="7"  y="17" width="5" height="10" rx="1"/>
+  <rect x="14" y="11" width="5" height="16" rx="1"/>
+  <rect x="21" y="7"  width="5" height="20" rx="1"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">月次集計・市報告</div><div class="card-desc">月別の利用者数を自動集計。市への報告テキストをワンタップ生成。</div></div>
       <div class="card-arrow">›</div>
     </div>
@@ -100,14 +130,34 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
   <div class="section-label">チェックインシステム</div>
   <a href="register.html" class="card staff3">
     <div class="card-row">
-      <div class="card-icon">🪪</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="8" width="26" height="16" rx="1"/>
+  <circle cx="11" cy="16" r="4"/>
+  <line x1="18" y1="13" x2="25" y2="13"/>
+  <line x1="18" y1="17" x2="25" y2="17"/>
+  <line x1="18" y1="21" x2="22" y2="21"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">利用者登録・QR発行</div><div class="card-desc">初回登録フォーム。完了するとユニークQRコードが発行される。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
   <a href="checkin.html" class="card staff1">
     <div class="card-row">
-      <div class="card-icon">📷</div>
+      <div class="card-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#5a3f78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="5" y="5" width="9" height="9" rx="1"/>
+  <rect x="7" y="7" width="5" height="5" rx="0.5" fill="#5a3f78" stroke="none" opacity="0.3"/>
+  <rect x="18" y="5" width="9" height="9" rx="1"/>
+  <rect x="20" y="7" width="5" height="5" rx="0.5" fill="#5a3f78" stroke="none" opacity="0.3"/>
+  <rect x="5" y="18" width="9" height="9" rx="1"/>
+  <rect x="7" y="20" width="5" height="5" rx="0.5" fill="#5a3f78" stroke="none" opacity="0.3"/>
+  <line x1="18" y1="18" x2="20" y2="18"/>
+  <line x1="18" y1="22" x2="22" y2="22"/>
+  <line x1="22" y1="18" x2="22" y2="22"/>
+  <line x1="22" y1="22" x2="27" y2="22"/>
+  <line x1="27" y1="18" x2="27" y2="22"/>
+  <line x1="24" y1="25" x2="27" y2="25"/>
+  <line x1="27" y1="22" x2="27" y2="27"/>
+</svg></div>
       <div class="card-meta"><div class="card-title">チェックイン端末</div><div class="card-desc">タブレット専用。QRスキャン→会員照合→予約確認→来場記録を自動保存。</div></div>
       <div class="card-arrow">›</div>
     </div>
