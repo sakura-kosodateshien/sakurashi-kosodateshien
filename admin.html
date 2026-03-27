@@ -192,7 +192,10 @@
   function calcMonths(dob){
     if(!dob) return '-';
     const d=new Date(dob),t=new Date();
-    return (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth())+'ヶ月';
+    const totalMonths=(t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
+    if(totalMonths < 12) return totalMonths+'ヶ月';
+    const years=Math.floor(totalMonths/12), months=totalMonths%12;
+    return months===0 ? years+'歳' : years+'歳'+months+'ヶ月';
   }
 
   function renderMembers(members){
@@ -325,7 +328,7 @@
   };
 
   window.exportMemberCSV = function(){
-    const rows = [['氏名','ふりがな','電話番号','子どもの生年月日','月齢','LINE連携','登録日']];
+    const rows = [['氏名','ふりがな','電話番号','子どもの生年月日','年齢','LINE連携','登録日']];
     allMembers.forEach(u=>{
       rows.push([
         u.name||'', u.kana||'', u.tel||'', u.childDob||'',

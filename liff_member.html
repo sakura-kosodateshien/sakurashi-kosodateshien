@@ -204,9 +204,9 @@ function showMember(user){
   document.getElementById('memberCard').style.display='block';
   document.getElementById('mName').textContent = user.name + ' さん';
   document.getElementById('mUid').textContent  = 'ID: ' + user.uid;
-  const months = calcMonths(user.childDob);
+  const age = calcAge(user.childDob);
   document.getElementById('memberInfo').innerHTML = `
-    <div class="info-row"><span class="info-label">月齢</span><span>${months}ヶ月</span></div>
+    <div class="info-row"><span class="info-label">おこさまの年齢</span><span>${age}</span></div>
     <div class="info-row"><span class="info-label">電話</span><span>${user.tel||'-'}</span></div>
     <div class="info-row"><span class="info-label">登録日</span><span>${user.registeredAt?new Date(user.registeredAt).toLocaleDateString('ja-JP'):'-'}</span></div>`;
   new QRCode(document.getElementById('qrcode'),{
@@ -230,11 +230,14 @@ window.switchTab = function(tab, el){
   document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
 };
 
-function calcMonths(dob){
-  const d=new Date(dob),t=new Date();
-  return (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
+function calcAge(dob){
+  const d=new Date(dob), t=new Date();
+  const totalMonths = (t.getFullYear()-d.getFullYear())*12+(t.getMonth()-d.getMonth());
+  if(totalMonths < 12) return `${totalMonths}ヶ月`;
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return months === 0 ? `${years}歳` : `${years}歳${months}ヶ月`;
 }
-
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 
 function getCancelStatus(dateStr){
