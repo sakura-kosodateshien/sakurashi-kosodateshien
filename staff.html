@@ -440,13 +440,13 @@ window.confirmBooking=function(fbId, progId){
         });
         updatePendingBanner();
         // リスナー再起動（少し遅延させてFirebase反映を待つ）
-        setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 1000);
+        setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 3000);
       }).catch(function(e){
         console.warn('pending再取得エラー:',e.message);
-        setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 1000);
+        setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 3000);
       });
     } else {
-      setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 1000);
+      setTimeout(function(){ if(window.loadFirebase) loadFirebase(); }, 3000);
     }
   }).catch(function(e){
     alert('更新に失敗しました: '+e.message);
@@ -528,8 +528,14 @@ function loadFirebase(){
   if(!q) return;
   unsubFn=window._fbOnSnapshot(q, snap=>{
     const weekBks=snap.docs.map(d=>({fbId:d.id,...d.data()}));
-    // 他週のpendingは保持したまま今週分を置き換え
-    liveBookings=liveBookings.filter(b=>b.date<dks[0]||b.date>dks[4]).concat(weekBks);
+    // ローカルでconfirmedに更新済みのものはFirestoreの古いpendingで上書きしない
+    const localConfirmed=new Set(liveBookings.filter(b=>b.status==='confirmed').map(b=>b.fbId));
+    const mergedBks=weekBks.map(b=>
+      localConfirmed.has(b.fbId) && b.status==='pending'
+        ? Object.assign({},b,{status:'confirmed'})
+        : b
+    );
+    liveBookings=liveBookings.filter(b=>b.date<dks[0]||b.date>dks[4]).concat(mergedBks);
     render();
     fetchAllPending();
   }, err=>console.warn('FB error:',err.message));
