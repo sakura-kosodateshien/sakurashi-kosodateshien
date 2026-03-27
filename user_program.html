@@ -375,6 +375,39 @@ const PROGS = [
 let openId = null;
 let selectedSlot = null;
 
+// ── bookings/ を読み込んでbk・fullをPROGSに反映 ──────────────────
+async function applyBookings(){
+  try {
+    const snap = await getDocs(query(
+      collection(db, 'bookings'),
+      where('date', '>=', '2026-04-01'),
+      where('date', '<=', '2026-04-30')
+    ));
+    // progId×date ごとに confirmed+pending をカウント
+    const counts = {};
+    snap.docs.forEach(d => {
+      const b = d.data();
+      if(b.status === 'cancelled') return;
+      const key = (b.progId || '') + '|' + (b.date || '');
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    // PROGSの各スロットに反映
+    PROGS.forEach(p => {
+      p.slots.forEach(s => {
+        if(s.cancelled) return; // 中止済みはスキップ
+        const dateKey = toDateKey(s.date);
+        const key = p.id + '|' + dateKey;
+        const bk = counts[key] || 0;
+        s.bk = bk;
+        // 定員に達したら即満員
+        if(p.cap < 99 && bk >= p.cap) s.full = true;
+      });
+    });
+  } catch(e) {
+    console.warn('bookings読み込みエラー:', e.message);
+  }
+}
+
 // ── changes/ を読み込んでPROGSに反映 ─────────────────────────────
 async function applyChanges(){
   try {
@@ -479,7 +512,7 @@ function render(){
         availBadge = '';
       } else if(s.full){
         availBadge = `<span class="slot-avail slot-avail-full">満員</span>`;
-      } else if(p.cap < 99 && s.bk >= p.cap - 1 && s.bk > 0){
+      } else if(p.cap < 99 && s.bk === p.cap - 1 && s.bk > 0){
         availBadge = `<span class="slot-avail slot-avail-some">残りわずか</span>`;
       } else {
         availBadge = `<span class="slot-avail slot-avail-ok">空きあり</span>`;
@@ -917,8 +950,8 @@ document.getElementById('modalBg').addEventListener('click', e => {
 // まず即時描画（Firebaseなしでも表示）
 render();
 
-// changes/を読み込んで再描画
-applyChanges().then(() => {
+// changes/ → bookings/ の順で読み込んで再描画
+applyChanges().then(() => applyBookings()).then(() => {
   render();
   const params = new URLSearchParams(location.search);
   const progName = params.get('prog');
