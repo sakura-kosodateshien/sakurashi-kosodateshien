@@ -76,7 +76,7 @@
 
     const uid = generateUID();
     const data = {
-      uid, name, kana, childDob, tel, lang,
+      uid, name, kana: name, childDob, tel, lang,
       lineUserId: _lineUserId,
       registeredAt: new Date().toISOString(),
       active: true
@@ -109,7 +109,7 @@
       text:          checkinURL,
       width:         220,
       height:        220,
-      colorDark:     '#1a3a2a',
+      colorDark:     '#5a3f78',
       colorLight:    '#ffffff',
       correctLevel:  QRCode.CorrectLevel.H
     });
@@ -119,14 +119,15 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
 
   :root {
-    --green:  #2d6a4f;
-    --mint:   #74c69d;
-    --cream:  #faf7f2;
-    --warm:   #f4a261;
-    --text:   #1a2e22;
-    --muted:  #6b8f71;
-    --border: #d8e8dc;
-    --radius: 16px;
+    --lav:       #dccfe6;
+    --lav-dark:  #5a3f78;
+    --lav-light: #ede6f4;
+    --cream:     #faf7ff;
+    --warm:      #b07cc6;
+    --text:      #3d2a55;
+    --muted:     #8a70a0;
+    --border:    #d4c5e2;
+    --radius:    16px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -153,14 +154,14 @@
   .card {
     background: #fff;
     border-radius: var(--radius);
-    box-shadow: 0 4px 24px rgba(45,106,79,.10);
+    box-shadow: 0 4px 24px rgba(90,63,120,.10);
     padding: 32px 28px;
     width: min(480px, 94vw);
     margin: 28px auto;
   }
 
   .card h2 {
-    color: var(--green);
+    color: var(--lav-dark);
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 6px;
@@ -193,11 +194,11 @@
     font-size: .95rem;
     font-family: inherit;
     color: var(--text);
-    background: #f9fdf9;
+    background: var(--lav-light);
     transition: border-color .2s;
     outline: none;
   }
-  input:focus, select:focus { border-color: var(--mint); background: #fff; }
+  input:focus, select:focus { border-color: var(--lav-dark); background: #fff; }
 
   .btn {
     width: 100%;
@@ -213,7 +214,7 @@
     margin-top: 8px;
     transition: background .2s, transform .1s;
   }
-  .btn:hover  { background: #1f4d38; }
+  .btn:hover  { background: var(--lav-dark); }
   .btn:active { transform: scale(.98); }
   .btn:disabled { background: #aaa; cursor: default; }
 
@@ -226,7 +227,7 @@
     gap: 16px;
   }
   .qr-badge {
-    background: linear-gradient(135deg, var(--green) 0%, #40916c 100%);
+    background: linear-gradient(135deg, var(--lav-dark) 0%, #8a5fb0 100%);
     color: #fff;
     border-radius: 14px;
     padding: 18px 24px 14px;
@@ -244,7 +245,7 @@
   }
 
   .qr-note {
-    background: #f0faf4;
+    background: var(--lav-light);
     border-radius: 10px;
     padding: 14px 16px;
     font-size: .82rem;
@@ -253,7 +254,7 @@
     width: 100%;
     text-align: left;
   }
-  .qr-note strong { color: var(--green); }
+  .qr-note strong { color: var(--lav-dark); }
 
   .divider {
     border: none;
@@ -285,12 +286,9 @@
     <p class="sub">登録後にQRコードが発行されます。次回からはQRコードをかざすだけでチェックインできます。</p>
 
     <div class="field">
-      <label>保護者氏名<span class="req">必須</span></label>
-      <input id="name" type="text" placeholder="例：山田 花子">
-    </div>
-    <div class="field">
-      <label>ふりがな</label>
-      <input id="kana" type="text" placeholder="例：やまだ はなこ">
+      <label>保護者名（ひらがな）<span class="req">必須</span></label>
+      <input id="name" type="text" placeholder="例：やまだ はなこ" inputmode="hiragana">
+      <input type="hidden" id="kana" value="">
     </div>
     <div class="field">
       <label>お子さんの生年月日<span class="req">必須</span></label>
