@@ -117,7 +117,7 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
   <div class="sc"><div class="sl">支援P予約</div><div class="sv" id="sSbk">-</div></div>
   <div class="sc"><div class="sl">託児予約</div><div class="sv" id="sTbk">-</div></div>
   <div class="sc"><div class="sl">満員枠</div><div class="sv" id="sFull" style="color:#c62828">-</div></div>
-  <div class="sc"><div class="sl">空き枠</div><div class="sv" id="sAvail" style="color:var(--green)">-</div></div>
+  <div class="sc"><div class="sl">確認残</div><div class="sv" id="sAvail" style="color:#e65100">-</div></div>
 </div>
 
 <div class="gantt-wrap">
@@ -342,7 +342,7 @@ function render(){
   document.getElementById('sSbk').textContent=sbk+'組';
   document.getElementById('sTbk').textContent=tbk+'名';
   document.getElementById('sFull').textContent=full;
-  document.getElementById('sAvail').textContent=avail;
+  document.getElementById('sAvail').textContent=pend;
   updatePendingBanner();
 
   const totalH=HOURS.length*PH;
