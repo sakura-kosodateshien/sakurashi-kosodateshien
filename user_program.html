@@ -577,25 +577,28 @@ async function checkTochiLimits(tel, dateKey) {
     const _nd = new Date();
     const todayKey = _nd.getFullYear()+'-'+String(_nd.getMonth()+1).padStart(2,'0')+'-'+String(_nd.getDate()).padStart(2,'0');
 
-    // 当月の範囲
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
+    // 当月の範囲（月4枠カウント用）
+    const _now2 = new Date();
+    const y = _now2.getFullYear();
+    const m = String(_now2.getMonth() + 1).padStart(2, '0');
     const monthStart = `${y}-${m}-01`;
     const monthEnd   = `${y}-${m}-31`;
 
-    // 当月・託児・有効（confirmed/pending）な予約
-    const monthBookings = all.filter(b =>
-      b.date >= monthStart &&
-      b.date <= monthEnd &&
+    // 全期間・託児・有効（confirmed/pending）な予約
+    const allTochiBookings = all.filter(b =>
       (b.progId === 'tochi' || b.tochi === true) &&
       (b.status === 'confirmed' || b.status === 'pending')
     );
+
+    // 当月分のみ（月4枠カウント用）
+    const monthBookings = allTochiBookings.filter(b =>
+      b.date >= monthStart && b.date <= monthEnd
+    );
     const monthCount = monthBookings.length;
 
-    // ── チェック①：未来の有効予約が存在する場合はブロック ──
+    // ── チェック①：未来の有効予約が存在する場合はブロック（月をまたぐ場合も対応）──
     // 「利用が終わった」= 予約日が今日より前
-    const futurePending = monthBookings.filter(b => b.date >= todayKey);
+    const futurePending = allTochiBookings.filter(b => b.date >= todayKey);
     if (futurePending.length > 0) {
       const dates = futurePending
         .sort((a, bb) => a.date.localeCompare(bb.date))
@@ -847,6 +850,25 @@ async function submitBooking(){
 
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
+
+  // ── 定員リアルタイムチェック（全プログラム共通）──────────────────────
+  if (p.cap < 99) {
+    try {
+      const dateK2 = toDateKey(s.date);
+      const capSnap = await getDocs(query(
+        collection(db, 'bookings'),
+        where('progId', '==', p.id),
+        where('date',   '==', dateK2)
+      ));
+      const activeCount = capSnap.docs.filter(d => d.data().status !== 'cancelled').length;
+      if (activeCount >= p.cap) {
+        alert(`この日の${p.name}は満員です（定員${p.cap}組）。\n他の日程をご確認ください。`);
+        return;
+      }
+    } catch(e) {
+      console.warn('定員チェックエラー:', e.message);
+    }
+  }
 
   // ── 託児ルーム本体のみ上限チェック（yoga/pulapanは対象外）──────────
   if (p.id === 'tochi') {
