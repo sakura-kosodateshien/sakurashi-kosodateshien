@@ -848,12 +848,9 @@ async function submitBooking(){
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
 
-  // ── 託児関連プログラムの上限チェック（tochi本体 + 託児付きプログラム全て）──
-  const isTochiprog = p.id === 'tochi';
-  const isTochiAttached = TOCHI_PROGS.includes(p.id) && !isTochiprog; // yoga, pulapan等
-
-  if (isTochiprog) {
-    // 託児ルーム本体：時間ピッカーバリデーション
+  // ── 託児ルーム本体のみ上限チェック（yoga/pulapanは対象外）──────────
+  if (p.id === 'tochi') {
+    // 時間ピッカーバリデーション
     const tochiTimeVal = document.getElementById('fTochiTime').value;
     if(!tochiTimeVal){ alert('希望時間を選択してください'); return; }
 
