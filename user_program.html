@@ -170,8 +170,10 @@ main{padding:16px 14px 80px;max-width:480px;margin:0 auto}
       </div>
       <div class="form-row">
         <label>連絡先（携帯番号）<span class="req">*</span></label>
-        <input type="tel" placeholder="090-0000-0000" id="fTel">
+        <input type="tel" placeholder="090-0000-0000" id="fTel" onblur="onTelBlurCheck()">
       </div>
+      <!-- 託児制限警告バナー -->
+      <div id="tochiLimitBanner" style="display:none;margin:6px 0 0;background:#fff3cd;border:1.5px solid #e6a817;border-radius:4px;padding:10px 12px;font-size:.78rem;color:#7a4f00;line-height:1.6;white-space:pre-line"></div>
 
       <!-- 託児専用：お子さんの名前（ひらがな） -->
       <div class="form-row" id="childNameRow" style="display:none">
@@ -557,31 +559,62 @@ function toggleProg(id){
 const TOCHI_PROGS = ['pulapan','yoga','tochi'];
 
 // ── 託児の上限チェック ────────────────────────────────────────────────
+// ルール:
+//   1. 一度に予約できるのは最大2枠（1回の予約操作で）
+//   2. その2枠の利用日が全て過ぎた翌日以降に次の予約が可能
+//      （有効な未来の託児予約が1つでも残っていれば新規不可）
+//   3. 月に合計4枠まで
 async function checkTochiLimits(tel, dateKey) {
   if (!tel) return { ok: true };
   try {
-    // telだけで絞り込み → JS側でフィルタ（複合インデックス不要）
     const snap = await getDocs(query(
       collection(db, 'bookings'),
       where('tel', '==', tel)
     ));
     const all = snap.docs.map(d => d.data());
 
-    // 当月・託児・有効な予約のみ抽出
+    // 今日の日付文字列（YYYY-MM-DD）
+    const todayKey = new Date().toLocaleDateString('sv-SE');
+
+    // 当月の範囲
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${y}-${m}-01`;
+    const monthEnd   = `${y}-${m}-31`;
+
+    // 当月・託児・有効（confirmed/pending）な予約
     const monthBookings = all.filter(b =>
-      b.date >= '2026-04-01' &&
-      b.date <= '2026-04-30' &&
+      b.date >= monthStart &&
+      b.date <= monthEnd &&
       (b.progId === 'tochi' || b.tochi === true) &&
       (b.status === 'confirmed' || b.status === 'pending')
     );
     const monthCount = monthBookings.length;
 
-    // 月4枠上限チェック
-    if (monthCount >= 4) {
-      return { ok: false, msg: '今月の託児予約上限（4枠）に達しています。\n利用完了後に次の予約が可能です。' };
+    // ── チェック①：未来の有効予約が存在する場合はブロック ──
+    // 「利用が終わった」= 予約日が今日より前
+    const futurePending = monthBookings.filter(b => b.date >= todayKey);
+    if (futurePending.length > 0) {
+      const dates = futurePending
+        .sort((a, bb) => a.date.localeCompare(bb.date))
+        .map(b => b.dateLabel || b.date)
+        .join('、');
+      return {
+        ok: false,
+        msg: `現在ご予約中の託児があります。\n（${dates}）\n\n予約日の利用が完了した翌日以降に\n次の予約が可能です。\n\n【ルール】\n・一度に予約できるのは最大2枠\n・利用完了後に次の2枠を予約可能\n・月に合計4枠まで`
+      };
     }
 
-    // 同日予約チェック
+    // ── チェック②：月4枠上限 ──
+    if (monthCount >= 4) {
+      return {
+        ok: false,
+        msg: `今月の託児予約上限（4枠）に達しています。\n\n【ルール】\n・一度に予約できるのは最大2枠\n・利用完了後に次の2枠を予約可能\n・月に合計4枠まで`
+      };
+    }
+
+    // ── チェック③：同日予約チェック ──
     const sameDay = monthBookings.find(b => b.date === dateKey);
     if (sameDay) {
       return { ok: false, msg: 'この日はすでに託児の予約があります。\n（1日1枠まで）' };
@@ -590,7 +623,6 @@ async function checkTochiLimits(tel, dateKey) {
     return { ok: true, remaining: 4 - monthCount };
   } catch(e) {
     console.warn('上限チェックエラー:', e.message);
-    // エラー時は安全側に倒してブロック
     return { ok: false, msg: '予約の確認中にエラーが発生しました。\nしばらくしてから再度お試しください。' };
   }
 }
@@ -945,6 +977,42 @@ window.openModal     = openModal;
 window.closeModal    = closeModal;
 window.toggleTochiTime = toggleTochiTime;
 window.submitBooking = submitBooking;
+
+// ── 託児制限：tel入力後のリアルタイムチェック ──────────────────────────
+async function onTelBlurCheck() {
+  const banner = document.getElementById('tochiLimitBanner');
+  if (!banner) return;
+
+  // 託児プログラムが選択されていない場合は非表示
+  if (!selectedSlot || !selectedSlot.prog || selectedSlot.prog.id !== 'tochi') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const tel = document.getElementById('fTel').value.trim();
+  if (!tel || tel.length < 10) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const dateK = toDateKey(selectedSlot.slot.date);
+  const check = await checkTochiLimits(tel, dateK);
+
+  if (!check.ok) {
+    banner.textContent = '⚠️ ' + check.msg;
+    banner.style.display = 'block';
+  } else {
+    const remaining = check.remaining;
+    if (remaining <= 2) {
+      banner.textContent = `ℹ️ 今月の残り予約枠：${remaining}枠
+（月4枠まで・1回2枠まで）`;
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+window.onTelBlurCheck = onTelBlurCheck;
 
 document.getElementById('modalBg').addEventListener('click', e => {
   if(e.target === document.getElementById('modalBg')) closeModal();
