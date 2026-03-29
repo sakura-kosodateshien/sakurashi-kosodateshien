@@ -573,8 +573,9 @@ async function checkTochiLimits(tel, dateKey) {
     ));
     const all = snap.docs.map(d => d.data());
 
-    // 今日の日付文字列（YYYY-MM-DD）
-    const todayKey = new Date().toLocaleDateString('sv-SE');
+    // 今日の日付文字列（YYYY-MM-DD）日本時間で取得
+    const _nd = new Date();
+    const todayKey = _nd.getFullYear()+'-'+String(_nd.getMonth()+1).padStart(2,'0')+'-'+String(_nd.getDate()).padStart(2,'0');
 
     // 当月の範囲
     const now = new Date();
@@ -847,9 +848,12 @@ async function submitBooking(){
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
 
-  // ── 託児の場合：上限チェック ────────────────────────────────────────
-  if (p.id === 'tochi') {
-    // 時間ピッカーのバリデーション
+  // ── 託児関連プログラムの上限チェック（tochi本体 + 託児付きプログラム全て）──
+  const isTochiprog = p.id === 'tochi';
+  const isTochiAttached = TOCHI_PROGS.includes(p.id) && !isTochiprog; // yoga, pulapan等
+
+  if (isTochiprog) {
+    // 託児ルーム本体：時間ピッカーバリデーション
     const tochiTimeVal = document.getElementById('fTochiTime').value;
     if(!tochiTimeVal){ alert('希望時間を選択してください'); return; }
 
@@ -867,9 +871,7 @@ async function submitBooking(){
       }
     }
 
-    const reserveCount = hasExtra ? 2 : 1;
-
-    // 月残り枠チェック
+    // 月残り枠・未来予約チェック
     const check = await checkTochiLimits(tel, dateK);
     if (!check.ok) { alert(check.msg); return; }
 
@@ -878,6 +880,11 @@ async function submitBooking(){
       alert(`今月の残り枠は${check.remaining}枠です。\n1枠のみ予約してください。`);
       return;
     }
+  } else if (isTochiAttached) {
+    // 託児付きプログラム（yoga, pulapanなど）：同様の上限チェック
+    const dateK = toDateKey(s.date);
+    const check = await checkTochiLimits(tel, dateK);
+    if (!check.ok) { alert(check.msg); return; }
   }
 
   const btn = document.querySelector('.btn-submit');
