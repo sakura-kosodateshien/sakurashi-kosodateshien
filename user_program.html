@@ -880,12 +880,8 @@ async function submitBooking(){
       alert(`今月の残り枠は${check.remaining}枠です。\n1枠のみ予約してください。`);
       return;
     }
-  } else if (isTochiAttached) {
-    // 託児付きプログラム（yoga, pulapanなど）：同様の上限チェック
-    const dateK = toDateKey(s.date);
-    const check = await checkTochiLimits(tel, dateK);
-    if (!check.ok) { alert(check.msg); return; }
   }
+  // yoga/pulapanなど託児付きプログラムは上限チェック対象外
 
   const btn = document.querySelector('.btn-submit');
   btn.disabled = true;
