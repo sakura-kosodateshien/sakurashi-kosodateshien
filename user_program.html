@@ -702,6 +702,31 @@ function openModal(progId, slotIdx){
   document.getElementById('formView').style.display   = 'block';
   document.getElementById('successView').style.display = 'none';
   document.getElementById('modalBg').classList.add('open');
+
+  // 託児ルームの場合：モーダル表示直後にキャッシュtelで即チェック
+  if (p.id === 'tochi') {
+    const banner = document.getElementById('tochiLimitBanner');
+    if (banner) banner.style.display = 'none'; // いったんリセット
+    const cachedTel = cache.tel || '';
+    if (cachedTel.length >= 10) {
+      // 非同期でチェック → バナーに反映
+      const dateK = toDateKey(s.date);
+      checkTochiLimits(cachedTel, dateK).then(check => {
+        if (!check.ok) {
+          banner.textContent = '⚠️ ' + check.msg;
+          banner.style.display = 'block';
+        } else if (check.remaining <= 2) {
+          banner.textContent = `ℹ️ 今月の残り予約枠：${check.remaining}枠
+（月4枠まで・1回2枠まで）`;
+          banner.style.display = 'block';
+        }
+      });
+    }
+  } else {
+    // 託児以外はバナーを非表示
+    const banner = document.getElementById('tochiLimitBanner');
+    if (banner) banner.style.display = 'none';
+  }
 }
 
 function closeModal(){
