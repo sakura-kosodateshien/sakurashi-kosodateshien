@@ -980,8 +980,9 @@ async function submitBooking(){
     document.getElementById('svDetail').innerHTML =
       '<div>📋 <strong>'+p.emoji+' '+p.name+'</strong></div>'+
       '<div>📅 '+s.date+'　'+s.time+'</div>'+
-      (hasExtra2 ? '<div>📅 '+extraSel2.options[extraSel2.selectedIndex].text+'（2枠目）</div>' : '')+
       (tochi ? '<div>👶 託児希望時間：'+(tochiTime||'時間未定')+'</div>' : '')+
+      (hasExtra2 ? '<div>📅 '+extraSel2.options[extraSel2.selectedIndex].text+'（2枠目）</div>' : '')+
+      (hasExtra2 && tochi ? (()=>{ const t2=(tochiSelectedStart2!==null&&tochiSelectedEnd2!==null)?TOCHI_TIMES[tochiSelectedStart2]+'〜'+TOCHI_TIMES[tochiSelectedEnd2]:'時間未定'; return '<div>👶 託児希望時間：'+t2+'</div>'; })() : '')+
       '<div>👤 '+name+'（'+age+'）</div>'+
       '<div>📱 '+tel+'</div>';
 
