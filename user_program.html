@@ -288,6 +288,16 @@ function toDateKey(dateStr) {
   return `2026-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
 }
 
+// 前日17:00以降は予約ボタン非表示
+function isPastDeadline(dateStr) {
+  const dk = toDateKey(dateStr); // "2026-04-01"
+  const slotDate = new Date(dk + 'T00:00:00+09:00');
+  const now = new Date();
+  // 前日の17:00 = slotDate - 1日 + 17時間
+  const deadline = new Date(slotDate.getTime() - 24*60*60*1000 + 17*60*60*1000);
+  return now >= deadline;
+}
+
 const PROGS = [
   {id:"lunch", name:"ランチひろば", emoji:"🍱", bg:"#e8f5e9",
    cap:1, capLabel:"貸切1グループ（親子2〜4組）",
@@ -525,7 +535,7 @@ function render(){
       else if(s.changed) changeBadge = `<span class="change-badge badge-change">🔔 ${s.changeNote||'変更あり'}</span>`;
       else if(s.added)   changeBadge = `<span class="change-badge badge-add">🆕 追加</span>`;
 
-      html += `<div class="slot ${s.full?'full':''}" onclick="${s.full||s.cancelled?'':'openModal(\''+p.id+'\','+si+')'}">
+      html += `<div class="slot ${s.full?'full':''}" onclick="${s.full||s.cancelled||isPastDeadline(s.date)?'':'openModal(\''+p.id+'\','+si+')'}">
         <div class="slot-left">
           <div class="slot-date">${s.date}</div>
           ${s.label ? `<div class="slot-time" style="color:var(--lav-dark);font-weight:700">${s.label}</div>` : ''}
@@ -533,9 +543,11 @@ function render(){
           ${changeBadge}
         </div>
         ${availBadge}
-        <button class="${s.full||s.cancelled?'btn-reserve btn-full':'btn-reserve btn-ok'}" ${s.full||s.cancelled?'disabled':''}>
+        ${isPastDeadline(s.date)
+          ? `<span class="slot-avail" style="font-size:.67rem;font-weight:700;padding:2px 8px;border:1px solid #ccc;color:#aaa;white-space:nowrap">受付終了</span>`
+          : `<button class="${s.full||s.cancelled?'btn-reserve btn-full':'btn-reserve btn-ok'}" ${s.full||s.cancelled?'disabled':''}>
           ${s.cancelled ? '中止' : s.full ? '満員' : '予約する'}
-        </button>
+        </button>`}
       </div>`;
     });
     html += `</div></div>`;
