@@ -35,8 +35,20 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
 .card-arrow{color:var(--muted);font-size:1rem}
 .card.user1{--accent:#c4aedd}.card.user2{--accent:#a89cd4}.card.user3{--accent:#9b59b6}
 .card.staff1{--accent:#f9a03f}.card.staff2{--accent:#e74c3c}.card.staff3{--accent:#7a5c9a}
-.btn-staff{display:block;text-align:center;margin-top:28px;padding:11px;font-size:.78rem;color:var(--muted);text-decoration:none;border:1px solid var(--lav-mid);border-radius:2px;background:#fff}
+.btn-staff{display:block;text-align:center;margin-top:28px;padding:11px;font-size:.78rem;color:var(--muted);cursor:pointer;border:1px solid var(--lav-mid);border-radius:2px;background:#fff}
 .btn-staff:hover{background:var(--lav-light)}
+/* モーダル */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:2px;padding:28px 24px 22px;width:88%;max-width:340px;border-top:4px solid var(--lav-dark)}
+.modal-title{font-size:.95rem;font-weight:700;color:var(--lav-dark);margin-bottom:16px;text-align:center}
+.modal input[type=password]{width:100%;padding:10px 12px;font-size:1rem;border:1.5px solid var(--lav-mid);border-radius:2px;outline:none;font-family:'Noto Sans JP',sans-serif}
+.modal input[type=password]:focus{border-color:var(--lav-dark)}
+.modal-err{font-size:.75rem;color:#e74c3c;margin-top:6px;min-height:1.2em}
+.modal-btns{display:flex;gap:10px;margin-top:16px}
+.modal-btns button{flex:1;padding:10px;font-size:.85rem;font-family:'Noto Sans JP',sans-serif;border:none;cursor:pointer;border-radius:2px}
+.btn-cancel{background:var(--lav-light);color:var(--lav-dark)}
+.btn-ok{background:var(--lav-dark);color:#fff;font-weight:700}
 </style>
 </head>
 <body>
@@ -81,7 +93,46 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
     </div>
   </a>
 
-  <a href="admin_top.html" class="btn-staff">スタッフ・管理者メニュー ›</a>
+  <div class="btn-staff" onclick="openPwModal()">スタッフ・管理者メニュー ›</div>
 </main>
+
+<!-- パスワードモーダル -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal">
+    <div class="modal-title">スタッフ・管理者メニュー</div>
+    <input type="password" id="pwInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')checkPw()">
+    <div class="modal-err" id="pwErr"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closePwModal()">キャンセル</button>
+      <button class="btn-ok" onclick="checkPw()">確認</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPwModal(){
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwErr').textContent='';
+  document.getElementById('pwModal').classList.add('show');
+  setTimeout(function(){document.getElementById('pwInput').focus();},100);
+}
+function closePwModal(){
+  document.getElementById('pwModal').classList.remove('show');
+}
+function checkPw(){
+  var v=document.getElementById('pwInput').value;
+  if(v==='hinoki2026'){
+    closePwModal();
+    location.href='admin_top.html';
+  } else {
+    document.getElementById('pwErr').textContent='パスワードが違います';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+document.getElementById('pwModal').addEventListener('click',function(e){
+  if(e.target===this)closePwModal();
+});
+</script>
 </body>
 </html>
