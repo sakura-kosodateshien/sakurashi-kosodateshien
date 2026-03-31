@@ -30,15 +30,26 @@
   const db  = getFirestore(app);
 
   const PASS = 'hinoki2026';
+  var SK = 'adminAuth';
+
+  function openMain(){
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display  = 'block';
+    loadData();
+    loadChanges();
+    loadMembers();
+  }
+
+  // ── セッション確認 ────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', function(){
+    if(sessionStorage.getItem(SK)==='1') openMain();
+  });
 
   // ── ログイン ────────────────────────────────────────────────────────
   window.doLogin = function() {
     if (document.getElementById('passInput').value === PASS) {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainScreen').style.display  = 'block';
-      loadData();
-      loadChanges();
-      loadMembers();
+      sessionStorage.setItem(SK, '1');
+      openMain();
     } else {
       document.getElementById('loginErr').textContent = 'パスワードが違います';
     }
@@ -768,8 +779,9 @@
 <body>
 
 <header>
+  <a href="admin_top.html" style="color:rgba(60,40,80,.75);text-decoration:none;font-size:.82rem;margin-right:auto">← 戻る</a>
   <span>🌿</span>
-  <h1>子育て支援センター 管理ダッシュボード</h1>
+  <h1 style="flex:1;text-align:center">子育て支援センター 管理ダッシュボード</h1>
 </header>
 
 <!-- ログイン -->

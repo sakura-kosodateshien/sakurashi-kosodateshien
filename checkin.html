@@ -369,10 +369,18 @@
   .mode-tab.active-in{background:rgba(82,183,136,.35);color:#a7f3c4;border-color:var(--mint)}
   .mode-tab.active-out{background:rgba(249,160,63,.35);color:#fde68a;border-color:#f9a03f}
 </style>
+<script>
+(function(){
+  if(sessionStorage.getItem('adminAuth')!=='1'){
+    location.href='admin_top.html';
+  }
+})();
+</script>
 </head>
 <body>
 
 <header>
+  <a href="admin_top.html" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.7);text-decoration:none;font-size:.78rem">← 戻る</a>
   <div class="sub">HINOKI SAKURA · STAFF TERMINAL</div>
   <h1>🌿 チェックイン端末</h1>
 </header>

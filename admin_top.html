@@ -23,6 +23,17 @@ header{background:#dccfe6;padding:0 20px}
 .header-sub{text-align:left;line-height:1.5}
 .header-sub span{font-size:.82rem;color:#6b5a80;font-weight:500;display:block}
 main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
+/* ログイン画面 */
+#loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px}
+.login-box{background:#fff;border:1.5px solid var(--lav-mid);padding:28px 24px;width:100%;max-width:340px}
+.login-box h2{font-size:1rem;font-weight:700;color:var(--lav-dark);margin-bottom:16px;text-align:center}
+.login-box input[type=password]{width:100%;border:1.5px solid var(--lav-mid);padding:10px 12px;font-size:.9rem;font-family:inherit;outline:none;background:#fff}
+.login-box input[type=password]:focus{border-color:var(--lav-dark)}
+.btn-login{display:block;width:100%;margin-top:12px;padding:11px;background:var(--lav-dark);color:#fff;border:none;font-size:.9rem;font-family:inherit;font-weight:700;cursor:pointer;letter-spacing:.05em}
+.btn-login:hover{background:#4a3068}
+.login-err{color:#c0392b;font-size:.78rem;min-height:1.2em;text-align:center}
+/* メニュー画面 */
+#menuScreen{display:none}
 .section-label{font-size:.7rem;font-weight:700;letter-spacing:.12em;color:var(--muted);margin:20px 0 8px;text-transform:uppercase;padding-left:2px}
 .card{display:block;text-decoration:none;background:#fff;border-radius:2px;padding:16px 18px;margin-bottom:10px;border:1.5px solid var(--lav-mid);position:relative;overflow:hidden;transition:transform .15s}
 .card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,var(--lav-dark))}
@@ -38,7 +49,40 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
 .note strong{color:var(--lav-dark)}
 .btn-back{display:block;text-align:center;margin-top:28px;padding:11px;font-size:.78rem;color:var(--muted);text-decoration:none;border:1px solid var(--lav-mid);border-radius:2px;background:#fff}
 .btn-back:hover{background:var(--lav-light)}
+.btn-logout{display:block;text-align:center;margin-top:10px;padding:9px;font-size:.75rem;color:#c0392b;border:1px solid #e8b4b4;border-radius:2px;background:#fff;cursor:pointer;width:100%;font-family:inherit}
+.btn-logout:hover{background:#fdf0f0}
 </style>
+<script>
+(function(){
+  var PASS='hinoki2026';
+  var SK='adminAuth';
+  function showMenu(){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('menuScreen').style.display='block';
+  }
+  window.addEventListener('DOMContentLoaded',function(){
+    if(sessionStorage.getItem(SK)==='1') showMenu();
+  });
+  window.doLogin=function(){
+    var v=document.getElementById('passInput').value;
+    if(v===PASS){
+      sessionStorage.setItem(SK,'1');
+      showMenu();
+    } else {
+      document.getElementById('loginErr').textContent='パスワードが違います';
+      document.getElementById('passInput').value='';
+      document.getElementById('passInput').focus();
+    }
+  };
+  window.doLogout=function(){
+    sessionStorage.removeItem(SK);
+    document.getElementById('menuScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('passInput').value='';
+    document.getElementById('loginErr').textContent='';
+  };
+})();
+</script>
 </head>
 <body>
 <header>
@@ -51,37 +95,49 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
   </div>
 </header>
 <main>
-  <div class="section-label">スタッフ向け</div>
-  <a href="staff.html" class="card staff1">
-    <div class="card-row">
-      <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">予約管理（ガントチャート）</div><div class="card-desc">時間軸×曜日で予約・託児を一覧。残枠・予約者をタップで確認。</div></div>
-      <div class="card-arrow">›</div>
+  <!-- ログイン画面 -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <h2>管理者ログイン</h2>
+      <div class="login-err" id="loginErr"></div>
+      <input type="password" id="passInput" placeholder="パスワードを入力"
+             onkeydown="if(event.key==='Enter') doLogin()">
+      <button class="btn-login" onclick="doLogin()">ログイン</button>
     </div>
-  </a>
-  <a href="admin.html" class="card staff2">
-    <div class="card-row">
-      <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">月次集計・市報告</div><div class="card-desc">月別の利用者数を自動集計。市への報告テキストをワンタップ生成。</div></div>
-      <div class="card-arrow">›</div>
-    </div>
-  </a>
-
-  <div class="section-label">チェックインシステム</div>
-  <a href="checkin.html" class="card staff4">
-    <div class="card-row">
-      <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">チェックイン端末</div><div class="card-desc">タブレット専用。QRスキャン→会員照合→予約確認→来場記録を自動保存。</div></div>
-      <div class="card-arrow">›</div>
-    </div>
-  </a>
-
-  <div class="note">
-    <strong>ご利用にあたって</strong><br>
-    4月のひのきっこだよりをもとにしたプログラムデータで動作しています。予約・登録はすべて実際にFirebaseに保存されます。
   </div>
 
-  <a href="index.html" class="btn-back">‹ 利用者TOPへ戻る</a>
+  <!-- メニュー画面 -->
+  <div id="menuScreen">
+    <div class="section-label">スタッフ向け</div>
+    <a href="staff.html" class="card staff1">
+      <div class="card-row">
+        <div class="card-meta"><div class="card-title">予約管理（ガントチャート）</div><div class="card-desc">時間軸×曜日で予約・託児を一覧。残枠・予約者をタップで確認。</div></div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+    <a href="admin.html" class="card staff2">
+      <div class="card-row">
+        <div class="card-meta"><div class="card-title">月次集計・市報告</div><div class="card-desc">月別の利用者数を自動集計。市への報告テキストをワンタップ生成。</div></div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+
+    <div class="section-label">チェックインシステム</div>
+    <a href="checkin.html" class="card staff4">
+      <div class="card-row">
+        <div class="card-meta"><div class="card-title">チェックイン端末</div><div class="card-desc">タブレット専用。QRスキャン→会員照合→予約確認→来場記録を自動保存。</div></div>
+        <div class="card-arrow">›</div>
+      </div>
+    </a>
+
+    <div class="note">
+      <strong>ご利用にあたって</strong><br>
+      4月のひのきっこだよりをもとにしたプログラムデータで動作しています。予約・登録はすべて実際にFirebaseに保存されます。
+    </div>
+
+    <a href="index.html" class="btn-back">‹ 利用者TOPへ戻る</a>
+    <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+  </div>
 </main>
 </body>
 </html>

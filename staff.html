@@ -81,13 +81,21 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .confirm-btn:hover{background:#235a40}
 .s-pending{background:#fff3cd;color:#856404}
 </style>
+<script>
+// 認証チェック（admin_top.html でログイン済みの場合はスキップ）
+(function(){
+  if(sessionStorage.getItem('adminAuth')!=='1'){
+    location.href='admin_top.html';
+  }
+})();
+</script>
 </head>
 <body>
 <header style="position:relative">
-  <a href="index.html">← 戻る</a>
+  <a href="admin_top.html">← 戻る</a>
   <h1>予約管理</h1>
   <div style="display:flex;align-items:center;gap:6px">
-    <a href="admin.html" style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:2px;text-decoration:none;font-weight:700">📊 ログイン</a>
+    <a href="admin.html" style="font-size:.72rem;background:rgba(255,255,255,.18);color:#fff;padding:4px 10px;border-radius:2px;text-decoration:none;font-weight:700">📊 集計</a>
     <button onclick="reloadPage(this)" title="更新" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;border-radius:50%;color:#fff;opacity:.8;line-height:1">↻</button>
   </div>
 </header>
