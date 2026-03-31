@@ -80,6 +80,8 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .confirm-btn{font-size:.72rem;padding:4px 10px;border-radius:2px;border:none;background:#2d6a4f;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;margin-left:auto}
 .confirm-btn:hover{background:#235a40}
 .s-pending{background:#fff3cd;color:#856404}
+.delete-btn{border:none;background:none;cursor:pointer;font-size:1rem;padding:4px 6px;opacity:.45;border-radius:2px;line-height:1;transition:opacity .15s,background .15s}
+.delete-btn:hover{opacity:1;background:#fdecea}
 </style>
 <script>
 // 認証チェック（admin_top.html でログイン済みの場合はスキップ）
@@ -441,6 +443,7 @@ function openPanel(id){
         </div>
         <span class="bk-stat ${isPending?'s-pending':'s-ok'}">${isPending?'⏳ 確認待ち':'確定'}</span>
         ${isPending?`<button class="confirm-btn" onclick="confirmBooking('${b.fbId}','${p.id}')">✅ 確認</button>`:''}
+        <button class="delete-btn" onclick="deleteBooking('${b.fbId}','${p.id}','${(b.name||'').replace(/'/g,'&#39;')}')" title="削除">🗑</button>
       </div>`;
     });
   }
@@ -493,6 +496,28 @@ window.confirmBooking=function(fbId, progId){
 };
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
+
+window.deleteBooking=function(fbId, progId, name){
+  if(!window._fbDeleteDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
+  if(!confirm((name||'この予約')+'を削除しますか？\nこの操作は取り消せません。')){return;}
+
+  const btn=document.querySelector('#bkrow-'+fbId+' .delete-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳';}
+
+  if(unsubFn){unsubFn();unsubFn=null;}
+
+  window._fbDeleteDoc(fbId).then(function(){
+    liveBookings=liveBookings.filter(function(b){return b.fbId!==fbId;});
+    render();
+    openPanel(progId);
+    updatePendingBanner();
+    setTimeout(function(){if(window.loadFirebase)loadFirebase();},2000);
+  }).catch(function(e){
+    alert('削除に失敗しました: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='🗑';}
+    if(window.loadFirebase)loadFirebase();
+  });
+};
 function openAddModal(){
   if(!selectedProg){ alert('プログラムを選択してください'); return; }
   const p = selectedProg;
@@ -601,7 +626,7 @@ render();
 // Firebaseを非同期で読み込み
 try{
   const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-  const {getFirestore,collection,query,where,onSnapshot,getDocs,doc,updateDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const {getFirestore,collection,query,where,onSnapshot,getDocs,doc,updateDoc,deleteDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
   const db=getFirestore(initializeApp({
     apiKey:"AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
     authDomain:"sakurashi-kosodateshien.firebaseapp.com",
@@ -615,6 +640,7 @@ try{
   window._fbOnSnapshot=onSnapshot;
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window._fbAddDoc=(data)=>addDoc(collection(db,'bookings'),data);
+  window._fbDeleteDoc=(fbId)=>deleteDoc(doc(db,'bookings',fbId));
   window._fbTimestamp=()=>Timestamp.now();
   window._fbGetUsers=()=>getDocs(collection(db,'users'));
   window.firebase_loaded=true;
