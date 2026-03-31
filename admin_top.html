@@ -11,11 +11,11 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ひのきっこ 子育て支援センター</title>
+<title>管理者メニュー | ひのきっこ</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--green:#2d6a4f;--mint:#74c69d;--light:#f0faf4;--warm:#f9a03f;--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--border:#dceee2;--lav:#dccfe6;--lav-light:#ede6f4;--lav-dark:#5a3f78;--lav-mid:#c9b8e0}
+:root{--cream:#fdf8f2;--text:#1a2e22;--muted:#6b8f71;--lav:#dccfe6;--lav-light:#ede6f4;--lav-dark:#5a3f78;--lav-mid:#c9b8e0;--warm:#f9a03f}
 body{font-family:'Noto Sans JP',sans-serif;background:var(--cream);min-height:100vh;color:var(--text)}
 header{background:#dccfe6;padding:0 20px}
 .header-inner{display:flex;align-items:center;justify-content:center;gap:12px;padding:18px 20px 14px}
@@ -33,10 +33,11 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
 .card-title{font-size:.95rem;font-weight:700;color:var(--text)}
 .card-desc{font-size:.75rem;color:var(--muted);margin-top:3px;line-height:1.5}
 .card-arrow{color:var(--muted);font-size:1rem}
-.card.user1{--accent:#c4aedd}.card.user2{--accent:#a89cd4}.card.user3{--accent:#9b59b6}
-.card.staff1{--accent:#f9a03f}.card.staff2{--accent:#e74c3c}.card.staff3{--accent:#7a5c9a}
-.btn-staff{display:block;text-align:center;margin-top:28px;padding:11px;font-size:.78rem;color:var(--muted);text-decoration:none;border:1px solid var(--lav-mid);border-radius:2px;background:#fff}
-.btn-staff:hover{background:var(--lav-light)}
+.card.staff1{--accent:#f9a03f}.card.staff2{--accent:#e74c3c}.card.staff3{--accent:#7a5c9a}.card.staff4{--accent:#3498db}
+.note{background:var(--lav-light);border-radius:2px;padding:13px 15px;font-size:.75rem;color:var(--muted);line-height:1.75;margin-top:18px}
+.note strong{color:var(--lav-dark)}
+.btn-back{display:block;text-align:center;margin-top:28px;padding:11px;font-size:.78rem;color:var(--muted);text-decoration:none;border:1px solid var(--lav-mid);border-radius:2px;background:#fff}
+.btn-back:hover{background:var(--lav-light)}
 </style>
 </head>
 <body>
@@ -45,35 +46,49 @@ main{padding:18px 14px 48px;max-width:480px;margin:0 auto}
     <div class="header-title">ひのきっこ</div>
     <div class="header-sub">
       <span>アンファンひのきさくら</span>
-      <span>子育て支援センター</span>
+      <span>管理者メニュー</span>
     </div>
   </div>
 </header>
 <main>
-  <div class="section-label">利用者向け</div>
-  <a href="user_program.html" class="card user1">
+  <div class="section-label">スタッフ向け</div>
+  <a href="staff.html" class="card staff1">
     <div class="card-row">
       <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">プログラム別予約</div><div class="card-desc">参加したいプログラムを選んで空き確認・予約。スマホ向き。</div></div>
+      <div class="card-meta"><div class="card-title">予約管理（ガントチャート）</div><div class="card-desc">時間軸×曜日で予約・託児を一覧。残枠・予約者をタップで確認。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
-  <a href="user_calendar.html" class="card user2">
+  <a href="admin.html" class="card staff2">
     <div class="card-row">
       <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">週カレンダー表示</div><div class="card-desc">今週の全プログラムを時間軸で一覧。「いつ来ようか」を決めるのに便利。</div></div>
-      <div class="card-arrow">›</div>
-    </div>
-  </a>
-  <a href="programs.html" class="card user3">
-    <div class="card-row">
-      <div class="card-icon"></div>
-      <div class="card-meta"><div class="card-title">プログラム紹介</div><div class="card-desc">画像・テキスト・YouTube動画で各プログラムを詳しく紹介。</div></div>
+      <div class="card-meta"><div class="card-title">月次集計・市報告</div><div class="card-desc">月別の利用者数を自動集計。市への報告テキストをワンタップ生成。</div></div>
       <div class="card-arrow">›</div>
     </div>
   </a>
 
-  <a href="admin_top.html" class="btn-staff">スタッフ・管理者メニュー ›</a>
+  <div class="section-label">チェックインシステム</div>
+  <a href="register.html" class="card staff3">
+    <div class="card-row">
+      <div class="card-icon"></div>
+      <div class="card-meta"><div class="card-title">利用者登録・QR発行</div><div class="card-desc">初回登録フォーム。完了するとユニークQRコードが発行される。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+  <a href="checkin.html" class="card staff4">
+    <div class="card-row">
+      <div class="card-icon"></div>
+      <div class="card-meta"><div class="card-title">チェックイン端末</div><div class="card-desc">タブレット専用。QRスキャン→会員照合→予約確認→来場記録を自動保存。</div></div>
+      <div class="card-arrow">›</div>
+    </div>
+  </a>
+
+  <div class="note">
+    <strong>ご利用にあたって</strong><br>
+    4月のひのきっこだよりをもとにしたプログラムデータで動作しています。予約・登録はすべて実際にFirebaseに保存されます。
+  </div>
+
+  <a href="index.html" class="btn-back">‹ 利用者TOPへ戻る</a>
 </main>
 </body>
 </html>
