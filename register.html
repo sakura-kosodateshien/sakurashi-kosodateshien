@@ -57,6 +57,19 @@
            + Math.random().toString(36).substring(2,6).toUpperCase();
   }
 
+  // ── ボタン色制御 ────────────────────────────────────────────────────
+  window.checkReady = function() {
+    const name     = document.getElementById('name').value.trim();
+    const childDob = document.getElementById('childDob').value;
+    const tel      = document.getElementById('tel').value.trim();
+    const btn      = document.getElementById('submitBtn');
+    if(name && childDob && tel) {
+      btn.classList.add('ready');
+    } else {
+      btn.classList.remove('ready');
+    }
+  };
+
   // ── 登録処理 ────────────────────────────────────────────────────────
   window.submitRegistration = async function() {
     const name     = document.getElementById('name').value.trim();
@@ -212,11 +225,12 @@
     font-family: inherit;
     cursor: pointer;
     margin-top: 8px;
-    transition: background .2s, transform .1s;
+    transition: background .25s, transform .1s;
   }
   .btn:hover  { background: var(--lav-dark); }
   .btn:active { transform: scale(.98); }
   .btn:disabled { background: #aaa; cursor: default; }
+  .btn.ready  { background: var(--lav-dark); }
 
   /* QRセクション */
   #qrSection {
@@ -287,16 +301,16 @@
 
     <div class="field">
       <label>保護者名（ひらがな）<span class="req">必須</span></label>
-      <input id="name" type="text" placeholder="例：やまだ はなこ" inputmode="hiragana">
+      <input id="name" type="text" placeholder="例：やまだ はなこ" inputmode="hiragana" oninput="checkReady()">
       <input type="hidden" id="kana" value="">
     </div>
     <div class="field">
       <label>お子さんの生年月日<span class="req">必須</span></label>
-      <input id="childDob" type="date">
+      <input id="childDob" type="date" onchange="checkReady()">
     </div>
     <div class="field">
       <label>連絡先（携帯番号）<span class="req">必須</span></label>
-      <input id="tel" type="tel" placeholder="例：090-0000-0000">
+      <input id="tel" type="tel" placeholder="例：090-0000-0000" oninput="checkReady()">
     </div>
     <div class="field">
       <label>希望言語 / Preferred Language</label>
