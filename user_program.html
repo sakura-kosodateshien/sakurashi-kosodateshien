@@ -162,10 +162,34 @@ main{padding:16px 14px 80px;max-width:480px;margin:0 auto}
         </div>
         <div class="form-row" style="margin-bottom:0">
           <label>お子さんの人数</label>
-          <select id="fChildCount">
+          <select id="fChildCount" onchange="onChildCountChange()">
             <option>1人</option>
             <option>2人</option>
           </select>
+        </div>
+      </div>
+
+      <!-- 2人目フィールド（ランチひろば以外・2人選択時のみ表示） -->
+      <div id="child2Row" style="display:none;background:#f7f0fc;border:1.5px solid var(--lav-mid);border-radius:6px;padding:12px 14px;margin-top:8px">
+        <div style="font-size:.75rem;font-weight:700;color:var(--lav-dark);margin-bottom:8px">2人目のお子さん</div>
+        <div class="form-row2">
+          <div class="form-row" style="margin-bottom:0">
+            <label>お名前（ひらがな）<span class="req">*</span></label>
+            <input type="text" id="fChildName2" placeholder="例：たろう" inputmode="hiragana">
+          </div>
+          <div class="form-row" style="margin-bottom:0">
+            <label>月齢<span class="req">*</span></label>
+            <select id="fAge2">
+              <option value="">選択</option>
+              <option>0〜5ヶ月</option>
+              <option>6〜11ヶ月</option>
+              <option>1才</option>
+              <option>1才6ヶ月〜</option>
+              <option>2才</option>
+              <option>2才6ヶ月〜</option>
+              <option>3才</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -401,7 +425,9 @@ async function applyBookings(){
       const b = d.data();
       if(b.status === 'cancelled') return;
       const key = (b.progId || '') + '|' + (b.date || '');
-      counts[key] = (counts[key] || 0) + 1;
+      // ランチひろば以外で子供2人の場合は2組分カウント
+      const units = (b.childCount === '2人' && b.progId !== 'lunch') ? 2 : 1;
+      counts[key] = (counts[key] || 0) + units;
     });
     // PROGSの各スロットに反映
     PROGS.forEach(p => {
@@ -744,6 +770,10 @@ function openModal(progId, slotIdx){
   document.getElementById('fChildCount').value= cache.childCount|| '1人';
   document.getElementById('fNote').value      = '';
   document.getElementById('fTochiTime').value = '';
+  // 2人目フィールドリセット
+  document.getElementById('child2Row').style.display = 'none';
+  document.getElementById('fChildName2').value = '';
+  document.getElementById('fAge2').value = '';
 
   // Firestore から childDob を取得して月齢を自動セット
   autoFillAgeFromFirestore();
@@ -906,6 +936,20 @@ window.onTochiExtraChange = function(){
 
 function toggleTochiTime(){} // 後方互換（空関数）
 
+// 子供人数変更 → 2人目フィールド表示制御
+window.onChildCountChange = function(){
+  const count = document.getElementById('fChildCount').value;
+  const isLunch = selectedSlot && selectedSlot.prog && selectedSlot.prog.id === 'lunch';
+  const row = document.getElementById('child2Row');
+  if(count === '2人' && !isLunch){
+    row.style.display = 'block';
+  } else {
+    row.style.display = 'none';
+    document.getElementById('fChildName2').value = '';
+    document.getElementById('fAge2').value = '';
+  }
+};
+
 async function submitBooking(){
   const name       = document.getElementById('fName').value.trim();
   const kana       = document.getElementById('fKana').value.trim();
@@ -917,10 +961,20 @@ async function submitBooking(){
   const tochi      = document.getElementById('fTochi').value === 'yes';
   const tochiTime  = document.getElementById('fTochiTime').value.trim();
 
+  // 2人目
+  const isLunch    = selectedSlot && selectedSlot.prog && selectedSlot.prog.id === 'lunch';
+  const hasTwoKids = childCount === '2人' && !isLunch;
+  const childName2 = hasTwoKids ? document.getElementById('fChildName2').value.trim() : '';
+  const age2       = hasTwoKids ? document.getElementById('fAge2').value : '';
+  // 子供1人あたり1組カウント（2人 = 2組分）
+  const bookingUnits = hasTwoKids ? 2 : 1;
+
   if(!name){ alert('保護者名（ひらがな）を入力してください'); return; }
   if(!age){  alert('お子さんの月齢を選択してください'); return; }
   if(!tel){  alert('連絡先を入力してください'); return; }
   if(tochi && !childName){ alert('お子さんの名前（ひらがな）を入力してください'); return; }
+  if(hasTwoKids && !childName2){ alert('2人目のお子さんのお名前を入力してください'); return; }
+  if(hasTwoKids && !age2){ alert('2人目のお子さんの月齢を選択してください'); return; }
 
   const p = selectedSlot.prog;
   const s = selectedSlot.slot;
@@ -935,7 +989,8 @@ async function submitBooking(){
         where('date',   '==', dateK2)
       ));
       const activeCount = capSnap.docs.filter(d => d.data().status !== 'cancelled').length;
-      if (activeCount >= p.cap) {
+      // 子供2人は2組分カウント
+      if (activeCount + bookingUnits > p.cap) {
         alert(`この日の${p.name}は満員です（定員${p.cap}組）。\n他の日程をご確認ください。`);
         return;
       }
@@ -989,6 +1044,8 @@ async function submitBooking(){
       dateLabel:  s.date,
       time:       s.time,
       name, kana: name, childName, age, childCount, tel, note,
+      childName2: childName2 || '',
+      age2:       age2 || '',
       tochi,
       tochiTime:  tochi ? tochiTime : '',
       status:     'pending',

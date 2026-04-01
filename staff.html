@@ -300,6 +300,14 @@ function getBks(prog){
   );
 }
 
+// 子供2人の場合は2組分カウント（ランチひろば除く）
+function bookingCount(bks, progId){
+  return bks.reduce((sum, b) => {
+    const units = (b.childCount === '2人' && progId !== 'lunch') ? 2 : 1;
+    return sum + units;
+  }, 0);
+}
+
 // ── 未確認バナー更新 ─────────────────────────────────────────────────
 async function updatePendingBanner(){
   const banner=document.getElementById('pendingBanner');
@@ -360,7 +368,7 @@ function render(){
   const wps=ALL_PROGS.filter(p=>dks.includes(p.date));
   const progs=wps.filter(p=>viewMode==='all'||(viewMode==='s'&&p.type==='s')||(viewMode==='t'&&p.type==='t'));
   let sbk=0,tbk=0,full=0,avail=0,pend=0;
-  wps.forEach(p=>{ const bks=getBks(p); const c=bks.length; const pc=bks.filter(b=>b.status==='pending').length; pend+=pc; if(p.type==='s')sbk+=c; else tbk+=c; if(p.cap<99){if(c>=p.cap)full++;else avail++;} });
+  wps.forEach(p=>{ const bks=getBks(p); const c=bookingCount(bks,p.id); const pc=bks.filter(b=>b.status==='pending').length; pend+=pc; if(p.type==='s')sbk+=c; else tbk+=c; if(p.cap<99){if(c>=p.cap)full++;else avail++;} });
   document.getElementById('sSbk').textContent=sbk+'組';
   document.getElementById('sTbk').textContent=tbk+'名';
   document.getElementById('sFull').textContent=full;
@@ -382,7 +390,7 @@ function render(){
     drawOrder.forEach(p=>{
       const top=((p.sh-9)+(p.sm/60))*PH;
       const ht=Math.max(((p.eh-p.sh)+((p.em-p.sm)/60))*PH,14);
-      const bks=getBks(p); const cnt=bks.length;
+      const bks=getBks(p); const cnt=bookingCount(bks,p.id);
       const pendCnt=bks.filter(b=>b.status==='pending').length;
       const isFull=cnt>=p.cap&&p.cap<99;
       const cls=p.cancelled?'blk bc':isFull?'blk bf':pendCnt>0?'blk bp':p.type==='t'?'blk bt':'blk bs';
@@ -419,7 +427,7 @@ function render(){
 function openPanel(id){
   const p=ALL_PROGS.find(x=>x.id===id); if(!p) return;
   selectedProg=p;
-  const bks=getBks(p); const cnt=bks.length;
+  const bks=getBks(p); const cnt=bookingCount(bks,p.id);
   document.getElementById('pTitle').textContent=p.name;
   document.getElementById('pTime').textContent=p.date.slice(5).replace('-','/')+'　'+p.sh+':'+String(p.sm).padStart(2,'0')+'〜'+p.eh+':'+String(p.em).padStart(2,'0');
   document.getElementById('pAvail').innerHTML=
@@ -439,6 +447,7 @@ function openPanel(id){
           <div class="bk-name">${b.name||''}${b.kana?`（${b.kana}）`:''} ${isLineLinked?'<span style="font-size:.62rem;background:#e8f5e9;color:#2d6a4f;border-radius:2px;padding:1px 6px;font-weight:700">LINE連携済</span>':'<span style="font-size:.62rem;background:#fce4ec;color:#c62828;border-radius:2px;padding:1px 6px;font-weight:700">⚠️ LINE未連携</span>'}</div>
           ${b.childName?`<div class="bk-info" style="color:#5a3f78;font-weight:600">👶 ${b.childName}</div>`:''}
           <div class="bk-info">${b.age||''} ${b.tel?'📱'+b.tel:''}</div>
+          ${b.childName2?`<div class="bk-info" style="color:#7a5c9a;font-weight:600">👶 2人目：${b.childName2}　${b.age2||''}</div>`:''}
           ${b.note?`<div class="bk-note"><span class="bk-note-icon">⚠️</span><span><strong>備考あり：</strong>${b.note}</span></div>`:''}
         </div>
         <span class="bk-stat ${isPending?'s-pending':'s-ok'}">${isPending?'⏳ 確認待ち':'確定'}</span>
