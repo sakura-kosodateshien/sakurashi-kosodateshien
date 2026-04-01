@@ -645,6 +645,41 @@ async function checkTochiLimits(tel, dateKey) {
 // ── 託児複数枠選択状態 ────────────────────────────────────────────────
 let tochiExtraSlots = []; // 2枠目の日程
 
+// childDob → fAge 自動セット（Firestore users から取得）
+async function autoFillAgeFromFirestore(){
+  try{
+    await liffInitPromise;
+    if(!liffReady) return;
+    const profile = await liff.getProfile();
+    const q = await getDocs(query(collection(db,'users'), where('lineUserId','==',profile.userId)));
+    if(q.empty) return;
+    const userData = q.docs[0].data();
+    const dob = userData.childDob; // "YYYY-MM-DD" or "YYYY/MM/DD"
+    if(!dob) return;
+    const dobDate = new Date(dob.replace(/\//g,'-'));
+    const now = new Date();
+    const months = (now.getFullYear()-dobDate.getFullYear())*12 + (now.getMonth()-dobDate.getMonth());
+    let ageLabel = '';
+    if(months < 6)       ageLabel = '0〜5ヶ月';
+    else if(months < 12) ageLabel = '6〜11ヶ月';
+    else if(months < 18) ageLabel = '1才';
+    else if(months < 24) ageLabel = '1才6ヶ月〜';
+    else if(months < 30) ageLabel = '2才';
+    else if(months < 36) ageLabel = '2才6ヶ月〜';
+    else                 ageLabel = document.getElementById('fAge3') ? document.getElementById('fAge3').textContent : '3才';
+    const sel = document.getElementById('fAge');
+    if(sel && ageLabel){
+      // 選択肢テキストと一致するものをセット
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].textContent.trim()===ageLabel){
+          sel.value = sel.options[i].value || sel.options[i].textContent;
+          break;
+        }
+      }
+    }
+  }catch(e){ console.warn('月齢自動取得エラー:', e.message); }
+}
+
 function openModal(progId, slotIdx){
   const p = PROGS.find(x=>x.id===progId);
   const s = p.slots[slotIdx];
@@ -709,6 +744,9 @@ function openModal(progId, slotIdx){
   document.getElementById('fChildCount').value= cache.childCount|| '1人';
   document.getElementById('fNote').value      = '';
   document.getElementById('fTochiTime').value = '';
+
+  // Firestore から childDob を取得して月齢を自動セット
+  autoFillAgeFromFirestore();
 
   document.getElementById('formView').style.display   = 'block';
   document.getElementById('successView').style.display = 'none';
