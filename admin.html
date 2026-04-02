@@ -565,6 +565,78 @@
       sel.appendChild(o);
     });
   });
+
+  // ── 未登録ゲスト一覧 ──────────────────────────────────────────────
+  window.loadGuests = async function(){
+    const listEl  = document.getElementById('guestList');
+    const countEl = document.getElementById('guestCount');
+    const days = document.getElementById('guestDateFilter').value;
+    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中…</div>';
+    try {
+      let q;
+      if (days === 'all') {
+        q = query(collection(db,'visits'), where('needsProfile','==',true), orderBy('visitedAt','desc'));
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - Number(days));
+        q = query(collection(db,'visits'), where('needsProfile','==',true), where('visitedAt','>=',Timestamp.fromDate(cutoff)), orderBy('visitedAt','desc'));
+      }
+      const snap = await getDocs(q);
+      if(snap.empty){
+        listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">未登録ゲストはいません</div>';
+        countEl.textContent = '0件';
+        return;
+      }
+      countEl.textContent = snap.size + '件';
+      const rows = snap.docs.map(function(d){
+        const v = d.data();
+        const dt = v.visitedAt ? v.visitedAt.toDate() : null;
+        const dateStr = dt ? dt.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}) + ' ' + dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '不明';
+        const tel4 = v.tel4 || '----';
+        const progs = (v.progNames||[]).join('・') || '自由来所';
+        const dur = v.duration != null ? v.duration + '分' : (v.exitAt ? '?' : '来場中');
+        const badge = v.exitAt
+          ? '<span style="background:#e8f5e9;color:#2e7d32;font-size:.7rem;padding:2px 7px;border-radius:10px;font-weight:700">退室済</span>'
+          : '<span style="background:#fff3e0;color:#e65100;font-size:.7rem;padding:2px 7px;border-radius:10px;font-weight:700">来場中</span>';
+        const notified = v.staffNotified;
+        const btnStyle = notified
+          ? 'font-size:.72rem;padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;cursor:default;color:#aaa;font-family:inherit'
+          : 'font-size:.72rem;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:inherit';
+        return '<tr style="border-bottom:1px solid #f0ebf8">' +
+          '<td style="padding:10px 12px;font-size:.88rem;font-weight:700;color:#3d2a55">' + dateStr + '</td>' +
+          '<td style="padding:10px 12px;font-size:.95rem;font-weight:700">****-' + tel4 + '</td>' +
+          '<td style="padding:10px 12px;font-size:.82rem;color:#666">' + progs + '</td>' +
+          '<td style="padding:10px 8px;font-size:.82rem;color:#666">' + dur + '</td>' +
+          '<td style="padding:10px 8px">' + badge + '</td>' +
+          '<td style="padding:10px 8px;text-align:right">' +
+            '<button onclick="markGuestNotified(\'' + d.id + '\',this)" ' + (notified ? 'disabled ' : '') + 'style="' + btnStyle + '">' +
+            (notified ? '案内済' : '登録案内する') + '</button>' +
+          '</td></tr>';
+      }).join('');
+      listEl.innerHTML =
+        '<table style="width:100%;border-collapse:collapse;font-size:.88rem">' +
+        '<thead><tr style="background:#f5f0fa">' +
+        '<th style="padding:8px 12px;text-align:left;font-size:.78rem;color:#7a6890;font-weight:700">来場日時</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:.78rem;color:#7a6890;font-weight:700">電話末4桁</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:.78rem;color:#7a6890;font-weight:700">利用内容</th>' +
+        '<th style="padding:8px 12px;text-align:left;font-size:.78rem;color:#7a6890;font-weight:700">滞在</th>' +
+        '<th style="padding:8px 8px;text-align:left;font-size:.78rem;color:#7a6890;font-weight:700">状態</th>' +
+        '<th style="padding:8px 8px"></th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>';
+    } catch(e){
+      console.error(e);
+      listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#c00;font-size:.85rem">読み込みエラー: ' + e.message + '</div>';
+    }
+  };
+
+  window.markGuestNotified = async function(visitId, btn){
+    try {
+      await updateDoc(doc(db,'visits',visitId),{ staffNotified: true });
+      btn.textContent = '案内済';
+      btn.disabled = true;
+      btn.style.cssText = 'font-size:.72rem;padding:4px 8px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;cursor:default;color:#aaa;font-family:inherit';
+    } catch(e){ alert('更新に失敗しました: ' + e.message); }
+  };
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Serif+Display&display=swap');
@@ -804,6 +876,7 @@
     <button class="main-tab active" onclick="switchMainTab('stats',this)">📊 月次集計</button>
     <button class="main-tab"        onclick="switchMainTab('change',this)">⚙️ プログラム変更</button>
     <button class="main-tab"        onclick="switchMainTab('members',this)">👥 会員一覧</button>
+    <button class="main-tab"        onclick="switchMainTab('guests',this)" id="tabGuests">🌿 未登録ゲスト</button>
   </div>
 
   <!-- 月次集計パネル -->
@@ -958,6 +1031,28 @@
     </div>
   </div><!-- /panelMembers -->
 
+  <!-- 未登録ゲスト一覧パネル -->
+  <div class="main-panel" id="panelGuests">
+    <div class="chg-form-card">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <h3 style="margin-bottom:0">🌿 未登録ゲスト一覧</h3>
+        <span style="font-size:.78rem;color:var(--muted)">needsProfile:true の来場記録</span>
+        <select id="guestDateFilter" onchange="loadGuests()"
+          style="padding:7px 10px;border:1.5px solid var(--border);border-radius:2px;font-size:.85rem;font-family:inherit;outline:none;background:#fff">
+          <option value="7">直近7日間</option>
+          <option value="30">直近30日間</option>
+          <option value="all">すべて</option>
+        </select>
+        <span id="guestCount" style="font-size:.78rem;color:var(--muted);white-space:nowrap"></span>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:2px;overflow:hidden">
+      <div id="guestList" style="min-height:100px">
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">タブを開くと読み込みます</div>
+      </div>
+    </div>
+  </div><!-- /panelGuests -->
+
 </div>
 
 </div><!-- /mainScreen -->
@@ -968,7 +1063,9 @@ function switchMainTab(tab, el){
   document.querySelectorAll('.main-panel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('panel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  if(tab==='guests') loadGuests();
 }
+
 
 // 通知文タップでコピー
 document.addEventListener('click', e=>{
