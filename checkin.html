@@ -505,51 +505,32 @@ function showTelConfirm(user) {
 
 // ─── ゲスト情報入力 ───────────────────────────────────────────────
 function showGuestInfo() {
-  STATE.guestProg = 'free';
   setScreen(
     '<div class="guest-wrap">' +
-    '<div class="list-title">はじめての方の情報を入力</div>' +
+    '<div class="list-title">はじめての方</div>' +
+    '<div class="form-note-top">お名前だけ入力してすぐ入室できます。<br>生年月日などは後でLINEから登録できます。</div>' +
     '<div class="form-group">' +
     '<label>お名前（漢字）<span class="req">必須</span></label>' +
-    '<input id="g_name" type="text" placeholder="例：山田 はな" class="form-input" autocomplete="off">' +
+    '<input id="g_name" type="text" placeholder="例：山田 はな" class="form-input" style="font-size:1.2rem;padding:16px 14px;" autocomplete="off">' +
     '</div>' +
-    '<div class="form-group">' +
-    '<label>お名前（よみ）</label>' +
-    '<input id="g_kana" type="text" placeholder="例：やまだ はな" class="form-input" autocomplete="off">' +
-    '</div>' +
-    '<div class="form-group">' +
-    '<label>お子さんの生年月日</label>' +
-    '<input id="g_dob" type="date" class="form-input" max="' + todayStr() + '">' +
-    '</div>' +
-    '<div class="form-group">' +
-    '<label>本日の利用<span class="req">必須</span></label>' +
-    '<div class="prog-row">' +
-    '<button class="prog-sel active" id="ps_free" onclick="setGuestProg(\'free\')">自由遊び</button>' +
-    '<button class="prog-sel" id="ps_prog" onclick="setGuestProg(\'program\')">プログラム参加</button>' +
-    '</div></div>' +
-    '<div class="form-note">※ 後ほど会員登録をご案内します。LINEアプリのリッチメニュー「会員QR」から登録すると次回から電話番号で入室できます。</div>' +
-    '<div class="btn-row">' +
+    '<div class="btn-row" style="margin-top:8px;">' +
     '<button class="big-btn primary" onclick="submitGuestCheckin()">入室する</button>' +
     '<button class="big-btn ghost" onclick="showTop()">← 戻る</button>' +
-    '</div></div>',
+    '</div>' +
+    '<div class="form-note">※ LINEリッチメニュー「会員QR」から登録すると、生年月日・月齢の入力や次回から電話番号での入室ができます。</div>' +
+    '</div>',
     'guest-screen'
   );
+  setTimeout(function(){ var el=document.getElementById('g_name'); if(el) el.focus(); }, 100);
 }
-window.setGuestProg = function(type) {
-  STATE.guestProg = type;
-  document.querySelectorAll('.prog-sel').forEach(function(el){ el.classList.remove('active'); });
-  document.getElementById(type==='free' ? 'ps_free' : 'ps_prog').classList.add('active');
-};
 window.submitGuestCheckin = async function() {
   const name = document.getElementById('g_name').value.trim();
-  const kana = document.getElementById('g_kana').value.trim();
-  const dob  = document.getElementById('g_dob').value;
   if (!name) {
     document.getElementById('g_name').style.borderColor = '#e57373';
     document.getElementById('g_name').focus();
     return;
   }
-  await doCheckinGuest(name, kana, dob, STATE.guestProg);
+  await doCheckinGuest(name);
 };
 
 // ─── 結果画面（入室） ─────────────────────────────────────────────
@@ -564,7 +545,7 @@ function showResultIn(opt) {
     '<div class="result-meta">' + typeLabel + '　入室 ' + opt.time + '</div>' +
     (opt.alreadyIn ? '<div class="result-note">（本日すでに入室記録があります）</div>' : '') +
     (opt.isGuest ?
-      '<div class="guest-prompt">次回からはLINEで会員登録すると<br>電話番号で入室できます ✨<br><span style="font-size:.8rem;opacity:.75">リッチメニュー「会員QR」から登録</span></div>'
+      '<div class="guest-prompt">LINEで会員登録すると次回から電話番号で入室できます ✨<br><span style="font-size:.78rem;opacity:.75">リッチメニュー「会員QR」から登録　→ 詳細・月齢もそちらで入力できます</span></div>'
     : '') +
     '<div class="result-countdown" id="countdown">5秒後に戻ります…</div>' +
     '</div>',
@@ -679,6 +660,7 @@ header h1{font-size:1rem;font-weight:700;letter-spacing:.05em;}
 .prog-sel{flex:1;padding:12px;border-radius:10px;border:2px solid var(--lav);background:#fff;color:var(--sub);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s;}
 .prog-sel.active{background:var(--lav-dark);color:#fff;border-color:var(--lav-dark);}
 .form-note{font-size:.78rem;color:var(--sub);background:var(--lav-light);border-radius:10px;padding:10px 14px;line-height:1.6;}
+.form-note-top{font-size:.9rem;color:var(--sub);text-align:center;line-height:1.7;padding:4px 0;}
 .result-screen{background:var(--lav-dark);}
 .result-out-screen{background:#1a3340;}
 .result-wrap{color:#fff;padding:24px 0;}
