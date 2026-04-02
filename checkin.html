@@ -196,24 +196,26 @@ async function doCheckinByUser(user) {
 }
 
 // ─── チェックイン（ゲスト） ────────────────────────────────────────
-async function doCheckinGuest(name, kana, dob, progType) {
+async function doCheckinGuest(tel4) {
   showLoading('記録中…');
   try {
     const today = todayStr();
-    const progNames = progType === 'free' ? ['自由来所'] : ['プログラム参加'];
     await addDoc(collection(db,'visits'),{
       uid: null,
-      name, kana: kana||'', childDob: dob||'',
-      childMonths: calcMonths(dob),
-      visitType: progType==='free' ? 'free' : 'program',
-      progNames,
+      name: '(' + tel4 + ')',
+      tel4,
+      childDob: '',
+      childMonths: null,
+      visitType: 'free',
+      progNames: ['自由来所'],
       visitedAt: Timestamp.now(),
       date: today,
       exitAt: null, duration: null,
       bookingIds: [],
-      isGuest: true
+      isGuest: true,
+      needsProfile: true
     });
-    showResultIn({ name, progName: progNames[0], time: timeStr(), visitType: progType, isGuest: true });
+    showResultIn({ name: 'ご来場の方（' + tel4 + '）', progName: '自由来所', time: timeStr(), visitType: 'free', isGuest: true });
   } catch(e) {
     console.error(e);
     showError('エラーが発生しました', e.message);
@@ -505,32 +507,41 @@ function showTelConfirm(user) {
 
 // ─── ゲスト情報入力 ───────────────────────────────────────────────
 function showGuestInfo() {
-  setScreen(
-    '<div class="guest-wrap">' +
-    '<div class="list-title">はじめての方</div>' +
-    '<div class="form-note-top">お名前だけ入力してすぐ入室できます。<br>生年月日などは後でLINEから登録できます。</div>' +
-    '<div class="form-group">' +
-    '<label>お名前（漢字）<span class="req">必須</span></label>' +
-    '<input id="g_name" type="text" placeholder="例：山田 はな" class="form-input" style="font-size:1.2rem;padding:16px 14px;" autocomplete="off">' +
-    '</div>' +
-    '<div class="btn-row" style="margin-top:8px;">' +
-    '<button class="big-btn primary" onclick="submitGuestCheckin()">入室する</button>' +
-    '<button class="big-btn ghost" onclick="showTop()">← 戻る</button>' +
-    '</div>' +
-    '<div class="form-note">※ LINEリッチメニュー「会員QR」から登録すると、生年月日・月齢の入力や次回から電話番号での入室ができます。</div>' +
-    '</div>',
-    'guest-screen'
-  );
-  setTimeout(function(){ var el=document.getElementById('g_name'); if(el) el.focus(); }, 100);
+  STATE.telInput = '';
+  renderGuestTel();
 }
-window.submitGuestCheckin = async function() {
-  const name = document.getElementById('g_name').value.trim();
-  if (!name) {
-    document.getElementById('g_name').style.borderColor = '#e57373';
-    document.getElementById('g_name').focus();
-    return;
+function renderGuestTel() {
+  const d = STATE.telInput;
+  const disp = (d + '----').slice(0,4).split('').map(function(c){ return c==='-' ? '＿' : c; }).join('　');
+  setScreen(
+    '<div class="center-wrap tel-wrap">' +
+    '<div class="tel-title">はじめての方<br><span style="font-size:.9rem;font-weight:400;color:var(--sub);">電話番号の下4桁を入力</span></div>' +
+    '<div class="tel-display">' + disp + '</div>' +
+    '<div class="numpad">' +
+    [1,2,3,4,5,6,7,8,9,'sp',0,'del'].map(function(k) {
+      if (k==='sp') return '<div></div>';
+      if (k==='del') return '<button class="num-key del-key" onclick="guestTelBack()">⌫</button>';
+      return '<button class="num-key" onclick="guestTelInput(' + k + ')">' + k + '</button>';
+    }).join('') +
+    '</div>' +
+    '<div class="form-note" style="max-width:280px;text-align:center;">※ 次回来場時も同じ番号で入室できます。<br>LINEで会員登録すると名前・月齢も登録できます。</div>' +
+    '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+    '</div>',
+    'tel-screen'
+  );
+}
+window.guestTelInput = function(n) {
+  if (STATE.telInput.length >= 4) return;
+  STATE.telInput += String(n);
+  if (STATE.telInput.length === 4) {
+    doCheckinGuest(STATE.telInput);
+  } else {
+    renderGuestTel();
   }
-  await doCheckinGuest(name);
+};
+window.guestTelBack = function() {
+  STATE.telInput = STATE.telInput.slice(0,-1);
+  renderGuestTel();
 };
 
 // ─── 結果画面（入室） ─────────────────────────────────────────────
