@@ -10,364 +10,689 @@
   gtag('config', 'G-3PVH1LLJFM');
 </script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>チェックイン端末 | 子育て支援センター</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>チェックイン | ひのきっこ</title>
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore, doc, getDoc, addDoc, updateDoc,
-    collection, query, where, getDocs, Timestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, addDoc, updateDoc,
+  collection, query, where, getDocs, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
-    authDomain: "sakurashi-kosodateshien.firebaseapp.com",
-    projectId: "sakurashi-kosodateshien",
-    storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
-    messagingSenderId: "365529893548",
-    appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+const firebaseConfig = {
+  apiKey: "AIzaSyA1EvrPURepmXG_G4NZcin5iHf0qmw-Zpw",
+  authDomain: "sakurashi-kosodateshien.firebaseapp.com",
+  projectId: "sakurashi-kosodateshien",
+  storageBucket: "sakurashi-kosodateshien.firebasestorage.app",
+  messagingSenderId: "365529893548",
+  appId: "1:365529893548:web:99b2ecc702d1bbdb752d09"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ─── ユーティリティ ───────────────────────────────────────────────
+function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + day;
+}
+function calcMonths(dob) {
+  if (!dob) return null;
+  const d = new Date(dob), t = new Date();
+  return (t.getFullYear()-d.getFullYear())*12 + (t.getMonth()-d.getMonth());
+}
+function timeStr() {
+  return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ─── グローバル状態 ───────────────────────────────────────────────
+let STATE = {};
+function resetState() {
+  STATE = {
+    checkinMode: true,
+    todayBookings: [],
+    selectedBooking: null,
+    telInput: '',
+    foundUser: null,
+    guestProg: 'free'
   };
+}
+resetState();
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+// ─── 当日予約読み込み ─────────────────────────────────────────────
+async function loadTodayBookings() {
+  const today = todayStr();
+  const snap = await getDocs(query(
+    collection(db,'bookings'),
+    where('date','==',today),
+    where('status','in',['confirmed','pending'])
+  ));
+  const vSnap = await getDocs(query(
+    collection(db,'visits'),
+    where('date','==',today),
+    where('exitAt','==',null)
+  ));
+  const checkedInUids = new Set(vSnap.docs.map(d => d.data().uid).filter(Boolean));
+  STATE.todayBookings = snap.docs.map(d => ({
+    id: d.id,
+    ...d.data(),
+    alreadyIn: checkedInUids.has(d.data().uid)
+  }));
+}
 
-  let scanner       = null;
-  let lastScanned   = '';
-  let lastScannedAt = 0;
-  let scanning      = false;
-
-  function todayStr() {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  function calcMonths(dob) {
-    const d = new Date(dob), t = new Date();
-    return (t.getFullYear() - d.getFullYear()) * 12 + (t.getMonth() - d.getMonth());
-  }
-
-  // ── チェックイン処理 ──────────────────────────────────────────────────
-  async function processCheckin(uid) {
-    showState('loading', '確認中…');
-    try {
-      // ① 会員情報
-      const userSnap = await getDoc(doc(db, 'users', uid));
-      if (!userSnap.exists()) {
-        showState('error', '登録が見つかりません', 'QRコードを確認してください');
-        setTimeout(() => showState('ready'), 3500);
-        return;
-      }
-      const user = userSnap.data();
-      const months = calcMonths(user.childDob);
-
-      // ② 本日の予約を検索
-      const today = todayStr();
-      const bkSnap = await getDocs(query(
-        collection(db, 'bookings'),
-        where('uid',    '==', uid),
-        where('date',   '==', today),
-        where('status', 'in', ['confirmed', 'pending'])
+// ─── チェックイン（予約者） ────────────────────────────────────────
+async function doCheckinByBooking(booking) {
+  showLoading('チェックイン中…');
+  try {
+    const today = todayStr();
+    let visitId;
+    if (booking.uid) {
+      const vSnap = await getDocs(query(
+        collection(db,'visits'),
+        where('uid','==',booking.uid),
+        where('date','==',today),
+        where('exitAt','==',null)
       ));
-      const bookings = bkSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      // ③ 利用区分・プログラム名（QRデータから自動判定）
-      let visitType = 'free'; // 予約なし → 自由来所
-      let progNames = [];
-      if (bookings.length > 0) {
-        const hasChildcare = bookings.some(b => b.progId === 'tochi' || b.tochi === true);
-        visitType = hasChildcare ? 'childcare' : 'program';
-        progNames = bookings.map(b => b.progName || b.progId).filter(Boolean);
-      }
-
-      // ④ 来場記録を保存（月齢・プログラム名も追加）
-      const visitRef = await addDoc(collection(db, 'visits'), {
-        uid,
-        name:        user.name,
-        childDob:    user.childDob,
-        childMonths: months,          // ← 来場時点の月齢
-        visitType,
-        progNames,                    // ← 参加プログラム名配列
-        visitedAt:   Timestamp.now(),
-        date:        today,
-        exitAt:      null,            // ← 退場時に更新
-        duration:    null,            // ← 退場時に計算
-        bookingIds:  bookings.map(b => b.id)
-      });
-
-      // ⑤ 予約に checkedIn フラグ
-      for (const bk of bookings) {
-        await updateDoc(doc(db, 'bookings', bk.id), {
-          checkedIn:   true,
-          checkedInAt: Timestamp.now(),
-          visitId:     visitRef.id
+      if (!vSnap.empty) {
+        visitId = vSnap.docs[0].id;
+        const ex = vSnap.docs[0].data();
+        const pn = [...(ex.progNames||[])];
+        if (!pn.includes(booking.progName)) pn.push(booking.progName);
+        await updateDoc(doc(db,'visits',visitId),{
+          progNames: pn,
+          bookingIds: [...(ex.bookingIds||[]), booking.id]
         });
       }
-
-      const noLine = !user.lineUserId;
-      showState('checkin', user.name, { months, visitType, bookings, visitId: visitRef.id,
-        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' }), noLine });
-      setTimeout(() => showState('ready'), 5000);
-
-    } catch(e) {
-      console.error(e);
-      showState('error', 'エラーが発生しました', e.message);
-      setTimeout(() => showState('ready'), 3500);
     }
-  }
-
-  // ── チェックアウト処理 ────────────────────────────────────────────────
-  async function processCheckout(uid) {
-    showState('loading', '退場記録中…');
-    try {
-      const today = todayStr();
-
-      // 本日の未退場の来場記録を検索
-      const vSnap = await getDocs(query(
-        collection(db, 'visits'),
-        where('uid',    '==', uid),
-        where('date',   '==', today),
-        where('exitAt', '==', null)
-      ));
-
-      if (vSnap.empty) {
-        showState('error', 'チェックイン記録が見つかりません', '先にチェックインしてください');
-        setTimeout(() => showState('ready'), 3500);
-        return;
-      }
-
-      const userSnap = await getDoc(doc(db, 'users', uid));
-      const user = userSnap.exists() ? userSnap.data() : { name: uid };
-
-      // 最新の来場記録に退場時刻を記録
-      const visitDoc = vSnap.docs[vSnap.docs.length - 1];
-      const visitData = visitDoc.data();
-      const exitAt  = Timestamp.now();
-      const entryMs = visitData.visitedAt.toMillis();
-      const exitMs  = exitAt.toMillis();
-      const duration = Math.round((exitMs - entryMs) / 60000); // 分単位
-
-      await updateDoc(doc(db, 'visits', visitDoc.id), {
-        exitAt,
-        duration // 滞在分数
-      });
-
-      showState('checkout', user.name, {
-        duration,
-        time: new Date().toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' })
-      });
-      setTimeout(() => showState('ready'), 5000);
-
-    } catch(e) {
-      console.error(e);
-      showState('error', 'エラーが発生しました', e.message);
-      setTimeout(() => showState('ready'), 3500);
-    }
-  }
-
-  // ── QRスキャン成功 ────────────────────────────────────────────────────
-  async function onScanSuccess(decodedText) {
-    const now = Date.now();
-    if (decodedText === lastScanned && now - lastScannedAt < 4000) return;
-    lastScanned   = decodedText;
-    lastScannedAt = now;
-
-    // UID抽出：URL形式またはUID文字列直接どちらにも対応
-    let uid = decodedText.trim();
-    try {
-      const u = new URL(decodedText);
-      uid = u.searchParams.get('uid') || decodedText;
-    } catch(e) {}
-    // 前後の空白・改行を除去
-    uid = uid.trim();
-
-    if (window.scanMode === 'out') {
-      await processCheckout(uid);
-    } else {
-      await processCheckin(uid);
-    }
-  }
-
-  // ── 手動スキャンイベント受け取り ───────────────────────────────────────
-  window.addEventListener('manualScan', e => {
-    lastScanned = '';
-    if (window.scanMode === 'out') processCheckout(e.detail);
-    else processCheckin(e.detail);
-  });
-
-  // ── 表示ステート ──────────────────────────────────────────────────────
-  function showState(state, main='', sub='') {
-    const overlay = document.getElementById('overlay');
-    const icon    = document.getElementById('overlayIcon');
-    const mainEl  = document.getElementById('overlayMain');
-    const subEl   = document.getElementById('overlaySub');
-
-    if (state === 'ready') {
-      overlay.className  = 'overlay ready';
-      icon.textContent   = '📷';
-      mainEl.textContent = window.scanMode === 'out' ? 'QRをかざして退場記録' : 'QRコードをかざしてください';
-      subEl.innerHTML    = '';
-      return;
-    }
-    if (state === 'loading') {
-      overlay.className  = 'overlay loading';
-      icon.textContent   = '⏳';
-      mainEl.textContent = main;
-      subEl.innerHTML    = '';
-      return;
-    }
-    if (state === 'checkin') {
-      overlay.className  = 'overlay success';
-      icon.textContent   = '✅';
-      mainEl.textContent = 'ようこそ！' + main + ' さん';
-      const typeLabel = { program:'📚 支援プログラム', childcare:'👶 託　児', free:'🌿 自由来所' }[sub.visitType] || '';
-      let bkHtml = sub.bookings && sub.bookings.length > 0
-        ? sub.bookings.map(b=>`<div class="info-row booking-row">✅ ${b.progName||b.progId}${b.time?'　'+b.time:''}</div>`).join('')
-        : `<div class="info-row muted-row">本日の予約なし（自由来所）</div>`;
-      subEl.innerHTML = `
-        <div class="info-row">${typeLabel}　お子さん ${sub.months}ヶ月</div>
-        ${bkHtml}
-        <div class="info-row">入室 ${sub.time}</div>
-        ${sub.noLine ? '<div style="margin-top:8px;background:#fff3e0;border-radius:8px;padding:8px 10px;font-size:.78rem;color:#e65100;font-weight:700">📣 LINE未連携です。会員QRからLINE登録をお願いします</div>' : ''}
-        `;
-      return;
-    }
-    if (state === 'checkout') {
-      overlay.className  = 'overlay checkout';
-      icon.textContent   = '👋';
-      mainEl.textContent = main + ' さん、またね！';
-      subEl.innerHTML    = `
-        <div class="info-row">退場 ${sub.time}</div>
-        <div class="info-row">滞在時間 ${sub.duration}分</div>`;
-      return;
-    }
-    if (state === 'error') {
-      overlay.className  = 'overlay error';
-      icon.textContent   = '❌';
-      mainEl.textContent = main;
-      subEl.innerHTML    = `<div class="info-row">${sub}</div>`;
-    }
-  }
-
-  // ── スキャナー起動 ────────────────────────────────────────────────────
-  window.startScanner = async function() {
-    if (scanning) return;
-    scanning = true;
-    document.getElementById('startBtn').style.display = 'none';
-    scanner = new Html5Qrcode('reader');
-    try {
-      // 利用可能なカメラ一覧を取得して外部カメラを優先
-      const devices = await Html5Qrcode.getCameras();
-      let cameraId = null;
-
-      if(devices && devices.length > 0){
-        // カメラ選択UIを構築
-        const sel = document.getElementById('cameraSelect');
-        sel.innerHTML = devices.map((d,i) =>
-          `<option value="${d.id}">${d.label || 'カメラ '+(i+1)}</option>`
-        ).join('');
-
-        // 外部・会議用カメラを優先
-        const external = devices.find(d =>
-          /usb|extern|conference|hd|web|logicool|logitec|meeting/i.test(d.label)
-        );
-        const back = devices.find(d =>
-          /back|rear|environment|後/i.test(d.label)
-        );
-        const preferred = external || back || devices[devices.length - 1];
-        cameraId = preferred.id;
-        sel.value = cameraId;
-
-        if(devices.length > 1){
-          document.getElementById('cameraSel').style.display = 'block';
+    if (!visitId) {
+      let childDob = '';
+      let childMonths = null;
+      if (booking.uid) {
+        const uSnap = await getDoc(doc(db,'users',booking.uid));
+        if (uSnap.exists()) {
+          childDob = uSnap.data().childDob || '';
+          childMonths = calcMonths(childDob);
         }
       }
+      const isChildcare = booking.progId === 'tochi' || booking.tochi === true;
+      const vRef = await addDoc(collection(db,'visits'),{
+        uid: booking.uid || null,
+        name: booking.name || '',
+        childDob,
+        childMonths,
+        visitType: isChildcare ? 'childcare' : 'program',
+        progNames: [booking.progName || booking.progId || ''],
+        visitedAt: Timestamp.now(),
+        date: today,
+        exitAt: null,
+        duration: null,
+        bookingIds: [booking.id]
+      });
+      visitId = vRef.id;
+    }
+    await updateDoc(doc(db,'bookings',booking.id),{
+      checkedIn: true, checkedInAt: Timestamp.now(), visitId
+    });
+    showResultIn({
+      name: booking.name,
+      progName: booking.progName || booking.progId || '',
+      time: timeStr(),
+      visitType: (booking.progId==='tochi'||booking.tochi) ? 'childcare' : 'program'
+    });
+  } catch(e) {
+    console.error(e);
+    showError('エラーが発生しました', e.message);
+  }
+}
 
-      await scanner.start(
-        cameraId || { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 240, height: 240 } },
-        onScanSuccess, () => {}
+// ─── チェックイン（電話番号検索後の会員） ─────────────────────────
+async function doCheckinByUser(user) {
+  showLoading('チェックイン中…');
+  try {
+    const today = todayStr();
+    const vSnap = await getDocs(query(
+      collection(db,'visits'),
+      where('uid','==',user.uid),
+      where('date','==',today),
+      where('exitAt','==',null)
+    ));
+    if (!vSnap.empty) {
+      showResultIn({ name: user.name, progName: '（本日すでに入室済み）', time: timeStr(), visitType: 'free', alreadyIn: true });
+      return;
+    }
+    const bkSnap = await getDocs(query(
+      collection(db,'bookings'),
+      where('uid','==',user.uid),
+      where('date','==',today),
+      where('status','in',['confirmed','pending'])
+    ));
+    const bookings = bkSnap.docs.map(d=>({id:d.id,...d.data()}));
+    const hasChildcare = bookings.some(b=>b.progId==='tochi'||b.tochi===true);
+    const visitType = bookings.length>0 ? (hasChildcare?'childcare':'program') : 'free';
+    const progNames = bookings.length>0 ? bookings.map(b=>b.progName||b.progId).filter(Boolean) : ['自由来所'];
+    const vRef = await addDoc(collection(db,'visits'),{
+      uid: user.uid,
+      name: user.name||'',
+      childDob: user.childDob||'',
+      childMonths: calcMonths(user.childDob),
+      visitType, progNames,
+      visitedAt: Timestamp.now(),
+      date: today,
+      exitAt: null, duration: null,
+      bookingIds: bookings.map(b=>b.id)
+    });
+    for (const bk of bookings) {
+      await updateDoc(doc(db,'bookings',bk.id),{
+        checkedIn:true, checkedInAt:Timestamp.now(), visitId:vRef.id
+      });
+    }
+    showResultIn({ name: user.name, progName: progNames.join('・'), time: timeStr(), visitType });
+  } catch(e) {
+    console.error(e);
+    showError('エラーが発生しました', e.message);
+  }
+}
+
+// ─── チェックイン（ゲスト） ────────────────────────────────────────
+async function doCheckinGuest(name, kana, dob, progType) {
+  showLoading('記録中…');
+  try {
+    const today = todayStr();
+    const progNames = progType === 'free' ? ['自由来所'] : ['プログラム参加'];
+    await addDoc(collection(db,'visits'),{
+      uid: null,
+      name, kana: kana||'', childDob: dob||'',
+      childMonths: calcMonths(dob),
+      visitType: progType==='free' ? 'free' : 'program',
+      progNames,
+      visitedAt: Timestamp.now(),
+      date: today,
+      exitAt: null, duration: null,
+      bookingIds: [],
+      isGuest: true
+    });
+    showResultIn({ name, progName: progNames[0], time: timeStr(), visitType: progType, isGuest: true });
+  } catch(e) {
+    console.error(e);
+    showError('エラーが発生しました', e.message);
+  }
+}
+
+// ─── チェックアウト ───────────────────────────────────────────────
+async function doCheckout(visitId, visitData) {
+  showLoading('退場記録中…');
+  try {
+    const exitAt = Timestamp.now();
+    const duration = Math.round((exitAt.toMillis()-visitData.visitedAt.toMillis())/60000);
+    await updateDoc(doc(db,'visits',visitId),{ exitAt, duration });
+    showResultOut({ name: visitData.name, time: timeStr(), duration });
+  } catch(e) {
+    console.error(e);
+    showError('エラーが発生しました', e.message);
+  }
+}
+
+// ─── 電話番号下4桁検索 ────────────────────────────────────────────
+async function searchByTel4(tel4) {
+  const snap = await getDocs(collection(db,'users'));
+  const matched = [];
+  snap.forEach(d => {
+    const data = d.data();
+    const tel = (data.tel||'').replace(/[-\s]/g,'');
+    if (tel.length >= 4 && tel.slice(-4) === tel4) {
+      matched.push({ uid: d.id, ...data });
+    }
+  });
+  return matched;
+}
+
+// ─── 在室中一覧 ───────────────────────────────────────────────────
+async function loadActiveVisits() {
+  const snap = await getDocs(query(
+    collection(db,'visits'),
+    where('date','==',todayStr()),
+    where('exitAt','==',null)
+  ));
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+// ═════════════════════════════════════════════════════════════════
+// ─── 画面描画 ──────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+function setScreen(html, cls) {
+  const el = document.getElementById('screen');
+  el.className = 'screen' + (cls ? ' ' + cls : '');
+  el.innerHTML = html;
+}
+function showLoading(msg) {
+  setScreen(
+    '<div class="center-wrap"><div class="spin"></div>' +
+    '<div class="big-text" style="margin-top:20px">' + msg + '</div></div>',
+    'loading-screen'
+  );
+}
+
+// ─── TOP ─────────────────────────────────────────────────────────
+async function showTop() {
+  resetState();
+  setScreen('<div class="center-wrap"><div class="spin"></div></div>');
+  await loadTodayBookings();
+  const mode = STATE.checkinMode;
+  setScreen(
+    '<div class="top-wrap">' +
+    '<div class="mode-row">' +
+    '<button class="mode-btn' + (mode ? ' active-in' : '') + '" onclick="switchMode(true)">入室</button>' +
+    '<button class="mode-btn' + (!mode ? ' active-out' : '') + '" onclick="switchMode(false)">退室</button>' +
+    '</div>' +
+    '<div class="top-title">' + (mode ? 'チェックイン' : 'チェックアウト') + '</div>' +
+    '<div class="top-sub">' + (mode ? '今日の予約がある方はタップ' : '帰られる方はタップ') + '</div>' +
+    '<button class="big-btn primary" onclick="showReservedList()">' +
+    '<span class="btn-icon">' + (mode ? '📋' : '🏠') + '</span>' +
+    '<span class="btn-label">' + (mode ? '予約あり　名前を選ぶ' : '在室中の方　名前を選ぶ') + '</span>' +
+    '</button>' +
+    (mode ?
+      '<div class="divider"><span>予約なし・会員の方</span></div>' +
+      '<button class="big-btn secondary" onclick="showTelInput()">' +
+      '<span class="btn-icon">📞</span>' +
+      '<span class="btn-label">電話番号（下4桁）で入室</span>' +
+      '</button>' +
+      '<div class="divider"><span>はじめての方</span></div>' +
+      '<button class="big-btn ghost" onclick="showGuestInfo()">' +
+      '<span class="btn-icon">🌿</span>' +
+      '<span class="btn-label">はじめての方はこちら</span>' +
+      '</button>'
+    : '') +
+    '</div>',
+    'top-screen'
+  );
+}
+
+// ─── 予約一覧 / 在室一覧 ─────────────────────────────────────────
+async function showReservedList() {
+  if (!STATE.checkinMode) {
+    showLoading('在室中の方を確認中…');
+    const visits = await loadActiveVisits();
+    if (visits.length === 0) {
+      setScreen(
+        '<div class="center-wrap">' +
+        '<div style="font-size:3rem">🏠</div>' +
+        '<div class="big-text" style="margin-top:12px">在室中の方はいません</div>' +
+        '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+        '</div>'
       );
-      showState('ready');
-    } catch(e) {
-      alert('カメラの起動に失敗しました。\nカメラへのアクセスを許可してください。\n\n' + e.message);
-      scanning = false;
-      document.getElementById('startBtn').style.display = 'flex';
+      return;
+    }
+    const items = visits.map(function(v) {
+      const progs = (v.progNames||[]).join('・') || '自由来所';
+      const t = v.visitedAt ? v.visitedAt.toDate().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '';
+      return '<button class="name-card" onclick="window._doCheckout(\'' + v.id + '\')">' +
+        '<span class="name-main">' + (v.name||'（名前なし）') + '</span>' +
+        '<span class="name-sub">' + progs + '　入室 ' + t + '</span>' +
+        '</button>';
+    }).join('');
+    setScreen(
+      '<div class="list-wrap">' +
+      '<div class="list-title">退室する方を選んでください</div>' +
+      '<div class="name-list">' + items + '</div>' +
+      '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+      '</div>'
+    );
+    window._doCheckout = async function(visitId) {
+      showLoading('記録中…');
+      const snap = await getDocs(query(
+        collection(db,'visits'),
+        where('date','==',todayStr()),
+        where('exitAt','==',null)
+      ));
+      const vDoc = snap.docs.find(function(d){ return d.id===visitId; });
+      if (vDoc) {
+        await doCheckout(vDoc.id, vDoc.data());
+      } else {
+        showError('記録が見つかりません','再度お試しください');
+      }
+    };
+    return;
+  }
+
+  // 入室モード
+  const bks = STATE.todayBookings;
+  if (bks.length === 0) {
+    setScreen(
+      '<div class="center-wrap">' +
+      '<div style="font-size:3rem">📭</div>' +
+      '<div class="big-text" style="margin-top:12px">本日の予約はありません</div>' +
+      '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+      '</div>'
+    );
+    return;
+  }
+  const items = bks.map(function(b, i) {
+    const prog = b.progName || b.progId || '';
+    const already = b.alreadyIn;
+    return '<button class="name-card' + (already ? ' already-in' : '') + '" onclick="window._selectBooking(' + i + ')">' +
+      '<span class="name-main">' + (b.name||'（名前なし）') + '</span>' +
+      '<span class="name-sub">' + prog + (b.time ? '　' + b.time : '') + '</span>' +
+      (already ? '<span class="badge-in">入室済</span>' : '') +
+      '</button>';
+  }).join('');
+  setScreen(
+    '<div class="list-wrap">' +
+    '<div class="list-title">入室する方を選んでください</div>' +
+    '<div class="name-list">' + items + '</div>' +
+    '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+    '</div>'
+  );
+  window._selectBooking = function(idx) {
+    const b = STATE.todayBookings[idx];
+    if (!b) return;
+    STATE.selectedBooking = b;
+    if (b.alreadyIn) {
+      setScreen(
+        '<div class="center-wrap">' +
+        '<div style="font-size:3rem">✅</div>' +
+        '<div class="big-text" style="margin-top:12px">' + b.name + ' さん</div>' +
+        '<div class="confirm-prog">すでに入室済みです</div>' +
+        '<button class="back-btn" onclick="showReservedList()">← 戻る</button>' +
+        '</div>',
+        'confirm-screen'
+      );
+    } else {
+      const prog = b.progName || b.progId || '';
+      setScreen(
+        '<div class="center-wrap">' +
+        '<div style="font-size:3rem">👋</div>' +
+        '<div class="big-text" style="margin-top:12px">' + b.name + ' さん</div>' +
+        '<div class="confirm-prog">' + prog + (b.time ? '　' + b.time : '') + '</div>' +
+        '<div class="confirm-row">この方でチェックインしますか？</div>' +
+        '<div class="btn-row">' +
+        '<button class="big-btn primary" onclick="doCheckinByBooking(STATE.selectedBooking)">入室する</button>' +
+        '<button class="big-btn ghost" onclick="showReservedList()">← 戻る</button>' +
+        '</div></div>',
+        'confirm-screen'
+      );
     }
   };
+}
 
-  window.switchCamera = async function(){
-    const cameraId = document.getElementById('cameraSelect').value;
-    if(!scanner || !cameraId) return;
-    try{
-      await scanner.stop();
-      await scanner.start(
-        cameraId,
-        { fps: 10, qrbox: { width: 240, height: 240 } },
-        onScanSuccess, () => {}
-      );
-    }catch(e){ console.warn('カメラ切り替えエラー:', e.message); }
-  };
+// ─── 電話番号入力 ─────────────────────────────────────────────────
+function showTelInput() {
+  STATE.telInput = '';
+  renderTelInput();
+}
+function renderTelInput() {
+  const d = STATE.telInput;
+  const disp = (d + '----').slice(0,4).split('').map(function(c){ return c==='-' ? '＿' : c; }).join('　');
+  setScreen(
+    '<div class="center-wrap tel-wrap">' +
+    '<div class="tel-title">電話番号の<br>下4桁を入力</div>' +
+    '<div class="tel-display">' + disp + '</div>' +
+    '<div class="numpad">' +
+    [1,2,3,4,5,6,7,8,9,'sp',0,'del'].map(function(k) {
+      if (k==='sp') return '<div></div>';
+      if (k==='del') return '<button class="num-key del-key" onclick="telBack()">⌫</button>';
+      return '<button class="num-key" onclick="telInput(' + k + ')">' + k + '</button>';
+    }).join('') +
+    '</div>' +
+    '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
+    '</div>',
+    'tel-screen'
+  );
+}
+window.telInput = function(n) {
+  if (STATE.telInput.length >= 4) return;
+  STATE.telInput += String(n);
+  if (STATE.telInput.length === 4) {
+    searchAndShowTelResult();
+  } else {
+    renderTelInput();
+  }
+};
+window.telBack = function() {
+  STATE.telInput = STATE.telInput.slice(0,-1);
+  renderTelInput();
+};
+async function searchAndShowTelResult() {
+  showLoading('検索中…');
+  const matches = await searchByTel4(STATE.telInput);
+  if (matches.length === 0) {
+    setScreen(
+      '<div class="center-wrap">' +
+      '<div style="font-size:3rem">🔍</div>' +
+      '<div class="big-text" style="margin-top:12px">登録が見つかりませんでした</div>' +
+      '<div class="confirm-row">はじめての方はご登録をお願いします</div>' +
+      '<div class="btn-row">' +
+      '<button class="big-btn primary" onclick="showGuestInfo()">はじめての方はこちら</button>' +
+      '<button class="big-btn ghost" onclick="showTelInput()">← 入力し直す</button>' +
+      '</div></div>',
+      'confirm-screen'
+    );
+  } else if (matches.length === 1) {
+    showTelConfirm(matches[0]);
+  } else {
+    const items = matches.map(function(u,i) {
+      const tel = (u.tel||'').replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+      return '<button class="name-card" onclick="window._pickUser(' + i + ')">' +
+        '<span class="name-main">' + (u.name||u.kana||'（名前なし）') + '</span>' +
+        '<span class="name-sub">' + tel + '</span>' +
+        '</button>';
+    }).join('');
+    setScreen(
+      '<div class="list-wrap">' +
+      '<div class="list-title">該当する方を選んでください</div>' +
+      '<div class="name-list">' + items + '</div>' +
+      '<button class="back-btn" onclick="showTelInput()">← 戻る</button>' +
+      '</div>'
+    );
+    window._pickUser = function(i) { showTelConfirm(matches[i]); };
+  }
+}
+function showTelConfirm(user) {
+  STATE.foundUser = user;
+  setScreen(
+    '<div class="center-wrap">' +
+    '<div style="font-size:3rem">👤</div>' +
+    '<div class="big-text" style="margin-top:12px">' + (user.name||user.kana||'（名前なし）') + ' さん</div>' +
+    '<div class="confirm-row">この方でよろしいですか？</div>' +
+    '<div class="btn-row">' +
+    '<button class="big-btn primary" onclick="doCheckinByUser(STATE.foundUser)">入室する</button>' +
+    '<button class="big-btn ghost" onclick="showTelInput()">← 番号を入力し直す</button>' +
+    '</div></div>',
+    'confirm-screen'
+  );
+}
 
-  window.addEventListener('load', () => showState('ready'));
+// ─── ゲスト情報入力 ───────────────────────────────────────────────
+function showGuestInfo() {
+  STATE.guestProg = 'free';
+  setScreen(
+    '<div class="guest-wrap">' +
+    '<div class="list-title">はじめての方の情報を入力</div>' +
+    '<div class="form-group">' +
+    '<label>お名前（漢字）<span class="req">必須</span></label>' +
+    '<input id="g_name" type="text" placeholder="例：山田 はな" class="form-input" autocomplete="off">' +
+    '</div>' +
+    '<div class="form-group">' +
+    '<label>お名前（よみ）</label>' +
+    '<input id="g_kana" type="text" placeholder="例：やまだ はな" class="form-input" autocomplete="off">' +
+    '</div>' +
+    '<div class="form-group">' +
+    '<label>お子さんの生年月日</label>' +
+    '<input id="g_dob" type="date" class="form-input" max="' + todayStr() + '">' +
+    '</div>' +
+    '<div class="form-group">' +
+    '<label>本日の利用<span class="req">必須</span></label>' +
+    '<div class="prog-row">' +
+    '<button class="prog-sel active" id="ps_free" onclick="setGuestProg(\'free\')">自由遊び</button>' +
+    '<button class="prog-sel" id="ps_prog" onclick="setGuestProg(\'program\')">プログラム参加</button>' +
+    '</div></div>' +
+    '<div class="form-note">※ 後ほど会員登録をご案内します。LINEアプリのリッチメニュー「会員QR」から登録すると次回から電話番号で入室できます。</div>' +
+    '<div class="btn-row">' +
+    '<button class="big-btn primary" onclick="submitGuestCheckin()">入室する</button>' +
+    '<button class="big-btn ghost" onclick="showTop()">← 戻る</button>' +
+    '</div></div>',
+    'guest-screen'
+  );
+}
+window.setGuestProg = function(type) {
+  STATE.guestProg = type;
+  document.querySelectorAll('.prog-sel').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(type==='free' ? 'ps_free' : 'ps_prog').classList.add('active');
+};
+window.submitGuestCheckin = async function() {
+  const name = document.getElementById('g_name').value.trim();
+  const kana = document.getElementById('g_kana').value.trim();
+  const dob  = document.getElementById('g_dob').value;
+  if (!name) {
+    document.getElementById('g_name').style.borderColor = '#e57373';
+    document.getElementById('g_name').focus();
+    return;
+  }
+  await doCheckinGuest(name, kana, dob, STATE.guestProg);
+};
+
+// ─── 結果画面（入室） ─────────────────────────────────────────────
+function showResultIn(opt) {
+  const typeMap = { program:'プログラム参加', childcare:'託児ルーム', free:'自由遊び' };
+  const typeLabel = typeMap[opt.visitType] || '自由遊び';
+  setScreen(
+    '<div class="center-wrap result-wrap">' +
+    '<div class="result-icon">✅</div>' +
+    '<div class="result-name">ようこそ！<br>' + opt.name + ' さん</div>' +
+    '<div class="result-prog">' + opt.progName + '</div>' +
+    '<div class="result-meta">' + typeLabel + '　入室 ' + opt.time + '</div>' +
+    (opt.alreadyIn ? '<div class="result-note">（本日すでに入室記録があります）</div>' : '') +
+    (opt.isGuest ?
+      '<div class="guest-prompt">次回からはLINEで会員登録すると<br>電話番号で入室できます ✨<br><span style="font-size:.8rem;opacity:.75">リッチメニュー「会員QR」から登録</span></div>'
+    : '') +
+    '<div class="result-countdown" id="countdown">5秒後に戻ります…</div>' +
+    '</div>',
+    'result-screen'
+  );
+  startCountdown();
+}
+
+// ─── 結果画面（退室） ─────────────────────────────────────────────
+function showResultOut(opt) {
+  setScreen(
+    '<div class="center-wrap result-wrap">' +
+    '<div class="result-icon">👋</div>' +
+    '<div class="result-name">' + opt.name + ' さん<br>またね！</div>' +
+    '<div class="result-meta">退室 ' + opt.time + '　滞在 ' + opt.duration + '分</div>' +
+    '<div class="result-countdown" id="countdown">5秒後に戻ります…</div>' +
+    '</div>',
+    'result-out-screen'
+  );
+  startCountdown();
+}
+
+function startCountdown() {
+  let sec = 5;
+  const t = setInterval(function() {
+    sec--;
+    const el = document.getElementById('countdown');
+    if (el) el.textContent = sec + '秒後に戻ります…';
+    if (sec <= 0) { clearInterval(t); showTop(); }
+  }, 1000);
+}
+
+function showError(msg, sub) {
+  setScreen(
+    '<div class="center-wrap">' +
+    '<div style="font-size:3rem">⚠️</div>' +
+    '<div class="big-text" style="margin-top:12px">' + msg + '</div>' +
+    (sub ? '<div style="font-size:.8rem;opacity:.7;margin-top:8px">' + sub + '</div>' : '') +
+    '<button class="back-btn" style="margin-top:24px" onclick="showTop()">← 戻る</button>' +
+    '</div>',
+    'error-screen'
+  );
+}
+
+// ─── グローバル公開 ───────────────────────────────────────────────
+window.switchMode = function(isIn) { STATE.checkinMode = isIn; showTop(); };
+window.showTop = showTop;
+window.showReservedList = showReservedList;
+window.showTelInput = showTelInput;
+window.showGuestInfo = showGuestInfo;
+window.doCheckinByBooking = doCheckinByBooking;
+window.doCheckinByUser = doCheckinByUser;
+window.STATE = STATE;
+
+window.addEventListener('load', function() { showTop(); });
 </script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
-  :root{--green:#1a3d2b;--mint:#52b788}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Noto Sans JP',sans-serif;background:var(--green);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
-  header{text-align:center;padding:12px 16px 6px;color:#fff}
-  header .sub{font-size:.68rem;opacity:.45;letter-spacing:.18em}
-  header h1{font-size:1rem;font-weight:700;margin-top:2px}
-
-  .reader-wrap{position:relative;flex:1;margin:0 14px 10px;border-radius:18px;overflow:hidden;background:#000}
-  #reader{width:100%!important;height:100%!important}
-  #reader video{object-fit:cover;width:100%;height:100%}
-
-  /* スキャン枠 */
-  .scan-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;pointer-events:none;z-index:10}
-  .scan-frame::before,.scan-frame::after,.scan-frame>span::before,.scan-frame>span::after{content:'';position:absolute;width:30px;height:30px;border-color:#fff;border-style:solid}
-  .scan-frame::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
-  .scan-frame::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
-  .scan-frame>span::before{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
-  .scan-frame>span::after{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
-  @keyframes scanLine{0%{top:10%}50%{top:86%}100%{top:10%}}
-  .scan-line{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,var(--mint),transparent);animation:scanLine 2.4s ease-in-out infinite;z-index:11}
-
-  /* オーバーレイ */
-  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:20;padding:20px;text-align:center;transition:background .25s}
-  .overlay.ready{background:transparent;pointer-events:none}
-  .overlay.loading{background:rgba(0,0,0,.6)}
-  .overlay.success{background:rgba(8,50,25,.94)}
-  .overlay.error{background:rgba(80,10,10,.9)}
-  .ov-icon{font-size:2.6rem}
-  .ov-main{color:#fff;font-size:1.2rem;font-weight:900;line-height:1.3}
-  .ov-sub{width:100%}
-  .info-row{color:rgba(255,255,255,.88);font-size:.85rem;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.1);text-align:left}
-  .info-row:last-child{border-bottom:none}
-  .booking-row{background:rgba(82,183,136,.25);border-radius:6px;margin:4px 0;font-weight:700;border:none!important;color:#a7f3c4}
-  .muted-row{color:rgba(255,255,255,.55);font-style:italic}
-
-  /* 起動ボタン */
-  #startBtn{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,.72);color:#fff;z-index:30;cursor:pointer;border:none;border-radius:18px;font-family:inherit}
-  #startBtn .icon{font-size:2.6rem}
-  #startBtn .label{font-size:.95rem;font-weight:700}
-  #startBtn .hint{font-size:.72rem;opacity:.6}
-
-  /* 手動入力 */
-  .manual-wrap{display:flex;gap:8px;padding:0 14px 10px}
-  .manual-wrap input{flex:1;padding:8px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:.82rem;font-family:inherit;outline:none}
-  .manual-wrap input::placeholder{color:rgba(255,255,255,.35)}
-  .manual-wrap button{padding:8px 14px;border-radius:10px;border:none;background:#5a3f78;color:#fff;font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer}
-
-  .overlay.checkout{background:rgba(20,50,80,.93)}
-
-  /* 入退室モード切り替え */
-  .mode-tabs{display:flex;gap:0;padding:6px 14px 4px;justify-content:center}
-  .mode-tab{flex:1;max-width:160px;padding:7px 4px;border-radius:0;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.5);font-size:.82rem;font-family:inherit;background:transparent;cursor:pointer;font-weight:700;transition:all .15s;text-align:center}
-  .mode-tab:first-child{border-radius:10px 0 0 10px}
-  .mode-tab:last-child{border-radius:0 10px 10px 0;border-left:none}
-  .mode-tab.active-in{background:rgba(82,183,136,.35);color:#a7f3c4;border-color:var(--mint)}
-  .mode-tab.active-out{background:rgba(249,160,63,.35);color:#fde68a;border-color:#f9a03f}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+:root{--lav:#dccfe6;--lav-dark:#5a3f78;--lav-light:#ede6f4;--bg:#f5f0fa;--text:#2a1a3e;--sub:#7a6890;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100dvh;}
+header{background:var(--lav-dark);color:#fff;display:flex;align-items:center;justify-content:center;padding:12px 16px;position:relative;flex-shrink:0;}
+header h1{font-size:1rem;font-weight:700;letter-spacing:.05em;}
+.header-back{position:absolute;left:12px;color:rgba(255,255,255,.75);font-size:.78rem;text-decoration:none;padding:4px 8px;}
+#screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;}
+.top-wrap{display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;}
+.mode-row{display:flex;gap:0;border-radius:12px;overflow:hidden;border:2px solid var(--lav);}
+.mode-btn{flex:1;padding:10px;font-size:.9rem;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--sub);font-family:inherit;transition:background .15s,color .15s;}
+.mode-btn.active-in{background:var(--lav-dark);color:#fff;}
+.mode-btn.active-out{background:#b55a00;color:#fff;}
+.top-title{font-size:1.5rem;font-weight:900;text-align:center;color:var(--lav-dark);padding:4px 0 0;}
+.top-sub{text-align:center;font-size:.85rem;color:var(--sub);}
+.big-btn{width:100%;padding:18px 16px;border-radius:14px;border:none;display:flex;align-items:center;gap:12px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .12s;text-align:left;}
+.big-btn:active{opacity:.75;}
+.big-btn.primary{background:var(--lav-dark);color:#fff;}
+.big-btn.secondary{background:var(--lav);color:var(--lav-dark);}
+.big-btn.ghost{background:#fff;color:var(--lav-dark);border:2px solid var(--lav);}
+.btn-icon{font-size:1.5rem;flex-shrink:0;}
+.btn-label{flex:1;line-height:1.3;}
+.divider{display:flex;align-items:center;gap:8px;color:var(--sub);font-size:.78rem;padding:2px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--lav);}
+.list-wrap{display:flex;flex-direction:column;gap:8px;max-width:480px;margin:0 auto;}
+.list-title{font-size:1rem;font-weight:700;color:var(--lav-dark);text-align:center;padding-bottom:4px;}
+.name-list{display:flex;flex-direction:column;gap:8px;}
+.name-card{display:flex;flex-direction:column;gap:4px;background:#fff;border:2px solid var(--lav);border-radius:14px;padding:16px 18px;cursor:pointer;font-family:inherit;text-align:left;transition:background .12s;position:relative;}
+.name-card:active{background:var(--lav-light);}
+.name-card.already-in{background:#f5f5f5;border-color:#ccc;opacity:.6;}
+.name-main{font-size:1.15rem;font-weight:700;color:var(--text);}
+.name-sub{font-size:.82rem;color:var(--sub);}
+.badge-in{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:#bdbdbd;color:#fff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;}
+.center-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:420px;margin:0 auto;padding:8px 0 24px;}
+.big-text{font-size:1.2rem;font-weight:700;color:var(--lav-dark);}
+.confirm-prog{font-size:1rem;color:var(--sub);background:var(--lav-light);border-radius:10px;padding:8px 20px;}
+.confirm-row{font-size:.9rem;color:var(--sub);}
+.btn-row{display:flex;flex-direction:column;gap:10px;width:100%;}
+.back-btn{background:none;border:none;color:var(--sub);font-size:.9rem;cursor:pointer;font-family:inherit;padding:8px;text-decoration:underline;}
+.tel-wrap{gap:16px;}
+.tel-title{font-size:1.3rem;font-weight:900;text-align:center;color:var(--lav-dark);line-height:1.4;}
+.tel-display{font-size:2.6rem;font-weight:900;letter-spacing:.15em;color:var(--lav-dark);text-align:center;padding:12px 24px;border-bottom:3px solid var(--lav);min-width:260px;}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:300px;}
+.num-key{aspect-ratio:1;border-radius:50%;border:2px solid var(--lav);background:#fff;font-size:1.6rem;font-weight:700;color:var(--lav-dark);cursor:pointer;font-family:inherit;transition:background .1s;}
+.num-key:active{background:var(--lav);}
+.del-key{font-size:1.2rem;background:var(--lav-light);}
+.guest-wrap{display:flex;flex-direction:column;gap:14px;max-width:480px;margin:0 auto;padding-bottom:24px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:.85rem;font-weight:700;color:var(--lav-dark);}
+.req{background:#e57373;color:#fff;font-size:.65rem;padding:2px 5px;border-radius:4px;margin-left:6px;}
+.form-input{width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--lav);font-size:1rem;font-family:inherit;background:#fff;color:var(--text);outline:none;}
+.form-input:focus{border-color:var(--lav-dark);}
+.prog-row{display:flex;gap:8px;}
+.prog-sel{flex:1;padding:12px;border-radius:10px;border:2px solid var(--lav);background:#fff;color:var(--sub);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s;}
+.prog-sel.active{background:var(--lav-dark);color:#fff;border-color:var(--lav-dark);}
+.form-note{font-size:.78rem;color:var(--sub);background:var(--lav-light);border-radius:10px;padding:10px 14px;line-height:1.6;}
+.result-screen{background:var(--lav-dark);}
+.result-out-screen{background:#1a3340;}
+.result-wrap{color:#fff;padding:24px 0;}
+.result-icon{font-size:4rem;}
+.result-name{font-size:1.6rem;font-weight:900;line-height:1.3;margin-top:4px;}
+.result-prog{font-size:1rem;background:rgba(255,255,255,.15);border-radius:10px;padding:8px 20px;margin-top:4px;}
+.result-meta{font-size:.9rem;opacity:.8;}
+.result-note{font-size:.78rem;opacity:.65;}
+.result-countdown{font-size:.8rem;opacity:.5;margin-top:8px;}
+.guest-prompt{background:rgba(255,255,255,.12);border-radius:12px;padding:12px 16px;font-size:.85rem;line-height:1.6;text-align:center;}
+.loading-screen{display:flex;align-items:center;justify-content:center;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{width:40px;height:40px;border:4px solid var(--lav);border-top-color:var(--lav-dark);border-radius:50%;animation:spin .7s linear infinite;}
+.error-screen{background:#fff0f0;}
 </style>
 <script>
 (function(){
@@ -378,100 +703,10 @@
 </script>
 </head>
 <body>
-
 <header>
-  <a href="admin_top.html" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.7);text-decoration:none;font-size:.78rem">← 戻る</a>
-  <div class="sub">HINOKI SAKURA · STAFF TERMINAL</div>
-  <h1>🌿 チェックイン端末</h1>
+  <a href="admin_top.html" class="header-back">← 戻る</a>
+  <h1>🌿 ひのきっこ チェックイン</h1>
 </header>
-
-<!-- 入室・退室モード切り替え -->
-<div class="mode-tabs">
-  <button class="mode-tab active-in" id="modeIn"  onclick="setMode('in',this)">▶ 入室</button>
-  <button class="mode-tab"           id="modeOut" onclick="setMode('out',this)">◀ 退室</button>
-</div>
-
-<div class="reader-wrap">
-  <div id="reader"></div>
-  <div class="scan-frame"><span></span></div>
-  <div class="scan-line"></div>
-
-  <div class="overlay ready" id="overlay">
-    <div class="ov-icon" id="overlayIcon">📷</div>
-    <div class="ov-main" id="overlayMain">QRコードをかざしてください</div>
-    <div class="ov-sub"  id="overlaySub"></div>
-  </div>
-
-  <button id="startBtn" onclick="startScanner()">
-    <div class="icon">📷</div>
-    <div class="label">タップしてカメラを起動</div>
-    <div class="hint">カメラへのアクセスを許可してください</div>
-  </button>
-</div>
-
-<div id="cameraSel" style="display:none;text-align:center;padding:4px 14px">
-  <select id="cameraSelect" onchange="switchCamera()" style="font-size:.75rem;padding:4px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.4);color:#fff;font-family:inherit;max-width:100%">
-  </select>
-</div>
-
-<div class="manual-wrap">
-  <input type="text" id="manualUid" placeholder="IDを手入力（QR読取不可時）" autocomplete="off">
-  <button onclick="manualCheckin()">入力</button>
-</div>
-
-<footer>受付端末専用　|　陽の木さくら保育園 子育て支援センター</footer>
-
-<script>
-  window.currentType = 'free';
-  window.scanMode    = 'in';
-
-  function setMode(mode, el) {
-    window.scanMode = mode;
-    document.getElementById('modeIn').className  = 'mode-tab' + (mode==='in'  ? ' active-in'  : '');
-    document.getElementById('modeOut').className = 'mode-tab' + (mode==='out' ? ' active-out' : '');
-    const mainEl = document.getElementById('overlayMain');
-    if(mainEl) mainEl.textContent = mode==='out' ? 'QRをかざして退場記録' : 'QRコードをかざしてください';
-  }
-
-  function manualCheckin() {
-    const uid = document.getElementById('manualUid').value.trim();
-    if (!uid) return;
-    window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
-    document.getElementById('manualUid').value = '';
-  }
-
-  // ── 外部バーコードスキャナー対応 ────────────────────────────────────
-  // スキャナーはキーボードとして動作し高速入力→Enterを送信する
-  let barcodeBuffer = '';
-  let barcodeTimer  = null;
-
-  document.addEventListener('keydown', function(e) {
-    // 手入力欄にフォーカスがある場合はスルー
-    if(document.activeElement === document.getElementById('manualUid')) return;
-
-    if(e.key === 'Enter') {
-      // Enter → バッファの内容を処理
-      const data = barcodeBuffer.trim();
-      barcodeBuffer = '';
-      clearTimeout(barcodeTimer);
-      if(data.length > 3) {
-        // URLかUID文字列を解析
-        let uid = data.trim();
-        try {
-          const u = new URL(data);
-          uid = u.searchParams.get('uid') || data;
-        } catch(err) {}
-        uid = uid.trim();
-        window.dispatchEvent(new CustomEvent('manualScan', { detail: uid }));
-      }
-    } else if(e.key.length === 1) {
-      // 通常文字をバッファに追加
-      barcodeBuffer += e.key;
-      // 200ms以内に次の入力がなければバッファクリア（手入力と区別）
-      clearTimeout(barcodeTimer);
-      barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 200);
-    }
-  });
-</script>
+<div id="screen" class="screen"></div>
 </body>
 </html>
