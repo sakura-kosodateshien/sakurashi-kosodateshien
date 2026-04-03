@@ -537,7 +537,7 @@ window.openAddModal = function openAddModal(){
   if(!window.selectedProg){ alert('プログラムを選択してください'); return; }
   const p = window.selectedProg;
   document.getElementById('addModalTitle').textContent = '📞 電話予約を追加';
-  document.getElementById('addModalProg').textContent = p.name+'　'+formatDate(p.date)+'　'+p.sh+':00〜'+p.eh+':'+(p.em||'00');
+  const _fd=p.date?p.date.slice(5).replace('-','/')+'（'+['月','火','水','木','金','土','日'][new Date(p.date).getDay()]+'）':''; document.getElementById('addModalProg').textContent = p.name+'　'+_fd+'　'+p.sh+':00〜'+p.eh+':'+(p.em?String(p.em).padStart(2,'0'):'00');
   document.getElementById('addName').value = '';
   document.getElementById('addKana').value = '';
   document.getElementById('addAge').value = '';
@@ -571,7 +571,7 @@ async function submitAddBooking(){
       progId:    p.id,
       progName:  p.name,
       date:      p.date,
-      dateLabel: formatDate(p.date),
+      dateLabel: p.date?p.date.slice(5).replace('-','/')+'（'+['月','火','水','木','金','土','日'][new Date(p.date).getDay()]+'）':'',
       time:      p.sh+':00〜'+p.eh+':'+(p.em?String(p.em).padStart(2,'0'):'00'),
       name, kana, age, childCount:'1',
       tel, note,
