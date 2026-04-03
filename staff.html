@@ -215,7 +215,8 @@ function calcInitialWeekOffset(){
   const diffFromBase=Math.round((thisMonday-base)/(24*3600*1000));
   return Math.round(diffFromBase/7);
 }
-let weekOffset=calcInitialWeekOffset(), viewMode='all', liveBookings=[], selectedProg=null, unsubFn=null;
+let weekOffset=calcInitialWeekOffset(), viewMode='all', liveBookings=[], unsubFn=null;
+window.selectedProg=null;
 let usersCache = {}; // tel -> {lineUserId}
 async function loadUsersCache(){
   if(!window._fbGetUsers) return;
@@ -431,7 +432,7 @@ function render(){
 
 function openPanel(id){
   const p=ALL_PROGS.find(x=>x.id===id); if(!p) return;
-  selectedProg=p;
+  window.selectedProg=p;
   const bks=getBks(p); const cnt=bookingCount(bks,p.id);
   document.getElementById('pTitle').textContent=p.name;
   document.getElementById('pTime').textContent=p.date.slice(5).replace('-','/')+'　'+p.sh+':'+String(p.sm).padStart(2,'0')+'〜'+p.eh+':'+String(p.em).padStart(2,'0');
@@ -533,8 +534,8 @@ window.deleteBooking=function(fbId, progId, name){
   });
 };
 window.openAddModal = function openAddModal(){
-  if(!selectedProg){ alert('プログラムを選択してください'); return; }
-  const p = selectedProg;
+  if(!window.selectedProg){ alert('プログラムを選択してください'); return; }
+  const p = window.selectedProg;
   document.getElementById('addModalTitle').textContent = '📞 電話予約を追加';
   document.getElementById('addModalProg').textContent = p.name+'　'+formatDate(p.date)+'　'+p.sh+':00〜'+p.eh+':'+(p.em||'00');
   document.getElementById('addName').value = '';
@@ -561,7 +562,7 @@ async function submitAddBooking(){
   if(!tel){  alert('連絡先を入力してください'); return; }
   if(!window._fbAddDoc){ alert('Firebase接続中です。しばらくお待ちください。'); return; }
 
-  const p = selectedProg;
+  const p = window.selectedProg;
   const btn = document.getElementById('addSubmitBtn');
   btn.disabled = true; btn.textContent = '追加中...';
 
