@@ -322,7 +322,7 @@ async function updatePendingBanner(){
     if(!window._fbQueryPending){ banner.classList.remove('show'); return; }
     const snap = await window._fbQueryPending();
     const allPending = snap.docs.map(d=>({fbId:d.id,...d.data()}))
-      .filter(b=>b.date>='2026-04-01');
+      .filter(b=>b.status==='pending' && b.date>='2026-04-01');
     // liveBookingsも同期
     allPending.forEach(b=>{
       const idx = liveBookings.findIndex(x=>x.fbId===b.fbId);
@@ -625,7 +625,7 @@ function loadFirebase(){
 function fetchAllPending(){
   if(!window._fbQueryPending) return;
   window._fbQueryPending().then(function(snap){
-    const pendingBks=snap.docs.map(d=>({fbId:d.id,...d.data()}));
+    const pendingBks=snap.docs.map(d=>({fbId:d.id,...d.data()})).filter(b=>b.status==='pending');
     // liveBookingsの非今週部分をpendingで補完
     const dates=getWeekDates();
     const dks=dates.map(d=>dateKey(d));
@@ -655,7 +655,7 @@ try{
     appId:"1:365529893548:web:99b2ecc702d1bbdb752d09"
   }));
   window._fbQuery=(d0,d4)=>query(collection(db,'bookings'),where('date','>=',d0),where('date','<=',d4));
-  window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('status','==','pending'),where('date','>=','2026-04-01')));
+  window._fbQueryPending=()=>getDocs(query(collection(db,'bookings'),where('date','>=','2026-04-01'))); // statusはJS側でフィルタ（複合インデックス不要）
   window._fbOnSnapshot=onSnapshot;
   window._fbUpdateDoc=(fbId,data)=>updateDoc(doc(db,'bookings',fbId),data);
   window._fbAddDoc=(data)=>addDoc(collection(db,'bookings'),data);
