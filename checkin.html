@@ -390,6 +390,7 @@ async function showReservedList() {
     const b = STATE.todayBookings[idx];
     if (!b) return;
     STATE.selectedBooking = b;
+    window._confirmCheckin = function() { doCheckinByBooking(STATE.selectedBooking); };
     if (b.alreadyIn) {
       setScreen(
         '<div class="center-wrap">' +
@@ -409,7 +410,7 @@ async function showReservedList() {
         '<div class="confirm-prog">' + prog + (b.time ? '　' + b.time : '') + '</div>' +
         '<div class="confirm-row">この方でチェックインしますか？</div>' +
         '<div class="btn-row">' +
-        '<button class="big-btn primary" onclick="doCheckinByBooking(STATE.selectedBooking)">入室する</button>' +
+        '<button class="big-btn primary" onclick="window._confirmCheckin()">入室する</button>' +
         '<button class="big-btn ghost" onclick="showReservedList()">← 戻る</button>' +
         '</div></div>',
         'confirm-screen'
