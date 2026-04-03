@@ -95,27 +95,15 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
       <div style="background:linear-gradient(135deg,#dccfe6,#ede6f4);padding:18px 20px;text-align:center;color:#3d2a55">
         <div style="font-size:.72rem;opacity:.65;letter-spacing:.1em;margin-bottom:4px">MEMBER CARD</div>
         <div class="member-name" id="mName" style="color:#3d2a55;margin-bottom:2px"></div>
-        <div class="member-uid" id="mUid" style="color:rgba(61,42,85,.5)"></div>
+        <div class="member-uid" id="mUid" style="display:none"></div>
       </div>
       <!-- タブ -->
       <div class="tabs" style="margin-bottom:0;background:#fff">
-        <button class="tab-btn active" onclick="switchTab('qr',this)">会員QR</button>
-        <button class="tab-btn" onclick="switchTab('bk',this)">予約確認</button>
+        <button class="tab-btn active" onclick="switchTab('bk',this)">予約確認</button>
         <button class="tab-btn" onclick="switchTab('info',this)">会員情報</button>
       </div>
-      <!-- QRタブ -->
-      <div class="tab-panel active" id="tabQr" style="padding:16px">
-        <div id="qrArea">
-          <div id="qrcode"></div>
-          <div class="qr-note">センター受付のタブレットにかざしてください</div>
-        </div>
-        <div id="todayBk" style="display:none;background:#ede6f4;border-radius:2px;padding:10px 12px;font-size:.8rem">
-          <div style="font-weight:700;color:#5a3f78;font-size:.76rem;margin-bottom:5px">本日の予約</div>
-          <div id="todayBkList"></div>
-        </div>
-      </div>
       <!-- 予約確認タブ -->
-      <div class="tab-panel" id="tabBk" style="padding:16px">
+      <div class="tab-panel active" id="tabBk" style="padding:16px">
         <div id="bkList"><div class="empty-msg">読み込み中…</div></div>
       </div>
       <!-- 会員情報タブ -->
@@ -130,8 +118,8 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
     <div class="card">
       <div class="icon">🌱</div>
       <div class="msg">まだ会員登録されていません</div>
-      <div class="sub">登録すると次回からQRコードをかざすだけでチェックインできます</div>
-      <a href="https://liff.line.me/2009587361-fY64rJtv" class="btn">無料で会員登録する</a>
+      <div class="sub">登録すると次回から電話番号でチェックインできます</div>
+      <a href="https://liff.line.me/2009587361-fY64rJtv" class="btn">会員登録する</a>
       <div class="divider"></div>
       <div class="small">すでに登録済みの方はこちら</div>
       <button class="btn-sub" onclick="openLinkModal()">📱 電話番号でLINEと紐づける</button>
@@ -179,7 +167,6 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, updateDoc, query, where, Timestamp }
@@ -209,12 +196,7 @@ function showMember(user){
     <div class="info-row"><span class="info-label">おこさまの年齢</span><span>${age}</span></div>
     <div class="info-row"><span class="info-label">電話</span><span>${user.tel||'-'}</span></div>
     <div class="info-row"><span class="info-label">登録日</span><span>${user.registeredAt?new Date(user.registeredAt).toLocaleDateString('ja-JP'):'-'}</span></div>`;
-  new QRCode(document.getElementById('qrcode'),{
-    text: user.uid,
-    width:200, height:200,
-    colorDark:'#3d2a55', colorLight:'#ffffff',
-    correctLevel: QRCode.CorrectLevel.L
-  });
+
   loadBookings(user.uid);
 }
 
