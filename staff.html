@@ -51,7 +51,7 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .li{display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--muted)}
 .ld{width:9px;height:9px;border-radius:2px}
 /* パネル */
-.panel-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:flex-end}
+.panel-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:flex-end;justify-content:center}
 .panel-bg.open{display:flex}
 .panel{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;margin:0 auto;max-height:75vh;display:flex;flex-direction:column}
 .panel-scroll{padding:18px 16px 8px;overflow-y:auto;flex:1}
@@ -195,7 +195,7 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
       <div class="avail-info" id="pAvail"></div>
       <div id="pList"></div>
     </div>
-    <button class="add-btn" onclick="openAddModal()">＋ 電話予約を追加</button>
+    <button class="add-btn" id="addBtnFooter">＋ 電話予約を追加</button>
   </div>
 </div>
 
@@ -532,7 +532,7 @@ window.deleteBooking=function(fbId, progId, name){
     if(window.loadFirebase)loadFirebase();
   });
 };
-function openAddModal(){
+window.openAddModal = function openAddModal(){
   if(!selectedProg){ alert('プログラムを選択してください'); return; }
   const p = selectedProg;
   document.getElementById('addModalTitle').textContent = '📞 電話予約を追加';
@@ -543,7 +543,7 @@ function openAddModal(){
   document.getElementById('addTel').value = '';
   document.getElementById('addNote').value = '';
   document.getElementById('addModal').style.display = 'flex';
-}
+};
 
 function closeAddModal(){
   document.getElementById('addModal').style.display = 'none';
@@ -587,6 +587,10 @@ async function submitAddBooking(){
   }
 }
 document.getElementById('panelBg').addEventListener('click',e=>{ if(e.target===document.getElementById('panelBg')) closePanel(); });
+document.getElementById('addBtnFooter').addEventListener('click', function(e){
+  e.stopPropagation();
+  openAddModal();
+});
 
 // ── Firebase連携（非同期・失敗しても表示は維持）────────────────────
 function initFirebase(){
