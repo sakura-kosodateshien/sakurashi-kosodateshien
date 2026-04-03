@@ -53,9 +53,10 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 /* パネル */
 .panel-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:flex-end}
 .panel-bg.open{display:flex}
-.panel{background:#fff;border-radius:2px 18px 0 0;padding:18px 16px 36px;width:100%;max-width:520px;margin:0 auto;max-height:75vh;overflow-y:auto}
+.panel{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;margin:0 auto;max-height:75vh;display:flex;flex-direction:column}
+.panel-scroll{padding:18px 16px 8px;overflow-y:auto;flex:1}
 .panel h2{font-size:.95rem;font-weight:700;margin-bottom:10px}
-.add-btn{display:block;width:calc(100% + 32px);margin:12px -16px -36px;padding:14px 16px;border:none;border-top:1.5px solid var(--border);background:#f0faf4;color:var(--green);font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;position:sticky;bottom:-36px;z-index:10;}
+.add-btn{display:block;width:100%;padding:14px 16px;border:none;border-top:1.5px solid var(--border);background:#f0faf4;color:var(--green);font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;flex-shrink:0;}
 .add-btn:active{background:#d4edda;}
 .panel-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
 .panel-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)}
@@ -183,15 +184,17 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 
 <div class="panel-bg" id="panelBg">
   <div class="panel">
-    <div class="panel-head">
-      <div>
-        <h2 id="pTitle"></h2>
-        <div id="pTime" style="font-size:.78rem;color:var(--muted)"></div>
+    <div class="panel-scroll">
+      <div class="panel-head">
+        <div>
+          <h2 id="pTitle"></h2>
+          <div id="pTime" style="font-size:.78rem;color:var(--muted)"></div>
+        </div>
+        <button class="panel-close" onclick="closePanel()">✕</button>
       </div>
-      <button class="panel-close" onclick="closePanel()">✕</button>
+      <div class="avail-info" id="pAvail"></div>
+      <div id="pList"></div>
     </div>
-    <div class="avail-info" id="pAvail"></div>
-    <div id="pList"></div>
     <button class="add-btn" onclick="openAddModal()">＋ 電話予約を追加</button>
   </div>
 </div>
