@@ -475,6 +475,24 @@ window.confirmBooking=function(fbId, progId){
   if(unsubFn){ unsubFn(); unsubFn=null; }
 
   window._fbUpdateDoc(fbId,{status:'confirmed'}).then(function(){
+    // LINE Push通知
+    const bk = liveBookings.find(function(b){ return b.fbId===fbId; });
+    if (bk) {
+      fetch('https://asia-northeast1-sakurashi-kosodateshien.cloudfunctions.net/notifyBookingConfirmed', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          bookingId: fbId,
+          progName:  bk.progName || bk.progId || '',
+          dateLabel: bk.dateLabel || bk.date || '',
+          time:      bk.time || '',
+          name:      bk.name || '',
+          tel:       bk.tel  || ''
+        })
+      }).then(function(r){ return r.json(); })
+        .then(function(d){ console.log('LINE通知:', d); })
+        .catch(function(e){ console.warn('LINE通知エラー:', e.message); });
+    }
     // ローカル即時更新
     liveBookings=liveBookings.map(function(b){
       return b.fbId===fbId ? Object.assign({},b,{status:'confirmed'}) : b;
