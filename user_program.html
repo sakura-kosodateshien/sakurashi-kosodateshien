@@ -992,7 +992,18 @@ async function submitBooking(){
         where('progId', '==', p.id),
         where('date',   '==', dateK2)
       ));
-      const activeCount = capSnap.docs.filter(d => d.data().status !== 'cancelled').length;
+      const activeDocs = capSnap.docs.filter(d => d.data().status !== 'cancelled');
+      const activeCount = activeDocs.length;
+      // 重複チェック：同じ電話番号が同じプログラム・同じ日に既に予約済みか
+      const telClean = tel.replace(/[-\s]/g, '');
+      const duplicate = activeDocs.find(d => {
+        const t = (d.data().tel || '').replace(/[-\s]/g, '');
+        return t === telClean;
+      });
+      if (duplicate) {
+        alert(`この日の${p.name}はすでにご予約済みです。\nご不明な点はお電話でお問い合わせください。`);
+        return;
+      }
       // 子供2人は2組分カウント
       if (activeCount + bookingUnits > p.cap) {
         alert(`この日の${p.name}は満員です（定員${p.cap}組）。\n他の日程をご確認ください。`);

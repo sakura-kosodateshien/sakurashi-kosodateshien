@@ -85,6 +85,9 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .s-pending{background:#fff3cd;color:#856404}
 .delete-btn{border:none;background:none;cursor:pointer;font-size:1rem;padding:4px 6px;opacity:.45;border-radius:2px;line-height:1;transition:opacity .15s,background .15s}
 .delete-btn:hover{opacity:1;background:#fdecea}
+.hold-btn{border:1px solid #9e7bc0;background:#f3edf9;color:#6a3d9a;cursor:pointer;font-size:.75rem;padding:4px 8px;border-radius:4px;font-family:inherit;font-weight:700;transition:background .15s}
+.hold-btn:hover{background:#e8d5f5}
+.s-hold{background:#ede0f7;color:#6a3d9a;}
 </style>
 <script>
 // 認証チェック（admin_top.html でログイン済みの場合はスキップ）
@@ -456,9 +459,10 @@ function openPanel(id){
           ${b.childName2?`<div class="bk-info" style="color:#7a5c9a;font-weight:600">👶 2人目：${b.childName2}　${b.age2||''}</div>`:''}
           ${b.note?`<div class="bk-note"><span class="bk-note-icon">⚠️</span><span><strong>備考あり：</strong>${b.note}</span></div>`:''}
         </div>
-        <span class="bk-stat ${isPending?'s-pending':'s-ok'}">${isPending?'⏳ 確認待ち':'確定'}</span>
-        ${isPending?`<button class="confirm-btn" onclick="confirmBooking('${b.fbId}','${p.id}')">✅ 確認</button>`:''}
-        <button class="delete-btn" onclick="deleteBooking('${b.fbId}','${p.id}','${(b.name||'').replace(/'/g,'&#39;')}')" title="削除">🗑</button>
+        <span class="bk-stat ${b.status==='hold'?'s-hold':isPending?'s-pending':'s-ok'}">${b.status==='hold'?'🔒 保留中':isPending?'⏳ 確認待ち':'確定'}</span>
+        ${isPending||b.status==='hold'?`<button class="confirm-btn" onclick="confirmBooking('${b.fbId}','${p.id}')">✅ 確認</button>`:''}
+        ${isPending?`<button class="hold-btn" onclick="holdBooking('${b.fbId}','${p.id}','${(b.name||'').replace(/'/g,'&#39;')}')">🔒 保留</button>`:''}
+        <button class="delete-btn" onclick="deleteBooking('${b.fbId}','${p.id}','${(b.name||'').replace(/'/g,'&#39;')}','${b.tel||''}')" title="キャンセル通知して削除">🗑</button>
       </div>`;
     });
   }
@@ -530,14 +534,32 @@ window.confirmBooking=function(fbId, progId){
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
 
-window.deleteBooking=function(fbId, progId, name){
+window.deleteBooking=function(fbId, progId, name, tel){
   if(!window._fbDeleteDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
-  if(!confirm((name||'この予約')+'を削除しますか？\nこの操作は取り消せません。')){return;}
+  if(!confirm((name||'この予約')+'を削除しますか？\nLINE連携済みの場合はキャンセル通知が送信されます。')){return;}
 
   const btn=document.querySelector('#bkrow-'+fbId+' .delete-btn');
   if(btn){btn.disabled=true;btn.textContent='⏳';}
 
   if(unsubFn){unsubFn();unsubFn=null;}
+
+  // キャンセル通知を送信してから削除
+  const bk = liveBookings.find(function(b){return b.fbId===fbId;});
+  if(bk && tel){
+    fetch('https://asia-northeast1-sakurashi-kosodateshien.cloudfunctions.net/notifyBookingCancelled',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        progName:  bk.progName||bk.progId||'',
+        dateLabel: bk.dateLabel||bk.date||'',
+        time:      bk.time||'',
+        name:      bk.name||'',
+        tel:       tel
+      })
+    }).then(function(r){return r.json();})
+      .then(function(d){console.log('キャンセル通知:',d);})
+      .catch(function(e){console.warn('キャンセル通知エラー:',e.message);});
+  }
 
   window._fbDeleteDoc(fbId).then(function(){
     liveBookings=liveBookings.filter(function(b){return b.fbId!==fbId;});
@@ -548,6 +570,31 @@ window.deleteBooking=function(fbId, progId, name){
   }).catch(function(e){
     alert('削除に失敗しました: '+e.message);
     if(btn){btn.disabled=false;btn.textContent='🗑';}
+    if(window.loadFirebase)loadFirebase();
+  });
+};
+
+// ── 保留処理 ────────────────────────────────────────────────────────
+window.holdBooking=function(fbId, progId, name){
+  if(!window._fbUpdateDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
+  const reason=prompt((name||'この予約')+'を保留にします。\n理由を入力してください（省略可）:');
+  if(reason===null){return;} // キャンセルボタン押下
+
+  const btn=document.querySelector('#bkrow-'+fbId+' .hold-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳';}
+
+  if(unsubFn){unsubFn();unsubFn=null;}
+
+  window._fbUpdateDoc(fbId,{status:'hold', holdReason:reason, heldAt: new Date().toISOString()}).then(function(){
+    liveBookings=liveBookings.map(function(b){
+      return b.fbId===fbId ? Object.assign({},b,{status:'hold',holdReason:reason}) : b;
+    });
+    render();
+    openPanel(progId);
+    setTimeout(function(){if(window.loadFirebase)loadFirebase();},2000);
+  }).catch(function(e){
+    alert('保留に失敗しました: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='🔒 保留';}
     if(window.loadFirebase)loadFirebase();
   });
 };
