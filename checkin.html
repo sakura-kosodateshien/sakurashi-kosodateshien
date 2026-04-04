@@ -493,13 +493,14 @@ async function searchAndShowTelResult() {
 }
 function showTelConfirm(user) {
   STATE.foundUser = user;
+  window._confirmUserCheckin = function() { doCheckinByUser(STATE.foundUser); };
   setScreen(
     '<div class="center-wrap">' +
     '<div style="font-size:3rem">👤</div>' +
     '<div class="big-text" style="margin-top:12px">' + (user.name||user.kana||'（名前なし）') + ' さん</div>' +
     '<div class="confirm-row">この方でよろしいですか？</div>' +
     '<div class="btn-row">' +
-    '<button class="big-btn primary" onclick="doCheckinByUser(STATE.foundUser)">入室する</button>' +
+    '<button class="big-btn primary" onclick="window._confirmUserCheckin()">入室する</button>' +
     '<button class="big-btn ghost" onclick="showTelInput()">← 番号を入力し直す</button>' +
     '</div></div>',
     'confirm-screen'
