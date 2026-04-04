@@ -215,7 +215,7 @@ async function doCheckinGuest(tel4) {
       isGuest: true,
       needsProfile: true
     });
-    showResultIn({ name: 'ご来場の方（' + tel4 + '）', progName: '自由来所', time: timeStr(), visitType: 'free', isGuest: true });
+    showResultIn({ name: 'はじめてのご来場', progName: '自由来所　下4桁：' + tel4, time: timeStr(), visitType: 'free', isGuest: true });
   } catch(e) {
     console.error(e);
     showError('エラーが発生しました', e.message);
@@ -526,7 +526,7 @@ function renderGuestTel() {
       return '<button class="num-key" onclick="guestTelInput(' + k + ')">' + k + '</button>';
     }).join('') +
     '</div>' +
-    '<div class="form-note" style="max-width:280px;text-align:center;">※ 次回来場時も同じ番号で入室できます。<br>LINEで会員登録すると名前・月齢も登録できます。</div>' +
+    '<div class="form-note" style="max-width:280px;text-align:center;">※ LINEリッチメニュー「利用者登録」から会員登録すると次回から名前で表示されます。</div>' +
     '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
     '</div>',
     'tel-screen'
@@ -558,7 +558,7 @@ function showResultIn(opt) {
     '<div class="result-meta">' + typeLabel + '　入室 ' + opt.time + '</div>' +
     (opt.alreadyIn ? '<div class="result-note">（本日すでに入室記録があります）</div>' : '') +
     (opt.isGuest ?
-      '<div class="guest-prompt">LINEで会員登録すると次回から電話番号で入室できます ✨<br><span style="font-size:.78rem;opacity:.75">リッチメニュー「会員QR」から登録　→ 詳細・月齢もそちらで入力できます</span></div>'
+      '<div class="guest-prompt">次回から電話番号で入室するには会員登録を ✨<br><span style="font-size:.78rem;opacity:.75">LINEリッチメニュー「利用者登録」からご登録ください</span></div>'
     : '') +
     '<div class="result-countdown" id="countdown">5秒後に戻ります…</div>' +
     '</div>',
