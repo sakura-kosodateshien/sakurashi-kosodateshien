@@ -74,11 +74,17 @@ async function loadTodayBookings() {
     where('date','==',today),
     where('exitAt','==',null)
   ));
+  // uid OR bookingId の両方でチェックイン済みを判定（未登録者対応）
   const checkedInUids = new Set(vSnap.docs.map(d => d.data().uid).filter(Boolean));
+  const checkedInBkIds = new Set(
+    vSnap.docs.flatMap(d => d.data().bookingIds || [])
+  );
   STATE.todayBookings = snap.docs.map(d => ({
     id: d.id,
     ...d.data(),
-    alreadyIn: checkedInUids.has(d.data().uid)
+    alreadyIn: (d.data().uid && checkedInUids.has(d.data().uid))
+            || checkedInBkIds.has(d.id)
+            || d.data().checkedIn === true
   }));
 }
 
