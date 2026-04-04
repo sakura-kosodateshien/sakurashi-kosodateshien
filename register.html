@@ -118,7 +118,7 @@
       console.error(e);
       alert('登録に失敗しました。通信状況を確認してください。\n' + e.message);
       btn.disabled   = false;
-      btn.textContent = '登録してQRコードを受け取る';
+      btn.textContent = '登録する';
     }
   };
 
@@ -313,7 +313,7 @@
   <!-- 登録フォーム -->
   <div id="formSection">
     <h2>はじめに登録してください</h2>
-    <p class="sub">登録後にQRコードが発行されます。次回からはQRコードをかざすだけでチェックインできます。</p>
+    <p class="sub">登録すると次回から電話番号（下4桁）でチェックインできます。</p>
 
     <div class="field">
       <label>保護者名（ひらがな）<span class="req">必須</span></label>
@@ -341,24 +341,20 @@
     </div>
 
     <button class="btn" id="submitBtn" onclick="submitRegistration()">
-      登録してQRコードを受け取る
+      登録する
     </button>
   </div>
 
-  <!-- QR表示 -->
+  <!-- 完了表示 -->
   <div id="qrSection">
     <div class="qr-badge">
       <div class="welcome">登録が完了しました！</div>
       <div class="name" id="qrName"></div>
-      <div class="uid"  id="qrUID"></div>
     </div>
-
-    <div id="qrcode"></div>
-
     <div class="qr-note">
-      <strong>📱 このQRコードを保存してください</strong><br>
-      スクリーンショットを撮って保存するか、印刷してお持ちください。<br>
-      次回からセンターの受付端末にかざすだけでチェックイン完了です。
+      <strong>✅ 次回からのチェックイン方法</strong><br>
+      センター入口のタブレットで<strong>電話番号の下4桁</strong>を入力するだけでチェックインできます。<br><br>
+      予約確認・キャンセルはLINEリッチメニューの「予約確認」からご利用ください。
     </div>
   </div>
 
