@@ -44,12 +44,36 @@
       if (liff.isLoggedIn()) {
         const profile = await liff.getProfile();
         _lineUserId = profile.userId;
+        // 既存登録チェック
+        const snap = await getDocs(query(
+          collection(db, 'users'),
+          where('lineUserId', '==', _lineUserId)
+        ));
+        if (!snap.empty) {
+          const user = snap.docs[0].data();
+          showAlreadyRegistered(user.name);
+          return;
+        }
       }
     } catch(e) {
       console.warn('LIFF初期化失敗（LINE外からのアクセス）:', e.message);
     }
   }
   initLiff();
+
+  // ── 登録済み表示 ──────────────────────────────────────────────────
+  function showAlreadyRegistered(name) {
+    document.getElementById('formSection').style.display = 'none';
+    const sec = document.getElementById('qrSection');
+    sec.style.display = 'flex';
+    document.getElementById('qrName').textContent = name + ' さん';
+    // qr-noteの文言を登録済み用に変更
+    sec.querySelector('.qr-note').innerHTML =
+      '<strong>✅ 登録済みです</strong><br>' +
+      'すでに会員登録が完了しています。<br><br>' +
+      'センター入口のタブレットで<strong>電話番号の下4桁</strong>を入力するだけでチェックインできます。<br><br>' +
+      '予約確認・キャンセルはLINEリッチメニューの「予約確認」からご利用ください。';
+  }
 
   // ── ユニークID生成 ──────────────────────────────────────────────────
   function generateUID() {
