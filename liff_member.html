@@ -328,6 +328,21 @@ window.openCancel=function(id,name,date,needReason){
         status:'cancelled', cancelledAt:Timestamp.now(), cancelReason:reason
       });
       modal.classList.remove('open');
+      // キャンセル確認通知を利用者に送信
+      if(currentLineUserId){
+        fetch('https://asia-northeast1-sakurashi-kosodateshien.cloudfunctions.net/notifyBookingCancelled',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            progName: name,
+            dateLabel: date,
+            time: '',
+            name: '',
+            lineUserId: currentLineUserId,
+            isSelfCancel: true
+          })
+        }).catch(e=>console.warn('キャンセル通知エラー:',e.message));
+      }
       if(currentUid) loadBookings(currentUid);
     }catch(e){ alert('キャンセルに失敗しました: '+e.message); }
   };
