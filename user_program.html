@@ -726,7 +726,7 @@ function openModal(progId, slotIdx){
   const detailAge = ageTarget ? `　${ageTarget}` : '';
   document.getElementById('mDetail').textContent = `${s.date}　${s.time}　${isLunch ? capText : '定員'+capText}${detailAge}`;
   document.getElementById('mDesc').textContent   = p.note;
-  document.getElementById('mProgLink').href = `programs.html`;
+  document.getElementById('mProgLink').href = `programs.html#prog-${p.id}`;
   const nameLabel = document.querySelector('#formView .form-row label');
   if(nameLabel) nameLabel.innerHTML = isLunch
     ? '代表保護者名（ひらがな）<span class="req">*</span>'

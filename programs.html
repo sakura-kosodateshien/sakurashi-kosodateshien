@@ -363,7 +363,7 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
         ? `<button onclick="openModal('${p.id}')" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:#fff;font-family:inherit;font-size:.78rem;cursor:pointer;color:var(--muted);margin-bottom:8px">✏️ 編集</button>`
         : '';
 
-      return `<div class="prog-card" data-cat="${p.cat}">
+      return `<div class="prog-card" id="prog-${p.id}" data-cat="${p.cat}">
         ${imgHtml}
         <div class="card-body">
           <div class="card-head">
@@ -387,6 +387,19 @@ main{max-width:600px;margin:0 auto;padding:16px 14px 60px}
         </div>
       </div>`;
     }).join('');
+
+    // ハッシュ指定があれば該当プログラムにスクロール
+    const hash = location.hash;
+    if(hash){
+      const target = document.querySelector(hash);
+      if(target){
+        setTimeout(()=>{
+          target.scrollIntoView({behavior:'smooth', block:'start'});
+          target.style.outline = '3px solid var(--primary)';
+          setTimeout(()=>{ target.style.outline = ''; }, 2000);
+        }, 150);
+      }
+    }
   }
 
   // ── カテゴリフィルター ────────────────────────────────────────────────
