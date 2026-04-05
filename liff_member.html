@@ -274,7 +274,7 @@ async function loadBookings(uid){
         cancelBtn=`<button class="bk-cancel-btn bk-cancel-tel" onclick="cancelTelAlert()">📞 電話でキャンセル</button>`;
       } else {
         const late=cs==='comment';
-        cancelBtn=`<button class="bk-cancel-btn" onclick="openCancel('${b.id}','${(b.progName||'').replace(/'/g,"\\'")}','${b.date}',${late})">${late?'⚠️ キャンセル':'キャンセル'}</button>`;
+        cancelBtn=`<button class="bk-cancel-btn" onclick="openCancel('${b.id}','${(b.progName||'').replace(/'/g,"\\'")}','${b.dateLabel||b.date}','${b.time||''}',${late})">${late?'⚠️ キャンセル':'キャンセル'}</button>`;
       }
       return `<div class="bk-card">
         <div class="bk-date">${b.dateLabel||b.date}</div>
@@ -302,7 +302,7 @@ window.cancelTelAlert=()=>{
   alert('キャンセル期限（2日前14:00）を過ぎています。\nお電話（043-310-5757）にてご連絡ください。');
 };
 
-window.openCancel=function(id,name,date,needReason){
+window.openCancel=function(id,name,date,time,needReason){
   const modal=document.getElementById('cancelModal');
   document.getElementById('cmTitle').textContent=`「${name}」をキャンセル`;
   const noteEl=document.getElementById('cmNote');
@@ -337,7 +337,7 @@ window.openCancel=function(id,name,date,needReason){
             lineUserId: currentLineUserId,
             progName:   name,
             dateLabel:  date,
-            time:       '',
+            time:       time,
             name:       ''
           })
         }).catch(e=>console.warn('キャンセル通知エラー:',e.message));
