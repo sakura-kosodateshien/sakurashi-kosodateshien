@@ -32,6 +32,23 @@
   const PASS = 'hinoki2026';
   var SK = 'adminAuth';
 
+  // ── カスタム確認ダイアログ（confirm()の代替） ────────────────────
+  function customConfirm(title, msg, okLabel, okDanger){
+    return new Promise(resolve=>{
+      const ov=document.getElementById('customConfirmOverlay');
+      const msgEl=document.getElementById('customConfirmMsg');
+      const okBtn=document.getElementById('ccBtnOk');
+      const ngBtn=document.getElementById('ccBtnCancel');
+      msgEl.innerHTML='<strong>'+title+'</strong>'+msg;
+      okBtn.textContent=okLabel||'OK';
+      okBtn.className='cc-btn cc-btn-ok'+(okDanger===false?' safe':'');
+      ov.classList.add('open');
+      const done=(v)=>{ ov.classList.remove('open'); okBtn.onclick=null; ngBtn.onclick=null; resolve(v); };
+      okBtn.onclick=()=>done(true);
+      ngBtn.onclick=()=>done(false);
+    });
+  }
+
   function openMain(){
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainScreen').style.display  = 'block';
@@ -239,7 +256,11 @@
 
   // ── 会員削除 ────────────────────────────────────────────────────────
   window.deleteMember = async function(uid, name, tel){
-    if(!confirm(`「${name}」さんの会員情報を削除しますか？\n今後の予約もすべてキャンセルになります。\nこの操作は元に戻せません。`)) return;
+    if(!await customConfirm(
+      `「${name}」さんの会員情報を削除`,
+      '今後の予約もすべてキャンセルになります。\nこの操作は元に戻せません。',
+      '削除する'
+    )) return;
     try{
       // telで紐づく予約をすべてキャンセル
       if(tel){
@@ -319,7 +340,11 @@
 
   // ── 予約キャンセル ────────────────────────────────────────────────
   window.cancelBooking = async function(bookingId, progName, dateLabel){
-    if(!confirm(`「${progName}　${dateLabel}」の予約をキャンセルにしますか？\n（履歴は残ります）`)) return;
+    if(!await customConfirm(
+      `「${progName}　${dateLabel}」の予約をキャンセル`,
+      '履歴は残ります。',
+      'キャンセルにする'
+    )) return;
     try{
       await updateDoc(doc(db,'bookings',bookingId), { status:'cancelled' });
       const modal = document.getElementById('bookingModal');
@@ -601,7 +626,11 @@
 
   // 変更削除
   window.deleteChange = async function(id){
-    if(!confirm('この変更を削除しますか？\n削除すると予約画面・管理画面の表示も元に戻ります。')) return;
+    if(!await customConfirm(
+      'この変更を削除しますか？',
+      '削除すると予約画面・管理画面の表示も元に戻ります。',
+      '削除する'
+    )) return;
     try{
       await deleteDoc(doc(db,'changes',id));
       loadChanges();
@@ -917,9 +946,30 @@
   }
 
   #loadingMsg { text-align:center; padding:20px; color:var(--muted); }
+  /* カスタム確認モーダル */
+  #customConfirmOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;}
+  #customConfirmOverlay.open{display:flex;}
+  #customConfirmBox{background:#fff;width:min(92vw,400px);padding:28px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 4px 24px rgba(0,0,0,.18);}
+  #customConfirmMsg{font-size:.95rem;line-height:1.7;color:#2a1a3e;white-space:pre-line;}
+  #customConfirmMsg strong{display:block;font-size:1.05rem;margin-bottom:6px;color:#3d2a55;}
+  .cc-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .cc-btn{padding:9px 22px;font-size:.88rem;font-weight:700;font-family:inherit;border:none;cursor:pointer;}
+  .cc-btn-cancel{background:#f0eaf8;color:#5a3f78;}
+  .cc-btn-ok{background:#dc2626;color:#fff;}
+  .cc-btn-ok.safe{background:#5a3f78;}
 </style>
 </head>
 <body>
+<!-- カスタム確認モーダル -->
+<div id="customConfirmOverlay">
+  <div id="customConfirmBox">
+    <div id="customConfirmMsg"></div>
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-cancel" id="ccBtnCancel">キャンセル</button>
+      <button class="cc-btn cc-btn-ok" id="ccBtnOk">OK</button>
+    </div>
+  </div>
+</div>
 
 <header>
   <a href="admin_top.html" style="color:rgba(60,40,80,.75);text-decoration:none;font-size:.82rem;margin-right:auto">← 戻る</a>

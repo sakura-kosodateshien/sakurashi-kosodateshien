@@ -88,6 +88,16 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 .hold-btn{border:1px solid #9e7bc0;background:#f3edf9;color:#6a3d9a;cursor:pointer;font-size:.75rem;padding:4px 8px;border-radius:4px;font-family:inherit;font-weight:700;transition:background .15s}
 .hold-btn:hover{background:#e8d5f5}
 .s-hold{background:#ede0f7;color:#6a3d9a;}
+/* カスタム確認モーダル */
+#customConfirmOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;}
+#customConfirmOverlay.open{display:flex;}
+#customConfirmBox{background:#fff;width:min(92vw,380px);padding:26px 22px 18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 4px 24px rgba(0,0,0,.2);}
+#customConfirmMsg{font-size:.92rem;line-height:1.7;color:#2a1a3e;white-space:pre-line;}
+#customConfirmMsg strong{display:block;font-size:1rem;margin-bottom:4px;color:#3d2a55;}
+.cc-actions{display:flex;gap:8px;justify-content:flex-end;}
+.cc-btn{padding:8px 20px;font-size:.85rem;font-weight:700;font-family:inherit;border:none;cursor:pointer;}
+.cc-btn-cancel{background:#f0eaf8;color:#5a3f78;}
+.cc-btn-ok{background:#dc2626;color:#fff;}
 </style>
 <script>
 // 認証チェック（admin_top.html でログイン済みの場合はスキップ）
@@ -99,6 +109,16 @@ header h1{color:#3d2a55;font-size:.95rem;font-weight:700;flex:1;text-align:cente
 </script>
 </head>
 <body>
+<!-- カスタム確認モーダル -->
+<div id="customConfirmOverlay">
+  <div id="customConfirmBox">
+    <div id="customConfirmMsg"></div>
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-cancel" id="ccBtnCancel">キャンセル</button>
+      <button class="cc-btn cc-btn-ok" id="ccBtnOk">OK</button>
+    </div>
+  </div>
+</div>
 <header style="position:relative">
   <a href="admin_top.html">← 戻る</a>
   <h1>予約管理</h1>
@@ -364,6 +384,22 @@ async function updatePendingBanner(){
 }
 window.jumpToWeek=function(off){ weekOffset=parseInt(off); initFirebase(); };
 
+// ── カスタム確認ダイアログ ────────────────────────────────────────
+function customConfirm(title, msg, okLabel){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('customConfirmOverlay');
+    const msgEl=document.getElementById('customConfirmMsg');
+    const okBtn=document.getElementById('ccBtnOk');
+    const ngBtn=document.getElementById('ccBtnCancel');
+    msgEl.innerHTML='<strong>'+title+'</strong>'+(msg||'');
+    okBtn.textContent=okLabel||'OK';
+    ov.classList.add('open');
+    const done=(v)=>{ ov.classList.remove('open'); okBtn.onclick=null; ngBtn.onclick=null; resolve(v); };
+    okBtn.onclick=()=>done(true);
+    ngBtn.onclick=()=>done(false);
+  });
+}
+
 function reloadPage(btn){
   btn.style.transition='transform .4s';
   btn.style.transform='translateY(-50%) rotate(360deg)';
@@ -534,9 +570,14 @@ window.confirmBooking=function(fbId, progId){
 
 function closePanel(){ document.getElementById('panelBg').classList.remove('open'); }
 
-window.deleteBooking=function(fbId, progId, name, tel){
+window.deleteBooking=async function(fbId, progId, name, tel){
   if(!window._fbDeleteDoc){alert('Firebase接続中です。しばらくお待ちください。');return;}
-  if(!confirm((name||'この予約')+'を削除しますか？\nLINE連携済みの場合はキャンセル通知が送信されます。')){return;}
+  const confirmed = await customConfirm(
+    (name||'この予約')+'を削除しますか？',
+    'LINE連携済みの場合はキャンセル通知が送信されます。',
+    '削除する'
+  );
+  if(!confirmed){return;}
 
   const btn=document.querySelector('#bkrow-'+fbId+' .delete-btn');
   if(btn){btn.disabled=true;btn.textContent='⏳';}
