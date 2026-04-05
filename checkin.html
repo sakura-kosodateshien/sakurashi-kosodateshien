@@ -51,7 +51,6 @@ function timeStr() {
 let STATE = {};
 function resetState() {
   STATE = {
-    checkinMode: true,
     todayBookings: [],
     selectedBooking: null,
     telInput: '',
@@ -287,31 +286,20 @@ async function showTop() {
   resetState();
   setScreen('<div class="center-wrap"><div class="spin"></div></div>');
   await loadTodayBookings();
-  const mode = STATE.checkinMode;
   setScreen(
     '<div class="top-wrap">' +
-    '<div class="mode-row">' +
-    '<button class="mode-btn' + (mode ? ' active-in' : '') + '" onclick="switchMode(true)">入室</button>' +
-    '<button class="mode-btn' + (!mode ? ' active-out' : '') + '" onclick="switchMode(false)">退室</button>' +
-    '</div>' +
-    '<div class="top-title">' + (mode ? 'チェックイン' : 'チェックアウト') + '</div>' +
-    '<div class="top-sub">' + (mode ? '今日の予約がある方はタップ' : '帰られる方はタップ') + '</div>' +
     '<button class="big-btn primary" onclick="showReservedList()">' +
-    '<span class="btn-icon">' + (mode ? '📋' : '🏠') + '</span>' +
-    '<span class="btn-label">' + (mode ? '予約あり　名前を選ぶ' : '在室中の方　名前を選ぶ') + '</span>' +
+    '<span class="btn-icon">📋</span>' +
+    '<span class="btn-label btn-label-lg">予約あり</span>' +
     '</button>' +
-    (mode ?
-      '<div class="divider"><span>予約なし・会員の方</span></div>' +
-      '<button class="big-btn secondary" onclick="showTelInput()">' +
-      '<span class="btn-icon">📞</span>' +
-      '<span class="btn-label">電話番号（下4桁）で入室</span>' +
-      '</button>' +
-      '<div class="divider"><span>はじめての方</span></div>' +
-      '<button class="big-btn ghost" onclick="showGuestInfo()">' +
-      '<span class="btn-icon">🌿</span>' +
-      '<span class="btn-label">はじめての方はこちら</span>' +
-      '</button>'
-    : '') +
+    '<button class="big-btn secondary" onclick="showTelInput()">' +
+    '<span class="btn-icon">📞</span>' +
+    '<span class="btn-label btn-label-lg">電話番号（下4桁）</span>' +
+    '</button>' +
+    '<button class="big-btn ghost" onclick="showGuestInfo()">' +
+    '<span class="btn-icon">🌿</span>' +
+    '<span class="btn-label btn-label-lg">はじめての方</span>' +
+    '</button>' +
     '</div>',
     'top-screen'
   );
@@ -319,52 +307,6 @@ async function showTop() {
 
 // ─── 予約一覧 / 在室一覧 ─────────────────────────────────────────
 async function showReservedList() {
-  if (!STATE.checkinMode) {
-    showLoading('在室中の方を確認中…');
-    const visits = await loadActiveVisits();
-    if (visits.length === 0) {
-      setScreen(
-        '<div class="center-wrap">' +
-        '<div style="font-size:3rem">🏠</div>' +
-        '<div class="big-text" style="margin-top:12px">在室中の方はいません</div>' +
-        '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
-        '</div>'
-      );
-      return;
-    }
-    const items = visits.map(function(v) {
-      const progs = (v.progNames||[]).join('・') || '自由来所';
-      const t = v.visitedAt ? v.visitedAt.toDate().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '';
-      return '<button class="name-card" onclick="window._doCheckout(\'' + v.id + '\')">' +
-        '<span class="name-main">' + (v.name||'（名前なし）') + '</span>' +
-        '<span class="name-sub">' + progs + '　入室 ' + t + '</span>' +
-        '</button>';
-    }).join('');
-    setScreen(
-      '<div class="list-wrap">' +
-      '<div class="list-title">退室する方を選んでください</div>' +
-      '<div class="name-list">' + items + '</div>' +
-      '<button class="back-btn" onclick="showTop()">← 戻る</button>' +
-      '</div>'
-    );
-    window._doCheckout = async function(visitId) {
-      showLoading('記録中…');
-      const snap = await getDocs(query(
-        collection(db,'visits'),
-        where('date','==',todayStr()),
-        where('exitAt','==',null)
-      ));
-      const vDoc = snap.docs.find(function(d){ return d.id===visitId; });
-      if (vDoc) {
-        await doCheckout(vDoc.id, vDoc.data());
-      } else {
-        showError('記録が見つかりません','再度お試しください');
-      }
-    };
-    return;
-  }
-
-  // 入室モード
   const bks = STATE.todayBookings;
   if (bks.length === 0) {
     setScreen(
@@ -610,7 +552,6 @@ function showError(msg, sub) {
 }
 
 // ─── グローバル公開 ───────────────────────────────────────────────
-window.switchMode = function(isIn) { STATE.checkinMode = isIn; showTop(); };
 window.showTop = showTop;
 window.showReservedList = showReservedList;
 window.showTelInput = showTelInput;
@@ -632,12 +573,7 @@ header h1{font-size:1rem;font-weight:700;letter-spacing:.05em;}
 .header-back{position:absolute;left:12px;color:rgba(255,255,255,.75);font-size:.78rem;text-decoration:none;padding:4px 8px;}
 #screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:16px;}
 .top-wrap{display:flex;flex-direction:column;gap:10px;max-width:480px;margin:0 auto;}
-.mode-row{display:flex;gap:0;border-radius:12px;overflow:hidden;border:2px solid var(--lav);}
-.mode-btn{flex:1;padding:10px;font-size:.9rem;font-weight:700;border:none;background:transparent;cursor:pointer;color:var(--sub);font-family:inherit;transition:background .15s,color .15s;}
-.mode-btn.active-in{background:var(--lav-dark);color:#fff;}
-.mode-btn.active-out{background:#b55a00;color:#fff;}
-.top-title{font-size:1.5rem;font-weight:900;text-align:center;color:var(--lav-dark);padding:4px 0 0;}
-.top-sub{text-align:center;font-size:.85rem;color:var(--sub);}
+.btn-label-lg{flex:1;line-height:1.3;font-size:1.1rem;}
 .big-btn{width:100%;padding:18px 16px;border-radius:14px;border:none;display:flex;align-items:center;gap:12px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .12s;text-align:left;}
 .big-btn:active{opacity:.75;}
 .big-btn.primary{background:var(--lav-dark);color:#fff;}
