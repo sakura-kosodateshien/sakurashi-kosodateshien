@@ -263,12 +263,19 @@
 
   // ── 会員別予約一覧 ──────────────────────────────────────────────────
   window.showMemberBookings = async function(uid, name, tel){
-    document.getElementById('bookingModalName').textContent = name + ' さんの予約一覧';
+    document.getElementById('bookingModalName').textContent = name + ' さんの履歴';
     document.getElementById('bookingModal').dataset.tel  = tel;
     document.getElementById('bookingModal').dataset.name = name;
     document.getElementById('bookingModal').dataset.uid  = uid;
     document.getElementById('bookingModalList').innerHTML =
       '<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中...</div>';
+    document.getElementById('visitModalList').innerHTML = '';
+    document.getElementById('visitModalList').style.display = 'none';
+    document.getElementById('bookingModalList').style.display = 'block';
+    document.getElementById('modalTabBk').style.background = '#5a3f78';
+    document.getElementById('modalTabBk').style.color = '#fff';
+    document.getElementById('modalTabVisit').style.background = 'transparent';
+    document.getElementById('modalTabVisit').style.color = '#5a3f78';
     document.getElementById('bookingModal').style.display = 'flex';
     try{
       const snap = await getDocs(query(
@@ -323,6 +330,70 @@
   window.closeBookingModal = function(){
     document.getElementById('bookingModal').style.display = 'none';
   };
+
+  // ── モーダルタブ切替 ─────────────────────────────────────────────
+  window.switchModalTab = function(tab){
+    const isBk = tab === 'bk';
+    document.getElementById('bookingModalList').style.display = isBk ? 'block' : 'none';
+    document.getElementById('visitModalList').style.display   = isBk ? 'none' : 'block';
+    document.getElementById('modalTabBk').style.background    = isBk ? '#5a3f78' : 'transparent';
+    document.getElementById('modalTabBk').style.color         = isBk ? '#fff' : '#5a3f78';
+    document.getElementById('modalTabVisit').style.background = isBk ? 'transparent' : '#5a3f78';
+    document.getElementById('modalTabVisit').style.color      = isBk ? '#5a3f78' : '#fff';
+    if (!isBk) loadVisitHistory();
+  };
+
+  // ── 来場記録読み込み ─────────────────────────────────────────────
+  async function loadVisitHistory(){
+    const modal = document.getElementById('bookingModal');
+    const tel   = modal.dataset.tel;
+    const uid   = modal.dataset.uid;
+    const listEl = document.getElementById('visitModalList');
+    listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:.85rem">読み込み中...</div>';
+    try{
+      // uidで来場記録を取得
+      const snap = await getDocs(query(
+        collection(db,'visits'),
+        where('uid','==',uid)
+      ));
+      // uidがない場合は名前+tel4で補完
+      let visits = snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(!visits.length && tel){
+        const tel4 = tel.replace(/[-\s]/g,'').slice(-4);
+        const snapGuest = await getDocs(query(
+          collection(db,'visits'),
+          where('tel4','==',tel4)
+        ));
+        visits = snapGuest.docs.map(d=>({id:d.id,...d.data()}));
+      }
+      if(!visits.length){
+        listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:.85rem">来場記録がありません</div>';
+        return;
+      }
+      visits.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      const typeLabel = {program:'プログラム参加', childcare:'託児', free:'自由来所'};
+      listEl.innerHTML = visits.map(v=>{
+        const dt = v.visitedAt ? v.visitedAt.toDate() : null;
+        const dateStr = dt ? dt.toLocaleDateString('ja-JP',{year:'numeric',month:'numeric',day:'numeric'}) : v.date||'-';
+        const timeStr = dt ? dt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '';
+        const progs = (v.progNames||[]).join('・') || '-';
+        const type  = typeLabel[v.visitType] || v.visitType || '-';
+        return `<div style="border:1.5px solid var(--border);border-radius:2px;padding:10px 12px;margin-bottom:8px;background:#fafafa">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-weight:700;font-size:.88rem;color:var(--text)">${dateStr}</span>
+            <span style="font-size:.72rem;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2d6a4f;font-weight:700">${type}</span>
+          </div>
+          <div style="font-size:.8rem;color:var(--muted);line-height:1.7">
+            📋 ${progs}<br>
+            🕐 入室 ${timeStr}${v.duration!=null ? '　滞在 '+v.duration+'分' : ''}
+            ${v.isGuest ? '<br><span style="font-size:.7rem;background:#fff3e0;color:#e65100;padding:1px 6px;border-radius:4px">ゲスト来場</span>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }catch(e){
+      listEl.innerHTML = '<div style="padding:16px;color:#c0392b;font-size:.85rem">読み込みエラー: '+e.message+'</div>';
+    }
+  }
 
   // ── 会員編集 ────────────────────────────────────────────────────────
   window.editMember = function(uid){
@@ -1079,11 +1150,16 @@ document.addEventListener('click', e=>{
 <!-- 会員別予約モーダル -->
 <div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center" onclick="if(event.target===this)closeBookingModal()">
   <div style="background:#fff;border-radius:2px;padding:24px 20px;width:min(480px,94%);max-height:80vh;display:flex;flex-direction:column">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3 id="bookingModalName" style="font-size:.95rem;font-weight:700;color:#5a3f78">📋 予約一覧</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 id="bookingModalName" style="font-size:.95rem;font-weight:700;color:#5a3f78">📋 履歴</h3>
       <button onclick="closeBookingModal()" style="border:none;background:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">✕</button>
     </div>
+    <div style="display:flex;gap:0;border-radius:6px;overflow:hidden;border:1.5px solid #c9b8e0;margin-bottom:12px;flex-shrink:0">
+      <button id="modalTabBk" onclick="switchModalTab('bk')" style="flex:1;padding:7px;border:none;background:#5a3f78;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">予約履歴</button>
+      <button id="modalTabVisit" onclick="switchModalTab('visit')" style="flex:1;padding:7px;border:none;background:transparent;color:#5a3f78;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit">来場記録</button>
+    </div>
     <div id="bookingModalList" style="overflow-y:auto;flex:1"></div>
+    <div id="visitModalList" style="overflow-y:auto;flex:1;display:none"></div>
   </div>
 </div>
 

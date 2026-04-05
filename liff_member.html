@@ -68,6 +68,8 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
 .reload-btn.spinning{animation:spin .6s linear infinite}
 @keyframes spin{from{transform:translateY(-50%) rotate(0deg)}to{transform:translateY(-50%) rotate(360deg)}}
 .badge-pend{background:#f3e5f5;color:#7b1fa2;font-size:.68rem;padding:2px 8px;border-radius:2px;font-weight:700}
+.bk-card-cancelled{opacity:.6;background:#fdf0f0!important;border-color:#f5c6c6!important;}
+.badge-cancel{background:#fce4ec;color:#c62828;font-size:.7rem;padding:3px 8px;border-radius:10px;font-weight:700;}
 .bk-cancel-btn{font-size:.72rem;padding:4px 10px;border-radius:2px;border:1px solid #fca5a5;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit}
 .bk-cancel-tel{border-color:#93c5fd;color:#1d4ed8}
 .empty-msg{text-align:center;color:#7d6b99;font-size:.85rem;padding:20px 0}
@@ -105,6 +107,10 @@ header h1{color:#3d2a55;font-size:1rem;font-weight:700}
       <!-- 予約確認タブ -->
       <div class="tab-panel active" id="tabBk" style="padding:16px">
         <div id="bkList"><div class="empty-msg">読み込み中…</div></div>
+        <div id="cancelSection" style="display:none;margin-top:20px">
+          <div style="font-size:.75rem;font-weight:700;color:#9e7bc0;letter-spacing:.05em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #e8d5f5">キャンセル履歴</div>
+          <div id="cancelList"></div>
+        </div>
       </div>
       <!-- 会員情報タブ -->
       <div class="tab-panel" id="tabInfo" style="padding:16px">
@@ -242,15 +248,20 @@ async function loadBookings(uid){
   const tel=userSnap.empty?'':userSnap.docs[0].data().tel||'';
 
   try{
-    // uidまたはtelで予約を検索
+    // uidまたはtelで予約を検索（キャンセル含む全件）
     const snap=await getDocs(query(
       collection(db,'bookings'),
-      where('tel','==',tel),
-      where('status','in',['confirmed','pending'])
+      where('tel','==',tel)
     ));
-    const bks=snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(b=>b.date>=today)
+    const allBks=snap.docs.map(d=>({id:d.id,...d.data()}))
       .sort((a,b)=>a.date.localeCompare(b.date));
+
+    // 有効な今後の予約
+    const bks=allBks.filter(b=>b.date>=today && b.status!=='cancelled');
+
+    // キャンセル済み
+    const cancelledBks=allBks.filter(b=>b.status==='cancelled')
+      .sort((a,b)=>b.date.localeCompare(a.date)); // 新しい順
 
     // 本日の予約
     const todayBks=bks.filter(b=>b.date===today);
@@ -262,30 +273,48 @@ async function loadBookings(uid){
     }
 
     // 予約一覧
+
+    // 有効予約を表示
     if(!bks.length){
       document.getElementById('bkList').innerHTML='<div class="empty-msg">予約はまだありません</div>';
-      return;
+    } else {
+      document.getElementById('bkList').innerHTML=bks.map(b=>{
+        const isToday=b.date===today;
+        const cs=getCancelStatus(b.date);
+        let cancelBtn='';
+        if(cs==='today' || cs==='comment'){
+          cancelBtn=`<button class="bk-cancel-btn bk-cancel-tel" onclick="cancelTelAlert()">📞 電話でキャンセル</button>`;
+        } else {
+          const late=cs==='comment';
+          cancelBtn=`<button class="bk-cancel-btn" onclick="openCancel('${b.id}','${(b.progName||'').replace(/'/g,"\\'")}','${b.dateLabel||b.date}','${b.time||''}',${late})">${late?'⚠️ キャンセル':'キャンセル'}</button>`;
+        }
+        return `<div class="bk-card">
+          <div class="bk-date">${b.dateLabel||b.date}</div>
+          <div class="bk-prog">${b.progName||b.progId}</div>
+          <div class="bk-time">${b.time||''}</div>
+          <div class="bk-footer">
+            <span class="${isToday?'badge-today':b.status==='pending'?'badge-pend':'badge-ok'}">${isToday?'本日':b.status==='pending'?'⏳ 確認中':'✅ 予約確定'}</span>
+            ${cancelBtn}
+          </div>
+        </div>`;
+      }).join('');
     }
-    document.getElementById('bkList').innerHTML=bks.map(b=>{
-      const isToday=b.date===today;
-      const cs=getCancelStatus(b.date);
-      let cancelBtn='';
-      if(cs==='today' || cs==='comment'){
-        cancelBtn=`<button class="bk-cancel-btn bk-cancel-tel" onclick="cancelTelAlert()">📞 電話でキャンセル</button>`;
-      } else {
-        const late=cs==='comment';
-        cancelBtn=`<button class="bk-cancel-btn" onclick="openCancel('${b.id}','${(b.progName||'').replace(/'/g,"\\'")}','${b.dateLabel||b.date}','${b.time||''}',${late})">${late?'⚠️ キャンセル':'キャンセル'}</button>`;
-      }
-      return `<div class="bk-card">
-        <div class="bk-date">${b.dateLabel||b.date}</div>
-        <div class="bk-prog">${b.progName||b.progId}</div>
-        <div class="bk-time">${b.time||''}</div>
-        <div class="bk-footer">
-          <span class="${isToday?'badge-today':b.status==='pending'?'badge-pend':'badge-ok'}">${isToday?'本日':b.status==='pending'?'⏳ 確認中':'✅ 予約確定'}</span>
-          ${cancelBtn}
-        </div>
-      </div>`;
-    }).join('');
+    // キャンセル履歴セクション
+    const cancelSection = document.getElementById('cancelSection');
+    if(cancelledBks.length){
+      cancelSection.style.display='block';
+      document.getElementById('cancelList').innerHTML=cancelledBks.map(b=>`
+        <div class="bk-card bk-card-cancelled">
+          <div class="bk-date">${b.dateLabel||b.date}</div>
+          <div class="bk-prog">${b.progName||b.progId}</div>
+          <div class="bk-time">${b.time||''}</div>
+          <div class="bk-footer">
+            <span class="badge-cancel">❌ キャンセル済</span>
+          </div>
+        </div>`).join('');
+    } else {
+      cancelSection.style.display='none';
+    }
   }catch(e){
     document.getElementById('bkList').innerHTML='<div class="empty-msg">読み込みエラー: '+e.message+'</div>';
   }
